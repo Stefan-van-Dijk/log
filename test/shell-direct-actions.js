@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const BUILD='0.31.10-test.60';
+  const BUILD='0.31.10-test.61';
   const EDIT_THRESHOLD=36;
   let gesture=null;
   let versionObserver=null;
