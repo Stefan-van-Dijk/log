@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const BUILD = '0.31.10-test.72';
+  const BUILD = '0.31.10-test.73';
   const SHELL_VERSION = (() => {
     try {
       const script = document.currentScript || [...document.scripts].find(item => item.src.includes('shell-ui.js'));
@@ -801,6 +801,9 @@
     sectionScrollPositions.set(section, viewportScrollTop());
     sectionTransitioning = true;
     const restoreToken = ++scrollRestoreToken;
+    setViewportScrollTop(0);
+    windowScrollState.top = 0;
+    windowScrollState.reverse = 0;
     const openedFromDrawer = drawerOpen;
     closeDrawer();
     section = next;
