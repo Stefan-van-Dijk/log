@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const BUILD='0.31.10-test.73';
+  const BUILD='0.31.10-test.74';
   const STORAGE_KEY='urenregistratie.test.pwa.v1';
   const policy=window.LogRemovalPolicy;
   if(!policy){console.error('LogRemovalPolicy ontbreekt in Tijd en taken.');return;}
@@ -98,7 +98,9 @@
   }
 
   function refreshTime(view='settings'){
-    window.LogTimeModule?.reloadFromStorage?.({view});
+    const activeSection=localStorage.getItem('kmreg-test-shell-section-v1');
+    window.LogTimeModule?.reloadFromStorage?.({view:activeSection==='themes'?'home':view});
+    window.dispatchEvent(new CustomEvent('log-time-state-change',{detail:{reason:'theme-catalog-change'}}));
     scheduleDecorate();
   }
 
@@ -287,7 +289,7 @@
   function ensureArchivePanel(){
     const page=$('.settings-page');
     if(!page)return;
-    const records=archiveRecords().sort((a,b)=>String(b.archivedAt||'').localeCompare(String(a.archivedAt||'')));
+    const records=archiveRecords().filter(record=>record.entityType==='colleague').sort((a,b)=>String(b.archivedAt||'').localeCompare(String(a.archivedAt||'')));
     let panel=$('#logTimeArchivePanel',page);
     if(!records.length){panel?.remove();return;}
     const signature=records.map(record=>`${record.archiveId}:${record.archivedAt}`).join('|');
@@ -347,6 +349,15 @@
     });
     scheduleDecorate();
   }
+
+  window.LogTimeRemovalPolicy=Object.freeze({
+    themePlan:id=>themePlan(id),
+    subthemePlan:id=>subthemePlan(id),
+    themeArchiveRecords:()=>archiveRecords()
+      .filter(record=>record.entityType==='theme'||record.entityType==='subtheme')
+      .sort((a,b)=>String(b.archivedAt||'').localeCompare(String(a.archivedAt||''))),
+    archiveRecordName
+  });
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});
   else init();

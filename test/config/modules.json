@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 1,
-  "updatedAt": "2026-09-18",
+  "schemaVersion": 2,
+  "updatedAt": "2026-09-20",
   "modules": [
     {
       "id": "rides",
@@ -42,12 +42,12 @@
       "id": "themes",
       "label": "Thema’s",
       "shortLabel": "Thema’s",
-      "subtitle": "Thema’s en categorieën beheren",
+      "subtitle": "Thema’s en subthema’s beheren",
       "icon": "themes",
       "available": true,
-      "defaultEnabled": false,
+      "defaultEnabled": true,
       "order": 40,
-      "view": "placeholder",
+      "view": "themes",
       "settingsTarget": null
     },
     {

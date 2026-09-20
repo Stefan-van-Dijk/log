@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const BUILD='0.31.10-test.73';
+  const BUILD='0.31.10-test.74';
   const DATA_KEY='kmreg-test-v4-data';
   const SECTION_KEY='kmreg-test-shell-section-v1';
   let gps={status:'idle',lat:null,lng:null,accuracy:null,matchedId:null,matchedRootId:null,distance:null,nearestId:null,nearestDistance:null,updatedAt:0,error:''};
@@ -29,7 +29,7 @@
     if(navIds.length)return new Set(navIds);
     const configured=readData().settings.navigationModules;
     if(Array.isArray(configured)&&configured.length)return new Set(configured.filter(item=>item&&item.enabled!==false).map(item=>String(item.id||'')).filter(Boolean));
-    return new Set(['rides','time','locations']);
+    return new Set(['rides','time','locations','themes']);
   }
 
   function ensureEnabledSection(){
@@ -79,7 +79,7 @@
 
   function section(){
     const value=localStorage.getItem(SECTION_KEY);
-    return ['rides','time','locations'].includes(value)?value:(document.body.classList.contains('time-mode')?'time':'rides');
+    return ['rides','time','locations','themes'].includes(value)?value:(document.body.classList.contains('time-mode')?'time':'rides');
   }
 
   function installCss(){
