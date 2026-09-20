@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const BUILD = '0.31.10-test.66';
+  const BUILD = '0.31.10-test.67';
   const SHELL_VERSION = (() => {
     try {
       const script = document.currentScript || [...document.scripts].find(item => item.src.includes('shell-ui.js'));
@@ -365,7 +365,7 @@
       .km-shell-menu-button{top:calc(env(safe-area-inset-top) + 15px)!important;left:max(12px,calc((100vw - 760px)/2 + 12px))!important;width:40px!important;height:40px!important;border-radius:50%!important;background:color-mix(in srgb,var(--accent) 11%,transparent)!important;color:var(--accent)!important;font-size:21px!important;font-weight:700;transition:opacity .15s ease,transform .15s ease}
       .km-shell-menu-button:active{opacity:.55;transform:scale(.94);background:color-mix(in srgb,var(--accent) 16%,transparent)!important}
       .km-shell-drawer{width:min(90vw,360px)!important;border-radius:0 24px 24px 0;border-right:.5px solid var(--line)!important;padding-left:12px!important;padding-right:12px!important}
-      .km-shell-drawer-head{padding:7px 12px 18px!important}.km-shell-drawer-head strong{font-size:32px!important;font-weight:780!important;letter-spacing:-.035em!important}.km-shell-drawer-head small{font-size:12px!important}
+      .km-shell-drawer-head{padding:7px 12px 18px!important}.km-shell-drawer-head strong{font-size:32px!important;font-weight:780!important;letter-spacing:-.035em!important}.km-shell-drawer-head small{font-size:11px!important}
       .km-shell-nav{overflow:hidden;gap:0!important;border:.5px solid var(--line);border-radius:16px;background:var(--card)}
       .km-shell-nav-button{position:relative;min-height:55px!important;padding:8px 13px!important;border-radius:0!important;font-size:16px!important;font-weight:600!important}
       .km-shell-nav-button:not(:last-child)::after{content:"";position:absolute;left:52px;right:0;bottom:0;height:.5px;background:var(--line)}
@@ -394,7 +394,7 @@
       body:not(.time-mode) #app .swipe-delete{background:#ff453a!important;color:#fff!important}
       body:not(.time-mode) #app .chev{color:color-mix(in srgb,var(--muted) 62%,transparent)!important;font-size:20px!important}
       body:not(.time-mode) #app .btn:active,.km-shell-locations button:active{opacity:.68}
-      .km-shell-locations-head{padding:7px 2px 12px!important}.km-shell-locations-head h2{font-size:22px!important;font-weight:720!important;letter-spacing:-.025em!important}
+      .km-shell-locations-head{padding:7px 2px 12px!important}.km-shell-locations-head h2{font-size:20px!important;font-weight:720!important;letter-spacing:-.02em!important}
       .km-shell-location-actions{overflow:hidden;gap:0!important;border:.5px solid var(--line);border-radius:14px;background:var(--card)}
       .km-shell-location-actions button{border:0!important;border-radius:0!important;background:transparent!important;color:var(--accent)!important;font-weight:650!important}.km-shell-location-actions button:first-child{border-right:.5px solid var(--line)!important}
       .km-shell-location-sort{border-width:.5px!important;border-radius:9px!important;background:color-mix(in srgb,var(--muted) 13%,transparent)!important}

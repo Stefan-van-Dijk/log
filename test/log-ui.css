@@ -17,6 +17,16 @@
   --log-sheet-radius:24px;
   --log-hairline:.5px;
   --log-page-width:760px;
+  --log-type-page:32px;
+  --log-type-section:20px;
+  --log-type-row:15px;
+  --log-type-sub:11px;
+  --log-type-meta:11px;
+  --log-weight-page:780;
+  --log-weight-section:720;
+  --log-weight-row:620;
+  --log-weight-sub:450;
+  --log-weight-value:720;
 
   /* Compatibiliteit met de bestaande modulevariabelen. */
   --bg:var(--log-bg);
@@ -167,7 +177,7 @@ body:not(.time-mode) #app .list .trip-entry:last-child .list-item::after{display
 
 /* Locaties gebruikt dezelfde kaart- en lijsttaal. */
 .km-shell-locations-head{padding:7px 2px 12px!important}
-.km-shell-locations-head h2{font-size:22px!important;font-weight:720!important;letter-spacing:-.025em!important}
+.km-shell-locations-head h2{font-size:var(--log-type-section)!important;font-weight:var(--log-weight-section)!important;letter-spacing:-.025em!important}
 .km-shell-location-actions{overflow:hidden!important;gap:0!important;border:var(--log-hairline) solid var(--line)!important;border-radius:14px!important;background:var(--surface)!important}
 .km-shell-location-actions button{border:0!important;border-radius:0!important;background:transparent!important;color:var(--accent)!important;font-weight:650!important}
 .km-shell-location-actions button+button{border-left:var(--log-hairline) solid var(--line)!important}
@@ -219,6 +229,63 @@ body:not(.time-mode) #app .list .trip-entry:last-child .list-item::after{display
 .modal-head{border-color:var(--line)!important;background:color-mix(in srgb,var(--bg) 90%,transparent)!important}
 .editor-nav,.editor-savebar{background:color-mix(in srgb,var(--bg) 92%,transparent)!important}
 .km-shell-placeholder-hero{border:var(--log-hairline) solid color-mix(in srgb,var(--accent) 24%,var(--line))!important;border-radius:20px!important;background:linear-gradient(145deg,color-mix(in srgb,var(--accent) 10%,var(--surface)),var(--surface))!important;box-shadow:none!important}
+
+/* Eén typografische hiërarchie voor alle modules en bladen. */
+body{font-size:16px;line-height:1.35;font-weight:400}
+.km-shell-title,.km-shell-drawer-head strong{
+  font-size:var(--log-type-page)!important;
+  line-height:1.05!important;
+  font-weight:var(--log-weight-page)!important;
+  letter-spacing:-.035em!important;
+}
+.section-title h2,.section-title h3,.km-shell-locations-head h2,.km-shell-settings-group-head h2,.settings-page-title h2,.modal-head h2,.inline-register-head h2,.settings-modal-head h2{
+  color:var(--text)!important;
+  font-size:var(--log-type-section)!important;
+  line-height:1.2!important;
+  font-weight:var(--log-weight-section)!important;
+  letter-spacing:-.02em!important;
+}
+.trip-main strong,.entry-main strong,.km-shell-location-copy strong,.settings-list-row strong,.km-shell-module-copy strong{
+  display:block;
+  color:var(--text)!important;
+  font-size:var(--log-type-row)!important;
+  line-height:1.25!important;
+  font-weight:var(--log-weight-row)!important;
+  letter-spacing:-.005em!important;
+}
+.trip-main small,.entry-main small,.km-shell-location-copy small,.settings-list-row small,.km-shell-module-copy small,
+.km-shell-meta,.km-shell-drawer-head small,.km-shell-settings-accordion-title small,.settings-accordion-title small,.accordion-title small{
+  color:var(--muted)!important;
+  font-size:var(--log-type-sub)!important;
+  line-height:1.35!important;
+  font-weight:var(--log-weight-sub)!important;
+  letter-spacing:0!important;
+}
+.trip-date,.entry-time,.activity-group-title,.summary-label,.kicker,.eyebrow{
+  color:var(--muted)!important;
+  font-size:var(--log-type-meta)!important;
+  line-height:1.25!important;
+  font-weight:650!important;
+}
+.trip-km-stack>span,.entry-value-stack>strong,.trip-km{
+  color:var(--text)!important;
+  font-size:var(--log-type-row)!important;
+  line-height:1.2!important;
+  font-weight:var(--log-weight-value)!important;
+}
+.form-group label,.field label,.inline-label,.inline-field>span,.activity-inline-item span{
+  color:var(--muted)!important;
+  font-size:var(--log-type-meta)!important;
+  font-weight:650!important;
+}
+.btn:not(.small),.action,.km-shell-location-actions button{
+  font-size:15px!important;
+  font-weight:650!important;
+}
+.btn.small,.mini,.settings-row-action,.activity-edit-link{
+  font-size:13px!important;
+  font-weight:650!important;
+}
 
 @media(prefers-color-scheme:light){
   .km-shell-drawer{background:rgba(255,255,255,.96)!important;box-shadow:18px 0 48px rgba(30,45,65,.12)!important}

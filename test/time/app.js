@@ -499,11 +499,10 @@ function entryDayLabel(entry) {
 }
 
 function entryRow(e, interruption = false) {
-  const secondary = [e.subthemeName, e.locationName].filter(Boolean).join(' · ');
   const start = e.startISO ? timeText(e.startISO) : '—';
-  const period = e.startISO && e.endISO ? `${timeText(e.startISO)}–${timeText(e.endISO)}` : 'Handmatig';
+  const subtitle = e.subthemeName || 'Geen subthema';
   const total = Number(e.totalMinutes) !== Number(e.ownMinutes) ? `<small>Totaal ${displayMinutes(e.totalMinutes)}</small>` : '';
-  return `<div class="entry ${interruption ? 'interruption' : ''}" data-entry="${e.id}"><div class="entry-time">${safeText(start)}</div><div class="entry-main"><strong>${safeText(e.themeName || (interruption ? 'Tussenstop' : 'Activiteit'))}</strong><small>${safeText(period)}${secondary ? ` · ${safeText(secondary)}` : ''}</small></div><div class="entry-value-stack"><strong>${displayMinutes(e.ownMinutes)}</strong>${total}</div><div class="chev">›</div></div>`;
+  return `<div class="entry ${interruption ? 'interruption' : ''}" data-entry="${e.id}"><div class="entry-time">${safeText(start)}</div><div class="entry-main"><strong>${safeText(e.themeName || (interruption ? 'Tussenstop' : 'Activiteit'))}</strong><small class="entry-subtheme">${safeText(subtitle)}</small></div><div class="entry-value-stack"><strong>${displayMinutes(e.ownMinutes)}</strong>${total}</div><div class="chev">›</div></div>`;
 }
 
 function wireHome() {
