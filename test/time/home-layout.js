@@ -2,15 +2,12 @@
   'use strict';
 
   const PERIOD_MODES = ['day', 'week', 'month', 'quarter', 'year', 'all'];
-  const SCREEN_EDGE_SWIPE_ZONE = 32;
-  const SCREEN_EDGE_SWIPE_DISTANCE = 72;
 
   let panelMode = 'overview';
   let applying = false;
   let periodGesture = null;
   let periodLastTap = 0;
   let activitySwipe = null;
-  let screenSwipe = null;
   let expandedEntryId = null;
 
   const colleagueById = id => state.colleagues.find(c => c.id === id);
@@ -643,7 +640,6 @@
   }
 
   function activitySwipeStart(event) {
-    if (screenSwipe?.pointerId === event.pointerId) return;
     if (event.button != null && event.button !== 0) return;
     if (event.target.closest('button,input,select,textarea')) return;
     const surface = event.target.closest('.activity-swipe-surface');
@@ -731,74 +727,6 @@
     activitySwipe = null;
   }
 
-  function modalIsOpen() {
-    return !$('#modalBackdrop')?.classList.contains('hidden');
-  }
-
-  function screenSwipeStart(event) {
-    if (event.button != null && event.button !== 0) return;
-    const width = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
-    const x = event.clientX;
-    const direction = !modalIsOpen() && x >= width - SCREEN_EDGE_SWIPE_ZONE
-      ? 'left'
-      : modalIsOpen() && x <= SCREEN_EDGE_SWIPE_ZONE
-        ? 'right'
-        : null;
-    if (!direction) return;
-    if (event.target.closest('input,select,textarea,[contenteditable="true"]')) return;
-    screenSwipe = {
-      pointerId: event.pointerId,
-      startX: event.clientX,
-      startY: event.clientY,
-      dx: 0,
-      dy: 0,
-      direction,
-      horizontal: false,
-      cancelled: false
-    };
-  }
-
-  function screenSwipeMove(event) {
-    const gesture = screenSwipe;
-    if (!gesture || gesture.pointerId !== event.pointerId || gesture.cancelled) return;
-    const dx = event.clientX - gesture.startX;
-    const dy = event.clientY - gesture.startY;
-    gesture.dx = dx;
-    gesture.dy = dy;
-    if (!gesture.horizontal) {
-      if (Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx)) {
-        gesture.cancelled = true;
-        return;
-      }
-      if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy) * 1.15) gesture.horizontal = true;
-      else return;
-    }
-    const correct = gesture.direction === 'left' ? dx < 0 : dx > 0;
-    if (!correct) {
-      if (Math.abs(dx) > 18) gesture.cancelled = true;
-      return;
-    }
-    if (event.cancelable) event.preventDefault();
-  }
-
-  function screenSwipeEnd(event) {
-    const gesture = screenSwipe;
-    if (!gesture || gesture.pointerId !== event.pointerId) return;
-    screenSwipe = null;
-    if (gesture.cancelled || !gesture.horizontal) return;
-    const correct = gesture.direction === 'left'
-      ? gesture.dx <= -SCREEN_EDGE_SWIPE_DISTANCE
-      : gesture.dx >= SCREEN_EDGE_SWIPE_DISTANCE;
-    if (!correct || Math.abs(gesture.dx) < Math.abs(gesture.dy) * 1.2) return;
-    if (gesture.direction === 'left' && currentView === 'home') openSettings();
-    else if (gesture.direction === 'right' && currentView === 'settings') closeSettings();
-    else closeModal();
-  }
-
-  function screenSwipeCancel() {
-    screenSwipe = null;
-  }
-
   function applyHomeLayout() {
     if (applying) return;
     applying = true;
@@ -831,10 +759,6 @@
     }
   }
 
-  document.addEventListener('pointerdown', screenSwipeStart);
-  document.addEventListener('pointermove', screenSwipeMove);
-  document.addEventListener('pointerup', screenSwipeEnd);
-  document.addEventListener('pointercancel', screenSwipeCancel);
   document.addEventListener('pointerdown', activitySwipeStart);
   document.addEventListener('pointermove', activitySwipeMove);
   document.addEventListener('pointerup', activitySwipeEnd);

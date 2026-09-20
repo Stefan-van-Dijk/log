@@ -1,12 +1,11 @@
 (function(){
   'use strict';
 
-  const BUILD='0.31.10-test.47';
+  const BUILD='0.31.10-test.63';
   const DATA_KEY='kmreg-test-v4-data';
   const SECTION_KEY='kmreg-test-shell-section-v1';
   let gps={status:'idle',lat:null,lng:null,accuracy:null,matchedId:null,matchedRootId:null,distance:null,nearestId:null,nearestDistance:null,updatedAt:0,error:''};
   let gpsPending=false;
-  let frameBound=false;
   let moduleNavObserver=null;
   let sectionRecoveryPending=false;
 
@@ -91,7 +90,7 @@
       .km-shell-top{position:static!important;top:auto!important;z-index:auto!important;background:transparent!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
       .km-shell-top-copy{padding-left:44px;padding-right:44px}
       .km-shell-menu-button{position:fixed!important;z-index:92!important;top:calc(env(safe-area-inset-top) + 10px);left:max(12px,calc((100vw - 760px)/2 + 12px));width:42px!important;height:42px!important;border:1px solid color-mix(in srgb,var(--line) 82%,transparent)!important;border-radius:50%!important;background:color-mix(in srgb,var(--bg) 80%,transparent)!important;box-shadow:0 7px 24px rgba(0,0,0,.18);-webkit-backdrop-filter:blur(18px) saturate(165%);backdrop-filter:blur(18px) saturate(165%)}
-      .shell>#timeAppFrame{position:relative!important;z-index:0!important}.km-shell-drawer-open .shell>#timeAppFrame{visibility:hidden!important;pointer-events:none!important}
+      .shell>#timeModuleRoot{position:relative!important;z-index:0!important}.km-shell-drawer-open .shell>#timeModuleRoot{pointer-events:none!important}
       .editor-nav{position:static!important;top:auto!important;background:transparent!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
       .editor-back{position:fixed!important;z-index:92!important;top:calc(env(safe-area-inset-top) + 10px);left:max(12px,calc((100vw - 820px)/2 + 12px))}
       .editor-nav-actions{position:fixed!important;z-index:92!important;top:calc(env(safe-area-inset-top) + 10px);right:max(12px,calc((100vw - 820px)/2 + 12px));margin:0!important}
@@ -117,32 +116,6 @@
     const date=new Intl.DateTimeFormat('nl-NL',{weekday:'long',day:'numeric',month:'long'}).format(new Date());
     const value=`${date} · ${BUILD}`;
     if(today.textContent!==value)today.textContent=value;
-  }
-
-  function fixTimeHeader(){
-    const frame=$('#timeAppFrame');
-    if(!frame)return;
-    const apply=()=>{
-      try{
-        const doc=frame.contentDocument;
-        if(!doc?.head)return;
-        let style=doc.getElementById('kmStableTimeHeader');
-        if(!style){
-          style=doc.createElement('style');
-          style.id='kmStableTimeHeader';
-          style.textContent=`
-            .topbar{position:static!important;top:auto!important;z-index:auto!important;background:transparent!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
-            #openSettings{display:none!important}
-          `;
-          doc.head.appendChild(style);
-        }
-      }catch(error){console.warn('Tijdkop kon niet worden aangepast.',error);}
-    };
-    if(!frameBound){
-      frameBound=true;
-      frame.addEventListener('load',()=>requestAnimationFrame(apply),{passive:true});
-    }
-    apply();
   }
 
   function byId(id,snapshot){return snapshot.locations.find(x=>String(x.id)===String(id))||null;}
@@ -305,7 +278,6 @@
   function init(){
     installCss();
     updateVersion();
-    fixTimeHeader();
     bindModuleSettingsSync();
     syncSettingsSummaries();
     if(section()==='locations')requestGps(false);
@@ -313,7 +285,7 @@
     document.addEventListener('click',event=>{
       if(event.target.closest('[data-shell-current-location]'))requestGps(true);
       if(event.target.closest('[data-action="location-sort"]'))setTimeout(decorateLocations,0);
-      setTimeout(()=>{updateVersion();fixTimeHeader();bindModuleSettingsSync();syncSettingsSummaries();if(section()==='locations')requestGps(false);},0);
+      setTimeout(()=>{updateVersion();bindModuleSettingsSync();syncSettingsSummaries();if(section()==='locations')requestGps(false);},0);
     },{passive:true});
 
     document.addEventListener('change',event=>{
@@ -330,7 +302,6 @@
 
     const observer=new MutationObserver(()=>{
       updateVersion();
-      fixTimeHeader();
       bindModuleSettingsSync();
       ensureEnabledSection();
       syncModuleDependentSettings();

@@ -1,43 +1,20 @@
 <!doctype html>
 <html lang="nl">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#eef8f0" />
-  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#07150d" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Uren" />
-  <meta name="format-detection" content="telephone=no" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#07150d">
   <title>Log · Tijd en taken</title>
-  <link rel="stylesheet" href="styles.css?build=0.31.10-test.26" />
-  <link rel="stylesheet" href="home-layout.css?build=0.31.10-test.26" />
-  <link rel="stylesheet" href="home-top.css?build=0.31.10-test.26" />
-  <link rel="stylesheet" href="../log-ui.css?build=0.31.10-test.46" />
 </head>
 <body>
-  <div id="app" class="app-shell">
-    <header class="topbar">
-      <div class="topbar-copy">
-        <p id="appDateVersion" class="eyebrow"></p>
-        <h1 id="appTitle">Tijdsregistratie</h1>
-        <p id="appTaskCount" class="topbar-count"></p>
-      </div>
-      <button id="openSettings" class="iconbtn" type="button" aria-label="Instellingen">⚙︎</button>
-    </header>
-    <main id="main" class="content" aria-live="polite"></main>
-  </div>
-  <div id="modalBackdrop" class="modal-backdrop hidden" aria-hidden="true">
-    <section id="modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"></section>
-  </div>
-  <div id="toast" class="toast hidden" role="status"></div>
-  <script src="../removal-policy.js?v=0.31.10-test.55" defer></script>
-  <script src="top-level-confirm.js?v=0.31.10-test.62" defer></script>
-  <script src="app.js?build=0.31.10-test.33" defer></script>
-  <script src="home-layout.js?build=0.31.10-test.26" defer></script>
-  <script src="home-top.js?build=0.31.10-test.26" defer></script>
-  <script src="removal-policy-ui.js?v=0.31.10-test.55" defer></script>
-  <script src="quick-actions.js?v=0.31.10-test.58" defer></script>
-  <script src="direct-actions.js?v=0.31.10-test.59" defer></script>
+  <p>Tijd en taken wordt geopend in Log.</p>
+  <p><a href="../">Open Log</a></p>
+  <script>
+    try {
+      localStorage.setItem('kmreg-test-active-app-v1', 'time');
+      localStorage.setItem('kmreg-test-shell-section-v1', 'time');
+    } catch (_) {}
+    location.replace(new URL('../', location.href));
+  </script>
 </body>
 </html>

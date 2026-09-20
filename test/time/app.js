@@ -117,6 +117,13 @@ function normalizeEntry(entry) {
 
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  window.dispatchEvent(new CustomEvent('log-time-state-change', {
+    detail: {
+      view: currentView,
+      count: state.entries.filter(entry => entry.activityType !== 'interruption').length,
+      timerStatus: state.timer?.status || 'inactive'
+    }
+  }));
 }
 
 function safeText(value) {
@@ -222,31 +229,36 @@ function roundingSnapshot() {
 
 function toast(message) {
   const el = $('#toast');
+  if (!el) return;
   el.textContent = message;
   el.classList.remove('hidden');
   requestAnimationFrame(() => el.classList.add('show'));
   clearTimeout(el._timeout);
   el._timeout = setTimeout(() => {
     el.classList.remove('show');
-    setTimeout(() => el.classList.add('hidden'), 220);
   }, 2400);
 }
 
 function openModal(html) {
-  const backdrop = $('#modalBackdrop');
-  $('#modal').innerHTML = html;
+  const backdrop = $('#modal');
+  const panel = $('#modalPanel');
+  if (!backdrop || !panel) return;
+  panel.innerHTML = html;
+  backdrop.hidden = false;
   backdrop.classList.remove('hidden');
   backdrop.setAttribute('aria-hidden', 'false');
   document.body.style.overflow = 'hidden';
-  $('.close', $('#modal'))?.addEventListener('click', closeModal);
+  $('.close', panel)?.addEventListener('click', closeModal);
 }
 
 function closeModal() {
-  const backdrop = $('#modalBackdrop');
-  backdrop.classList.add('hidden');
+  const backdrop = $('#modal');
+  const panel = $('#modalPanel');
+  if (!backdrop || !panel) return;
+  backdrop.hidden = true;
   backdrop.setAttribute('aria-hidden', 'true');
-  $('#modal').innerHTML = '';
-  document.body.style.overflow = '';
+  panel.innerHTML = '';
+  document.body.style.overflow = document.body.classList.contains('km-shell-settings-open') ? 'hidden' : '';
 }
 
 function periodBounds(mode = state.ui.periodMode, anchorValue = state.ui.anchorDate) {
@@ -647,18 +659,18 @@ function settingsAccordion(title, subtitle, body) {
   return `<details class="settings-accordion"><summary><span class="settings-accordion-title"><strong>${safeText(title)}</strong><small>${safeText(subtitle)}</small></span><span class="settings-accordion-arrow">›</span></summary><div class="settings-accordion-body">${body}</div></details>`;
 }
 
-function openSettings() {
+function openSettings({ scroll = true } = {}) {
   currentView = 'settings';
   closeModal();
   render();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (scroll) window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-function closeSettings() {
+function closeSettings({ scroll = true } = {}) {
   currentView = 'home';
   closeModal();
   render();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (scroll) window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function syncNavigationChrome() {
@@ -672,7 +684,7 @@ function syncNavigationChrome() {
     action.textContent = settings ? '←' : '⚙︎';
     action.setAttribute('aria-label', settings ? 'Terug naar tijdsregistratie' : 'Instellingen');
   }
-  if (window.parent !== window) window.parent.postMessage({ type: 'urenregistratie-view', view: currentView }, window.location.origin);
+  window.dispatchEvent(new CustomEvent('log-time-view-change', { detail: { view: currentView } }));
 }
 
 function renderSettingsPage() {
@@ -700,20 +712,73 @@ function importBackup(event) {
   const file=event.target.files?.[0];if(!file)return;const reader=new FileReader();reader.onload=()=>{try{const parsed=JSON.parse(String(reader.result));if(!Array.isArray(parsed.entries)||!Array.isArray(parsed.themes))throw new Error('formaat');if(!confirm('Huidige gegevens vervangen door deze backup?'))return;localStorage.setItem(STORAGE_KEY,JSON.stringify(parsed));state=loadState();closeModal();render();toast('Backup hersteld');}catch{alert('Dit bestand is geen geldige Urenregistratie-backup.');}finally{event.target.value='';}};reader.readAsText(file);
 }
 
-function resetAll() {
-  if(!confirm('Alle urenregistratiegegevens wissen?'))return;if(!confirm('Dit kan niet ongedaan worden gemaakt zonder backup.'))return;state=defaultState();saveState();closeModal();render();toast('Alle gegevens gewist');
+async function resetAll() {
+  const policy = window.LogRemovalPolicy;
+  const plan = policy?.createPlan({
+    entityType: 'time-data',
+    id: 'all',
+    label: 'Alle tijdregistratiegegevens',
+    owned: [
+      state.entries.length ? { key: 'entries', label: state.entries.length === 1 ? 'registratie' : 'registraties', count: state.entries.length } : null,
+      state.themes.length ? { key: 'themes', label: state.themes.length === 1 ? 'thema' : "thema's", count: state.themes.length } : null,
+      state.subthemes.length ? { key: 'subthemes', label: state.subthemes.length === 1 ? 'subthema' : "subthema's", count: state.subthemes.length } : null,
+      state.colleagues.length ? { key: 'colleagues', label: state.colleagues.length === 1 ? 'collega' : "collega's", count: state.colleagues.length } : null
+    ],
+    incoming: []
+  });
+  const approved = plan ? await policy.confirmDelete(plan) : confirm('Alle urenregistratiegegevens wissen?');
+  if (!approved) return;
+  state = defaultState();
+  saveState();
+  closeModal();
+  render();
+  toast('Alle gegevens gewist');
 }
 
-function registerServiceWorker() {
-  if(window.parent===window&&'serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(err=>console.warn('Service worker niet actief',err));
+function startFromEntry(entryId) {
+  if (state.timer.status !== 'inactive') return false;
+  const entry = state.entries.find(item => String(item.id) === String(entryId) && item.activityType !== 'interruption');
+  if (!entry) return false;
+  const theme = state.themes.find(item => String(item.id) === String(entry.themeId)) || state.themes.find(item => item.name === entry.themeName);
+  if (!theme) return false;
+  const subtheme = state.subthemes.find(item => String(item.id) === String(entry.subthemeId)) || null;
+  startTimer(theme, subtheme, entry.locationName || '', '');
+  return true;
+}
+
+function reloadFromStorage({ view = currentView } = {}) {
+  state = loadState();
+  currentView = view === 'settings' ? 'settings' : 'home';
+  closeModal();
+  render();
 }
 
 function init() {
-  $('#openSettings').addEventListener('click',()=>currentView==='settings'?closeSettings():openSettings()); $('#modalBackdrop').addEventListener('click',event=>{if(event.target===$('#modalBackdrop'))closeModal();}); render();registerServiceWorker();
+  $('#openSettings')?.addEventListener('click',()=>currentView==='settings'?closeSettings():openSettings());
+  $('#modal')?.addEventListener('click',event=>{if(event.target===$('#modal'))closeModal();});
+  render();
 }
+
+window.LogTimeModule = Object.freeze({
+  getState: () => state,
+  getView: () => currentView,
+  showHome: options => closeSettings(options),
+  showSettings: options => openSettings(options),
+  reloadFromStorage,
+  startFromEntry,
+  resumeEntry: entryId => reopenLastTask(entryId),
+  editEntry: entryId => openEntryEdit(entryId),
+  openEntry: entryId => openEntryDetail(entryId),
+  render
+});
 
 window.addEventListener('storage', event => {
   if (event.key !== STORAGE_KEY) return;
+  state = loadState();
+  render();
+});
+
+window.addEventListener('pageshow', () => {
   state = loadState();
   render();
 });

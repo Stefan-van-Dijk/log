@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const BUILD='0.31.10-test.62';
+  const BUILD='0.31.10-test.63';
   const EDIT_THRESHOLD=36;
   let gesture=null;
   let versionObserver=null;
@@ -12,6 +12,16 @@
   function actionWidth(){return innerWidth<=520?78:84;}
 
   function contextFor(surface){
+    if(surface.matches('.activity-swipe-surface')){
+      const row=surface.closest('.activity-swipe-row');
+      if(!row)return null;
+      return {
+        row,
+        surface,
+        edit:$('[data-swipe-action="edit"]',row),
+        lifecycle:$('[data-swipe-action="delete"]',row)
+      };
+    }
     if(surface.matches('.km-shell-location-swipe-surface')){
       const row=surface.closest('.km-shell-location-swipe-row');
       if(!row)return null;
@@ -43,7 +53,7 @@
   function pointerDown(event){
     if(event.button!=null&&event.button!==0)return;
     if(event.target.closest?.('button,input,select,textarea'))return;
-    const surface=event.target.closest?.('.km-shell-location-swipe-surface,.swipe-surface');
+    const surface=event.target.closest?.('.activity-swipe-surface,.km-shell-location-swipe-surface,.swipe-surface');
     if(!surface)return;
     const ctx=contextFor(surface);
     if(!ctx||(!ctx.edit&&!ctx.lifecycle))return;

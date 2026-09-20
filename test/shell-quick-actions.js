@@ -1,8 +1,9 @@
 (function(){
   'use strict';
 
-  const BUILD='0.31.10-test.58';
+  const BUILD='0.31.10-test.63';
   const DATA_KEY='kmreg-test-v4-data';
+  const TIME_KEY='urenregistratie.test.pwa.v1';
   const POSITIVE_SWIPE_THRESHOLD=36;
   let decorateQueued=false;
   let busy=false;
@@ -40,7 +41,7 @@
   }
 
   function resetRow(row){
-    const surface=$('.swipe-surface',row);
+    const surface=$('.swipe-surface,.activity-swipe-surface',row);
     if(surface){
       surface.style.transition='transform .18s cubic-bezier(.2,.8,.2,1)';
       surface.style.transform='translateX(0)';
@@ -50,10 +51,12 @@
   }
 
   function ensureLeftGroup(row){
-    let group=$('.swipe-actions-left',row);
+    const activity=row?.matches('.activity-swipe-row');
+    let group=$(activity?'.activity-swipe-actions-left':'.swipe-actions-left',row);
     if(group)return group;
     group=document.createElement('div');
-    group.className='swipe-actions swipe-actions-left';
+    group.className=activity?'activity-swipe-actions activity-swipe-actions-left':'swipe-actions swipe-actions-left';
+    if(activity)group.style.setProperty('--activity-action-count','1');
     row.insertBefore(group,row.firstChild);
     return group;
   }
@@ -66,7 +69,58 @@
   }
 
   function positiveActionForRow(row){
-    return $('.swipe-actions-left [data-action="reopen-trip"]',row)||$('[data-log-start-trip]',row)||null;
+    return $('.swipe-actions-left [data-action="reopen-trip"]',row)||
+      $('[data-log-start-trip]',row)||
+      $('[data-swipe-action="reopen"]',row)||
+      $('[data-log-start-task]',row)||null;
+  }
+
+  function activeThemeFor(entry,state){
+    if(!entry||!state)return null;
+    return state.themes.find(theme=>String(theme.id)===String(entry.themeId))||
+      state.themes.find(theme=>String(theme.name||'').trim()===String(entry.themeName||'').trim())||null;
+  }
+
+  function decorateTaskActions(){
+    const state=window.LogTimeModule?.getState?.();
+    if(!state)return;
+    const inactive=state.timer?.status==='inactive';
+    for(const row of $$('.activity-swipe-row[data-id]')){
+      const id=String(row.dataset.id||'');
+      const entry=state.entries.find(item=>String(item.id)===id);
+      if(!entry||entry.activityType==='interruption')continue;
+      const resume=$('[data-swipe-action="reopen"]',row);
+      const canResume=inactive&&state.lastCompletion?.type==='task'&&String(state.lastCompletion.entryId)===id;
+      if(resume){
+        resume.textContent='Hervatten';
+        resume.setAttribute('aria-label','Taak hervatten');
+        resume.title='Hervatten';
+      }
+      let start=$('[data-log-start-task]',row);
+      const theme=activeThemeFor(entry,state);
+      const canStart=inactive&&!canResume&&Boolean(theme);
+      if(!canStart){
+        start?.remove();
+      }else{
+        const group=ensureLeftGroup(row);
+        if(!start){
+          start=document.createElement('button');
+          start.type='button';
+          start.className='activity-swipe-action activity-swipe-reopen log-quick-start';
+          start.dataset.logStartTask=id;
+          start.textContent='Start';
+          group.appendChild(start);
+        }
+        start.setAttribute('aria-label',`${entry.themeName||theme.name||'Taak'} starten`);
+        start.title='Start';
+      }
+      const group=$('.activity-swipe-actions-left',row);
+      if(group){
+        const count=group.querySelectorAll('.activity-swipe-action').length;
+        if(count)group.style.setProperty('--activity-action-count',String(count));
+        else group.remove();
+      }
+    }
   }
 
   function decorateTripActions(){
@@ -159,14 +213,20 @@
     }
   }
 
+  function startHistoricalTask(id,button){
+    resetRow(button.closest('.activity-swipe-row'));
+    window.LogTimeModule?.startFromEntry?.(id);
+  }
+
   function positiveSwipeStart(event){
     if(event.button!=null&&event.button!==0)return;
     if(event.target.closest?.('button,input,select,textarea'))return;
-    const surface=event.target.closest?.('.swipe-row[data-swipe-kind="trip"] .swipe-surface');
+    const surface=event.target.closest?.('.swipe-row[data-swipe-kind="trip"] .swipe-surface,.activity-swipe-row .activity-swipe-surface');
     if(!surface)return;
-    const row=surface.closest('.swipe-row[data-swipe-kind="trip"]');
+    const row=surface.closest('.swipe-row[data-swipe-kind="trip"],.activity-swipe-row[data-id]');
+    if(!row)return;
     const action=positiveActionForRow(row);
-    if(!row||!action)return;
+    if(!action)return;
     positiveSwipe={pointerId:event.pointerId,startX:event.clientX,startY:event.clientY,dx:0,dy:0,horizontal:false,cancelled:false,row,action};
   }
 
@@ -207,6 +267,7 @@
     requestAnimationFrame(()=>{
       decorateQueued=false;
       decorateTripActions();
+      decorateTaskActions();
     });
   }
 
@@ -227,6 +288,13 @@
     updateVersion();
     scheduleDecorate();
     document.addEventListener('click',event=>{
+      const taskButton=event.target.closest?.('[data-log-start-task]');
+      if(taskButton){
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        startHistoricalTask(taskButton.dataset.logStartTask,taskButton);
+        return;
+      }
       const button=event.target.closest?.('[data-log-start-trip]');
       if(!button)return;
       event.preventDefault();
@@ -239,9 +307,12 @@
     document.addEventListener('pointercancel',positiveSwipeCancel,true);
     const app=$('#app');
     if(app)new MutationObserver(scheduleDecorate).observe(app,{childList:true,subtree:true});
+    const time=$('#main');
+    if(time)new MutationObserver(scheduleDecorate).observe(time,{childList:true,subtree:true});
     new MutationObserver(()=>{updateVersion();scheduleDecorate();}).observe(document.body,{attributes:true,attributeFilter:['class']});
     window.addEventListener('log-shell-view-refresh',scheduleDecorate);
-    window.addEventListener('storage',event=>{if(event.key===DATA_KEY)scheduleDecorate();});
+    window.addEventListener('log-time-state-change',scheduleDecorate);
+    window.addEventListener('storage',event=>{if(event.key===DATA_KEY||event.key===TIME_KEY)scheduleDecorate();});
     window.addEventListener('pageshow',()=>{updateVersion();scheduleDecorate();});
   }
 

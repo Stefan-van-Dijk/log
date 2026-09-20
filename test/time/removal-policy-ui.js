@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const BUILD='0.31.10-test.55';
+  const BUILD='0.31.10-test.63';
   const STORAGE_KEY='urenregistratie.test.pwa.v1';
   const policy=window.LogRemovalPolicy;
   if(!policy){console.error('LogRemovalPolicy ontbreekt in Tijd en taken.');return;}
@@ -91,11 +91,15 @@
       const toast=$('#toast');
       if(toast&&/verwijderd/i.test(toast.textContent||'')){
         toast.classList.remove('show');
-        toast.classList.add('hidden');
         toast.textContent='';
       }
     };
     [0,40,140,300].forEach(delay=>setTimeout(hide,delay));
+  }
+
+  function refreshTime(view='settings'){
+    window.LogTimeModule?.reloadFromStorage?.({view});
+    scheduleDecorate();
   }
 
   function replayNative(button,{bypassConfirm=false}={}){
@@ -125,7 +129,7 @@
     policy.archiveBatch({source:'time',entityType,rootId:id,items:[item],reason:policy.archiveCopy(plan).message});
     raw[collection]=raw[collection].filter(value=>String(value.id)!==String(id));
     writeState(raw);
-    location.reload();
+    refreshTime('settings');
     return true;
   }
 
@@ -133,7 +137,7 @@
     if(!await policy.confirmDelete(plan))return false;
     raw[collection]=raw[collection].filter(value=>String(value.id)!==String(id));
     writeState(raw);
-    location.reload();
+    refreshTime('settings');
     return true;
   }
 
@@ -146,7 +150,7 @@
     raw.themes=raw.themes.filter(value=>String(value.id)!==String(id));
     raw.subthemes=raw.subthemes.filter(sub=>!subIds.has(String(sub.id)));
     writeState(raw);
-    location.reload();
+    refreshTime('settings');
     return true;
   }
 
@@ -156,7 +160,7 @@
     raw.themes=raw.themes.filter(value=>String(value.id)!==String(id));
     raw.subthemes=raw.subthemes.filter(sub=>!subIds.has(String(sub.id)));
     writeState(raw);
-    location.reload();
+    refreshTime('settings');
     return true;
   }
 
@@ -265,7 +269,7 @@
       row.appendChild(button);
     }
     const swipeHint=$('#swipeDeleteEnabled')?.closest('.settings-toggle-row')?.querySelector('small');
-    const hint='Swipe toont Bewerken en een tweede actie. Verwijderen vraagt altijd eerst om bevestiging.';
+    const hint='Swipe links: kort voor Bewerken, verder voor Archiveer/Verwijder. Verwijderen vraagt altijd eerst bevestiging.';
     if(swipeHint&&swipeHint.textContent!==hint)swipeHint.textContent=hint;
   }
 
@@ -319,7 +323,7 @@
     }
     writeState(raw);
     policy.removeBatch(batchId);
-    location.reload();
+    refreshTime('settings');
   }
 
   function scheduleDecorate(){
@@ -339,7 +343,7 @@
     observer.observe(document.body,{childList:true,subtree:true});
     window.addEventListener('pageshow',scheduleDecorate);
     window.addEventListener('storage',event=>{
-      if(event.key===STORAGE_KEY)location.reload();
+      if(event.key===STORAGE_KEY||event.key===policy.ARCHIVE_KEY)scheduleDecorate();
     });
     scheduleDecorate();
   }

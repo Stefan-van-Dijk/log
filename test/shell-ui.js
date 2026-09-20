@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const BUILD = '0.31.10';
+  const BUILD = '0.31.10-test.63';
   const SHELL_VERSION = (() => {
     try {
       const script = document.currentScript || [...document.scripts].find(item => item.src.includes('shell-ui.js'));
@@ -91,21 +91,15 @@
   let pendingParentSave = null;
   let pendingHierarchyReload = false;
   let kmSettingsMounted = false;
-  let timeSettingsFrame = null;
+  let timeSettingsMounted = false;
   let kmAppPlaceholder = null;
+  let timeModulePlaceholder = null;
   let lastEditorState = document.body.classList.contains('editor-view');
   let locationEditorAugmentQueued = false;
-  let timeSettingsOpen = false;
   let activeSettingsTarget = null;
-  let timeFrameSettingsObserver = null;
-  let timeFrameSettingsResizeObserver = null;
   let settingsMountToken = 0;
-  let shellSearchObserver = null;
-  let shellUndoTimer = null;
   let sectionTransitioning = false;
-  const timeEnhancementDocuments = new WeakSet();
   const windowScrollState = { top: Math.max(0, window.scrollY || 0), reverse: 0 };
-  const timeScrollState = { top: 0, reverse: 0 };
 
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -291,26 +285,26 @@
       .km-shell-tab-button.active svg{transform:translateY(-2px) scale(1.08);stroke-width:2.25}
       .km-shell-tab-button:active{transform:scale(.94)}
       .km-shell-module-settings{display:grid;gap:8px}.km-shell-module-row{display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;gap:8px;min-height:58px;padding:8px 10px;border:.5px solid var(--line);border-radius:14px;background:var(--card);transition:background .16s ease,box-shadow .16s ease,transform .16s ease}.km-shell-module-handle{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;padding:0;border:0;border-radius:10px;background:transparent;color:var(--muted);touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}.km-shell-module-handle:active,.km-shell-module-row.is-dragging .km-shell-module-handle{cursor:grabbing;background:var(--card2);color:var(--accent)}.km-shell-module-handle svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}.km-shell-module-row.is-dragging{position:fixed;z-index:140;background:color-mix(in srgb,var(--accent) 12%,var(--card));box-shadow:0 16px 38px rgba(0,0,0,.28);transform:scale(1.015);pointer-events:none}.km-shell-module-placeholder{min-height:58px;border:1px dashed color-mix(in srgb,var(--accent) 55%,var(--line));border-radius:12px;background:color-mix(in srgb,var(--accent) 8%,transparent)}.km-shell-module-copy strong,.km-shell-module-copy small{display:block}.km-shell-module-copy strong{font-size:13px}.km-shell-module-copy small{margin-top:3px;color:var(--muted);font-size:10px}.km-shell-module-controls{display:flex;align-items:center;gap:5px}.km-shell-module-toggle{display:inline-flex;align-items:center;margin-left:3px}.km-shell-module-toggle input{width:38px;height:22px;accent-color:var(--accent)}
-      .km-shell-placeholder{padding:4px 0 28px}.km-shell-placeholder-hero{padding:22px 18px;border:.5px solid color-mix(in srgb,var(--accent) 24%,var(--line));border-radius:20px;background:linear-gradient(145deg,color-mix(in srgb,var(--accent) 12%,var(--card)),var(--card));box-shadow:0 10px 28px rgba(0,0,0,.08)}.km-shell-placeholder-hero svg{width:34px;height:34px;color:var(--accent);fill:none;stroke:currentColor;stroke-width:1.7}.km-shell-placeholder-hero h2{margin:14px 0 6px;font-size:25px}.km-shell-placeholder-hero p{margin:0;color:var(--muted);font-size:13px;line-height:1.5}.km-shell-placeholder-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.km-shell-placeholder-card{min-height:92px;padding:14px;border:.5px solid var(--line);border-radius:16px;background:var(--card)}.km-shell-placeholder-card strong,.km-shell-placeholder-card small{display:block}.km-shell-placeholder-card small{margin-top:6px;color:var(--muted);font-size:11px;line-height:1.4}.km-shell-placeholder-mode #app,.km-shell-placeholder-mode #timeAppFrame,.km-shell-placeholder-mode .km-shell-locations{display:none!important}.km-shell-placeholder-mode .km-shell-search{display:none!important}
-      body.km-shell-drawer-open .km-shell-tabbar,body.km-shell-settings-open .km-shell-tabbar,body.km-shell-time-settings-open .km-shell-tabbar,body.editor-view .km-shell-tabbar{opacity:0;transform:translate(-50%,18px) scale(.98);pointer-events:none}
+      .km-shell-placeholder{padding:4px 0 28px}.km-shell-placeholder-hero{padding:22px 18px;border:.5px solid color-mix(in srgb,var(--accent) 24%,var(--line));border-radius:20px;background:linear-gradient(145deg,color-mix(in srgb,var(--accent) 12%,var(--card)),var(--card));box-shadow:0 10px 28px rgba(0,0,0,.08)}.km-shell-placeholder-hero svg{width:34px;height:34px;color:var(--accent);fill:none;stroke:currentColor;stroke-width:1.7}.km-shell-placeholder-hero h2{margin:14px 0 6px;font-size:25px}.km-shell-placeholder-hero p{margin:0;color:var(--muted);font-size:13px;line-height:1.5}.km-shell-placeholder-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.km-shell-placeholder-card{min-height:92px;padding:14px;border:.5px solid var(--line);border-radius:16px;background:var(--card)}.km-shell-placeholder-card strong,.km-shell-placeholder-card small{display:block}.km-shell-placeholder-card small{margin-top:6px;color:var(--muted);font-size:11px;line-height:1.4}.km-shell-placeholder-mode #app,.km-shell-placeholder-mode #timeModuleRoot,.km-shell-placeholder-mode .km-shell-locations{display:none!important}.km-shell-placeholder-mode .km-shell-search{display:none!important}
+      body.km-shell-drawer-open .km-shell-tabbar,body.km-shell-settings-open .km-shell-tabbar,body.editor-view .km-shell-tabbar{opacity:0;transform:translate(-50%,18px) scale(.98);pointer-events:none}
       .shell{padding-bottom:calc(108px + env(safe-area-inset-bottom))!important}
       @keyframes kmTabPageIn{from{opacity:.72;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
       body.km-shell-tab-transition .shell{animation:kmTabPageIn .22s cubic-bezier(.22,1,.36,1) both}
       .km-shell-settings{position:fixed;z-index:120;inset:0;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.38);opacity:0;pointer-events:none;transition:opacity .22s ease}.km-shell-settings.open{opacity:1;pointer-events:auto}
       .km-shell-settings-surface{width:100%;height:min(94dvh,900px);display:flex;flex-direction:column;border-radius:24px 24px 0 0;border:1px solid var(--line);border-bottom:0;background:var(--bg);box-shadow:0 -18px 52px rgba(0,0,0,.34);transform:translateY(104%);transition:transform .46s cubic-bezier(.22,1,.36,1);overflow:hidden;will-change:transform}.km-shell-settings.open .km-shell-settings-surface{transform:translateY(0)}
-      .km-shell-settings-head{position:relative;display:grid;grid-template-columns:42px 1fr 42px;align-items:center;gap:8px;flex:0 0 auto;padding:calc(10px + env(safe-area-inset-top)) 14px 10px;border-bottom:1px solid var(--line);background:rgba(13,17,23,.92);-webkit-backdrop-filter:blur(22px) saturate(165%);backdrop-filter:blur(22px) saturate(165%)}.km-shell-settings-title{text-align:center;font-size:16px;font-weight:850}.km-shell-settings-close{position:absolute;right:14px;top:calc(10px + env(safe-area-inset-top));display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border:0;border-radius:50%;background:var(--card2);color:var(--text);font-size:25px;cursor:pointer}.km-shell-settings-content{position:relative;flex:1;min-height:0;overflow:auto;padding:8px 16px calc(24px + env(safe-area-inset-bottom))}.km-shell-settings-content #app{display:block!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important;width:100%;max-width:760px;margin:0 auto}.km-shell-settings-content #timeAppFrame{display:block!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important;width:100%;min-height:280px!important}.km-shell-settings-content #timeAppFrame.km-settings-frame-loading{opacity:.2!important}body.time-mode #kmShellSettingsContent #app,body.km-shell-locations-mode #kmShellSettingsContent #app,body.km-shell-placeholder-mode #kmShellSettingsContent #app{display:block!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important}body:not(.time-mode) #kmShellSettingsContent #timeAppFrame,body.km-shell-locations-mode #kmShellSettingsContent #timeAppFrame,body.km-shell-placeholder-mode #kmShellSettingsContent #timeAppFrame{display:block!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important}
+      .km-shell-settings-head{position:relative;display:grid;grid-template-columns:42px 1fr 42px;align-items:center;gap:8px;flex:0 0 auto;padding:calc(10px + env(safe-area-inset-top)) 14px 10px;border-bottom:1px solid var(--line);background:rgba(13,17,23,.92);-webkit-backdrop-filter:blur(22px) saturate(165%);backdrop-filter:blur(22px) saturate(165%)}.km-shell-settings-title{text-align:center;font-size:16px;font-weight:850}.km-shell-settings-close{position:absolute;right:14px;top:calc(10px + env(safe-area-inset-top));display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border:0;border-radius:50%;background:var(--card2);color:var(--text);font-size:25px;cursor:pointer}.km-shell-settings-content{position:relative;flex:1;min-height:0;overflow:auto;padding:8px 16px calc(24px + env(safe-area-inset-bottom))}.km-shell-settings-content #app,.km-shell-settings-content #timeModuleRoot{display:block!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important;width:100%;max-width:760px;margin:0 auto}body.time-mode #kmShellSettingsContent #app,body.km-shell-locations-mode #kmShellSettingsContent #app,body.km-shell-placeholder-mode #kmShellSettingsContent #app{display:block!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important}
       .km-shell-settings-back{position:absolute;left:14px;top:calc(10px + env(safe-area-inset-top));display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border:0;border-radius:50%;background:transparent;color:var(--accent);font-size:22px;font-weight:800;cursor:pointer}.km-shell-settings-back[hidden]{display:none!important}.km-shell-settings-back:active{background:var(--card2)}
       .km-shell-general-settings{max-width:760px;margin:0 auto;padding:8px 0 24px}.km-shell-general-intro{padding:8px 1px 16px;border-bottom:1px solid var(--line)}.km-shell-general-intro h2{margin:3px 0 5px;font-size:28px;letter-spacing:-.035em}.km-shell-general-intro p{margin:0;color:var(--muted);font-size:12px;line-height:1.45}
       .km-shell-general-card{padding:17px 1px;border-bottom:1px solid var(--line)}.km-shell-general-card>strong,.km-shell-general-card>small{display:block}.km-shell-general-card>strong{font-size:17px}.km-shell-general-card>small{margin-top:4px;color:var(--muted);font-size:11px;line-height:1.4}.km-shell-general-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:13px}.km-shell-general-actions .btn{width:100%;margin:0;text-align:center}.km-shell-general-nav{display:grid;gap:2px;margin-top:10px}.km-shell-general-nav button{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:48px;padding:10px 1px;border:0;border-bottom:1px solid var(--line);background:transparent;color:var(--text);font-weight:760;text-align:left}.km-shell-general-nav button span:last-child{color:var(--muted);font-size:21px}.km-shell-general-advanced{margin-top:12px}.km-shell-general-advanced summary{color:var(--muted);font-size:12px;font-weight:750;cursor:pointer}.km-shell-general-status{margin-top:8px;color:var(--muted);font-size:11px;line-height:1.4}
       @keyframes kmSettingsForwardIn{from{opacity:.35;transform:translateX(24px)}to{opacity:1;transform:translateX(0)}}@keyframes kmSettingsBackIn{from{opacity:.35;transform:translateX(-24px)}to{opacity:1;transform:translateX(0)}}
       .km-shell-settings-content.km-settings-forward-in>*{animation:kmSettingsForwardIn .24s cubic-bezier(.22,1,.36,1) both}.km-shell-settings-content.km-settings-back-in>*{animation:kmSettingsBackIn .24s cubic-bezier(.22,1,.36,1) both}
       @media(max-width:480px){.km-shell-general-actions{grid-template-columns:1fr}}
-      .shell>#timeAppFrame{position:relative;z-index:0}.km-shell-drawer-open .shell>#timeAppFrame{visibility:hidden!important;pointer-events:none!important}.editor-view>.km-shell-menu-button{display:none!important}
+      .shell>#timeModuleRoot{position:relative;z-index:0}.km-shell-drawer-open .shell>#timeModuleRoot{pointer-events:none!important}.editor-view>.km-shell-menu-button{display:none!important}
       .km-shell-locations{padding:2px 0 28px}.km-shell-locations-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding:8px 1px 10px}.km-shell-locations-head h2{margin:2px 0 0;font-size:28px;letter-spacing:-.035em}.km-shell-location-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:5px 0 16px}.km-shell-location-actions button{min-height:44px}
       .km-shell-location-sort{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:4px;margin-bottom:8px;border:1px solid var(--line);border-radius:12px;background:var(--card)}.km-shell-location-sort button{min-height:34px;border:0;border-radius:8px;background:transparent;color:var(--muted);font-size:11px;font-weight:800}.km-shell-location-sort button.active{background:var(--card2);color:var(--text)}
       .km-shell-location-tree{border-top:1px solid var(--line)}.km-shell-location-node{--depth:0;margin-left:calc(var(--depth) * 20px)}.km-shell-location-swipe-row{position:relative;overflow:hidden;background:var(--card)}.km-shell-location-swipe-actions{position:absolute;z-index:0;inset:0 0 0 auto;display:flex;justify-content:flex-end}.km-shell-location-swipe-action{width:84px;padding:0;border:0;border-radius:0;color:#fff;font-size:11px;font-weight:800}.km-shell-location-swipe-delete{background:#9b3037}.km-shell-location-swipe-edit{background:#2869b6}.km-shell-location-swipe-surface{position:relative;z-index:1;background:var(--card);touch-action:pan-y;transition:transform .18s ease;user-select:none;-webkit-user-select:none;cursor:pointer}.km-shell-location-row{display:grid;grid-template-columns:28px minmax(0,1fr) auto;align-items:center;gap:9px;min-height:58px;padding:10px 2px;border-bottom:1px solid var(--line)}.km-shell-location-node[data-depth="1"] .km-shell-location-row{position:relative}.km-shell-location-node[data-depth="1"] .km-shell-location-row::before{content:"";position:absolute;left:-12px;top:0;bottom:50%;width:9px;border-left:1px solid var(--line);border-bottom:1px solid var(--line);border-radius:0 0 0 6px}.km-shell-location-icon{display:flex;align-items:center;justify-content:center;width:27px;height:27px;border:1px solid var(--line);border-radius:9px;color:var(--muted);font-size:15px}.km-shell-location-copy{min-width:0}.km-shell-location-copy strong,.km-shell-location-copy small{display:block}.km-shell-location-copy strong{font-size:14px}.km-shell-location-copy small{margin-top:3px;color:var(--muted);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.km-shell-location-buttons{display:flex;align-items:center;gap:3px}.km-shell-location-buttons button{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;padding:0;border:0;border-radius:9px;background:transparent;color:var(--muted);font-size:19px}.km-shell-location-buttons button:active{background:var(--card2);color:var(--text)}.km-shell-location-chevron{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;color:var(--muted);font-size:19px}.km-shell-location-details{padding:10px 2px 12px 37px;border-bottom:1px solid var(--line);color:var(--muted);font-size:11px;line-height:1.5}.km-shell-location-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.km-shell-location-detail{padding:8px 0}.km-shell-location-detail span,.km-shell-location-detail strong{display:block}.km-shell-location-detail span{font-size:9px;text-transform:uppercase;letter-spacing:.06em}.km-shell-location-detail strong{margin-top:2px;color:var(--text);font-size:11px}.km-shell-child-add{margin-top:7px;padding:4px 0;border:0;background:transparent;color:var(--accent);font-size:11px;font-weight:800}.km-shell-empty{padding:24px 2px;color:var(--muted);font-size:13px}
       .km-shell-parent-section select{width:100%;min-height:38px;padding:6px 0 7px;border:0;border-bottom:1px solid var(--line);border-radius:0;background:transparent;color:var(--text);font-size:15px;outline:none}.km-shell-parent-hint{margin-top:6px;color:var(--muted);font-size:10px;line-height:1.4}
-      body.km-shell-locations-mode #app,body.km-shell-locations-mode #timeAppFrame{display:none!important}body.km-shell-locations-mode #kmShellLocationsView{display:block!important}
+      body.km-shell-locations-mode #app,body.km-shell-locations-mode #timeModuleRoot{display:none!important}body.km-shell-locations-mode #kmShellLocationsView{display:block!important}
       body.editor-view #kmShellLocationsView{display:none!important}
       /* Eén visuele taal voor Ritten, Tijd/taken en Locaties. */
       .km-shell-settings-head{display:flex!important;align-items:center!important;justify-content:center!important;min-height:59px}.km-shell-settings-title{padding:0 46px}
@@ -344,7 +338,7 @@
       .km-shell-settings-panel-host>#app details.accordion:last-child{border-bottom:0}
       .km-shell-settings-panel-host>#app details.accordion>summary{padding-left:1px;padding-right:1px}
       .km-shell-settings-panel-host>#app .accordion-body{padding-left:1px;padding-right:1px}
-      .km-shell-settings-panel-host>.time-app-frame{display:block!important;width:100%;min-height:280px!important;border:0}.km-shell-settings-panel-host>.km-shell-time-settings-frame{opacity:0!important;visibility:hidden!important}.km-shell-settings-panel-host>.km-shell-time-settings-frame[data-ready="1"]{opacity:1!important;visibility:visible!important}
+      .km-shell-settings-panel-host>#timeModuleRoot{display:block!important;width:100%!important;max-width:none!important;margin:0!important;padding:2px 0 0!important}.km-shell-settings-panel-host>#timeModuleRoot .settings-page{padding:0!important}.km-shell-settings-panel-host>#timeModuleRoot .settings-accordion:first-of-type{border-top:0}
       .km-shell-settings-loading,.km-shell-settings-panel-status{padding:16px 1px;color:var(--muted);font-size:12px}.km-shell-settings-panel-status{display:flex;align-items:center;justify-content:space-between;gap:12px}.km-shell-settings-panel-status[data-state="error"]{color:var(--bad)}.km-shell-settings-panel-status button{flex:0 0 auto;min-height:34px;padding:7px 11px;border:0;border-radius:10px;background:var(--card2);color:var(--accent);font:inherit;font-weight:800}.km-shell-settings-panel-host>#app details.accordion.km-shell-settings-single{border-bottom:0}.km-shell-settings-panel-host>#app details.accordion.km-shell-settings-single>.accordion-body{padding-top:14px}
       @keyframes kmSettingsPanelIn{from{opacity:.35;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
       /* iPhone Mail-achtige navigatie en gegroepeerde lijsten. */
@@ -547,8 +541,7 @@
 
     document.body.appendChild(menu);
     menu.addEventListener('click', () => {
-      if (section === 'time' && timeSettingsOpen) closeTimeSettingsPage();
-      else if (drawerOpen) closeDrawer();
+      if (drawerOpen) closeDrawer();
       else openDrawer();
     });
 
@@ -579,7 +572,7 @@
       const button = event.target.closest('[data-shell-section]');
       if (button) selectSection(button.dataset.shellSection);
     });
-    $('#kmShellSettingsButton', drawer).addEventListener('click', openSettingsSheet);
+    $('#kmShellSettingsButton', drawer).addEventListener('click', () => openSettingsSheet());
 
     const settings = document.createElement('div');
     settings.id = 'kmShellSettings';
@@ -731,81 +724,13 @@
     } else if (section === 'locations') {
       visible = setSearchMatches($$('#kmShellLocationsView .km-shell-location-node'), query);
     } else {
-      try {
-        const doc = $('#timeAppFrame')?.contentDocument;
-        const nodes = [...(doc?.querySelectorAll('.activity-entry-shell') || [])];
-        visible = setSearchMatches(nodes, query);
-      } catch (_) {}
+      visible = setSearchMatches($$('#timeModuleRoot .activity-entry-shell'), query);
     }
     const status = $('#kmShellSearchStatus');
     if (status) {
       status.hidden = !query || visible > 0;
       status.textContent = query && visible === 0 ? 'Geen resultaten gevonden.' : '';
     }
-  }
-
-  function showShellUndo(message, action) {
-    let banner = $('#kmShellUndo');
-    if (!banner) {
-      banner = document.createElement('div');
-      banner.id = 'kmShellUndo';
-      banner.className = 'km-shell-undo';
-      document.body.appendChild(banner);
-    }
-    clearTimeout(shellUndoTimer);
-    banner.innerHTML = '';
-    const text = document.createElement('span');
-    text.textContent = message;
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.textContent = 'Herstel';
-    button.addEventListener('click', async () => {
-      clearTimeout(shellUndoTimer);
-      banner.classList.remove('show');
-      await action();
-    }, { once: true });
-    banner.append(text, button);
-    requestAnimationFrame(() => banner.classList.add('show'));
-    shellUndoTimer = setTimeout(() => banner.classList.remove('show'), 6000);
-  }
-
-  function bindTimeEnhancements(frame = $('#timeAppFrame')) {
-    try {
-      const doc = frame?.contentDocument;
-      if (!doc || timeEnhancementDocuments.has(doc)) return;
-      timeEnhancementDocuments.add(doc);
-      timeScrollState.top = Math.max(0, doc.scrollingElement?.scrollTop || 0);
-      timeScrollState.reverse = 0;
-      doc.addEventListener('scroll', () => {
-        if (section !== 'time') return;
-        updateScrollChrome(doc.scrollingElement?.scrollTop || 0, timeScrollState);
-      }, { passive: true });
-      doc.addEventListener('click', event => {
-        const remove = event.target.closest?.('[data-swipe-action="delete"]');
-        if (!remove) return;
-        const key = 'urenregistratie.test.pwa.v1';
-        const before = localStorage.getItem(key);
-        setTimeout(() => {
-          const after = localStorage.getItem(key);
-          if (!before || before === after) return;
-          showShellUndo('Registratie verwijderd', () => {
-            localStorage.setItem(key, before);
-            frame.src = frame.src;
-            syncChrome();
-          });
-        }, 120);
-      }, true);
-      const main = doc.getElementById('main');
-      if (main) {
-        const observer = new MutationObserver(() => {
-          applyShellSearch();
-          requestAnimationFrame(() => {
-            if (currentSearchValue()) applyShellSearch();
-          });
-        });
-        observer.observe(main, { childList: true, subtree: true });
-      }
-    } catch (_) {}
   }
 
   function updateScrollChrome(scrollTop, state) {
@@ -829,7 +754,7 @@
 
   function bindHeaderCollapse() {
     const update = () => {
-      if (section !== 'time') updateScrollChrome(window.scrollY, windowScrollState);
+      updateScrollChrome(window.scrollY, windowScrollState);
     };
     window.addEventListener('scroll', update, { passive: true });
     update();
@@ -850,7 +775,6 @@
     document.body.classList.remove('km-shell-scrolled', 'km-shell-search-revealed', 'km-shell-tab-transition');
     windowScrollState.top = Math.max(0, window.scrollY || 0);
     windowScrollState.reverse = 0;
-    timeScrollState.reverse = 0;
     localStorage.setItem(SECTION_KEY, section);
     localStorage.setItem(MODE_KEY, section === 'time' ? 'time' : 'kilometers');
     if (section === 'time') ensureOriginalMode('time');
@@ -920,15 +844,14 @@
     const title = $('#kmShellTitle');
     const meta = $('#kmShellMeta');
     const menu = $('#kmShellMenuButton');
-    const wantedTitle = section === 'time' && timeSettingsOpen ? 'Instellingen' : (moduleById(section)?.label || 'Registratie');
+    const wantedTitle = moduleById(section)?.label || 'Registratie';
     if (title && title.textContent !== wantedTitle) title.textContent = wantedTitle;
     const wantedDocumentTitle = wantedTitle + ' · Log';
     if (document.title !== wantedDocumentTitle) document.title = wantedDocumentTitle;
     if (menu) {
-      const isBack = section === 'time' && timeSettingsOpen;
-      const wantedIcon = isBack ? '←' : '☰';
-      const wantedLabel = isBack ? 'Terug naar tijd / taken' : 'Menu openen';
-      const wantedExpanded = isBack ? 'false' : String(drawerOpen);
+      const wantedIcon = '☰';
+      const wantedLabel = 'Menu openen';
+      const wantedExpanded = String(drawerOpen);
       if (menu.textContent !== wantedIcon) menu.textContent = wantedIcon;
       if (menu.getAttribute('aria-label') !== wantedLabel) menu.setAttribute('aria-label', wantedLabel);
       if (menu.getAttribute('aria-expanded') !== wantedExpanded) menu.setAttribute('aria-expanded', wantedExpanded);
@@ -1393,7 +1316,7 @@
   function teardownSettingsPanel() {
     settingsMountToken += 1;
     const content = $('#kmShellSettingsContent');
-    if (timeSettingsFrame || content?.querySelector('#kmShellTimeSettingsFrame')) destroyTimeSettingsFrame();
+    if (timeSettingsMounted || content?.querySelector('#timeModuleRoot')) restoreTimeModule();
     if (kmSettingsMounted && content?.querySelector('#app')) restoreKmApp();
     activeSettingsTarget = null;
   }
@@ -1794,233 +1717,40 @@
     return visibleDetails > 0;
   }
 
-  function applyUnifiedTimeStyles(frame = $('#timeAppFrame')) {
-    try {
-      const doc = frame?.contentDocument;
-      if (!doc?.head) return;
-      let style = doc.getElementById('km-log-unified-style');
-      if (!style) {
-        style = doc.createElement('style');
-        style.id = 'km-log-unified-style';
-        style.textContent = `
-          :root{--km-log-radius:16px}
-          .period-nav,.summary,.suggestion,.active-card{border:1px solid var(--line)!important;border-radius:var(--km-log-radius)!important;background:var(--surface)!important;box-shadow:none!important}
-          .section>.list{overflow:hidden;border:1px solid var(--line);border-radius:var(--km-log-radius);background:var(--surface)}
-          .section>.list .entry{padding-left:12px!important;padding-right:12px!important;background:var(--surface)!important}
-          .section>.list .activity-entry-shell:last-child{border-bottom:0}
-          .btn{border-radius:12px!important;box-shadow:none!important}
-          body.km-accordion-embedded-settings .topbar,
-          body.km-accordion-embedded-settings .settings-page-title,
-          body.km-accordion-embedded-settings .settings-autosave{display:none!important}
-          body.km-accordion-embedded-settings{min-height:0!important}
-          body.km-accordion-embedded-settings .app-shell{padding:0!important}
-          body.km-accordion-embedded-settings .content{padding:0!important}
-          body.km-accordion-embedded-settings .settings-page{padding:0!important}
-          body.km-accordion-embedded-settings .settings-accordion:first-of-type{border-top:0}
-          body.km-accordion-embedded-settings .settings-accordion:last-child{border-bottom:0}
-          html{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
-          body{-webkit-tap-highlight-color:transparent}
-          .content{padding-top:4px!important}
-          .period-nav,.summary,.suggestion,.active-card{border-color:color-mix(in srgb,var(--line) 86%,transparent)!important;border-radius:16px!important}
-          .period-arrow{color:var(--accent)!important;background:color-mix(in srgb,var(--accent) 10%,var(--surface2))!important}
-          .period-tabs{border:0!important;border-radius:9px!important;background:color-mix(in srgb,var(--muted) 13%,transparent)!important}
-          .section>.list{gap:0!important;border-color:color-mix(in srgb,var(--line) 86%,transparent)!important;border-radius:16px!important}
-          .activity-entry-shell{border-bottom:0!important}
-          .activity-swipe-surface.entry{position:relative!important;padding:14px 12px!important;background:var(--surface)!important}
-          .activity-swipe-surface.entry::after{content:"";position:absolute;left:70px;right:0;bottom:0;height:.5px;background:var(--line);pointer-events:none}
-          .activity-entry-shell:last-child .activity-swipe-surface.entry::after,
-          .activity-entry-shell.expanded .activity-swipe-surface.entry::after{display:none}
-          .activity-inline-details{background:var(--surface)!important}
-          .activity-swipe-edit{background:#0a84ff!important;color:#fff!important}
-          .activity-swipe-delete{background:#ff453a!important;color:#fff!important}
-          .section-title h2,.section-title h3{font-size:20px!important;letter-spacing:-.02em}
-          .btn:active,.period-arrow:active,.entry:active{opacity:.68}
-          .chev{color:color-mix(in srgb,var(--muted) 62%,transparent)!important;font-size:20px!important}
-          body.km-accordion-embedded-settings .settings-accordion{border-color:var(--line)}
-          body.km-accordion-embedded-settings .settings-accordion summary{min-height:58px;padding-left:0;padding-right:0}
-          body.km-accordion-embedded-settings .settings-accordion-body{padding-left:0;padding-right:0}
-          .modal-backdrop{align-items:flex-end!important;padding:0!important;background:rgba(0,0,0,.38)!important}
-          .modal{position:relative!important;width:100%!important;max-width:none!important;max-height:92dvh!important;margin:0!important;padding:18px 16px calc(18px + env(safe-area-inset-bottom))!important;border-radius:26px 26px 0 0!important;border:.5px solid var(--line)!important;border-bottom:0!important;overflow:auto!important}
-          .modal::before{content:"";position:absolute;top:7px;left:50%;width:36px;height:5px;border-radius:99px;background:color-mix(in srgb,var(--muted) 45%,transparent);transform:translateX(-50%)}
-          .modal-head{position:sticky!important;top:-18px;z-index:2;margin:0 -16px 8px!important;padding:16px 16px 10px!important;border-bottom:.5px solid var(--line);background:color-mix(in srgb,var(--bg) 88%,transparent);-webkit-backdrop-filter:blur(20px) saturate(170%);backdrop-filter:blur(20px) saturate(170%)}
-          .modal-head h2{font-size:17px!important;text-align:center!important}
-        `;
-        doc.head.appendChild(style);
-      }
-    } catch (_) {}
-  }
-
-  function syncAccordionTimeFrameHeight(frame) {
-    try {
-      const doc = frame?.contentDocument;
-      if (!doc?.body) return;
-      let animationFrame = 0;
-      const update = () => {
-        cancelAnimationFrame(animationFrame);
-        animationFrame = requestAnimationFrame(() => {
-          const page = doc.querySelector('.settings-page');
-          const height = Math.max(
-            300,
-            page?.scrollHeight || 0,
-            doc.documentElement.scrollHeight,
-            doc.body.scrollHeight
-          );
-          frame.style.setProperty('height', Math.ceil(height) + 'px', 'important');
-        });
-      };
-      const bindAndUpdate = () => {
-        bindExclusiveAccordions(doc, '.settings-accordion');
-        update();
-      };
-      timeFrameSettingsObserver?.disconnect();
-      timeFrameSettingsResizeObserver?.disconnect();
-      timeFrameSettingsObserver = new MutationObserver(bindAndUpdate);
-      timeFrameSettingsObserver.observe(doc.body, { childList: true, subtree: true, attributes: true });
-      if (typeof ResizeObserver === 'function') {
-        timeFrameSettingsResizeObserver = new ResizeObserver(update);
-        timeFrameSettingsResizeObserver.observe(doc.documentElement);
-      }
-      bindAndUpdate();
-    } catch (_) {}
-  }
-
-  function openTimeSettingsInFrame(frame, host, token, attempt = 0) {
-    if (token !== settingsMountToken || activeSettingsTarget !== 'time' || !host.contains(frame)) return;
-    try {
-      const doc = frame.contentDocument;
-      if (doc?.body) {
-        applyUnifiedTimeStyles(frame);
-        doc.body.classList.add('km-accordion-embedded-settings');
-        if (timeFrameView(frame) !== 'settings') {
-          const direct = frame.contentWindow?.openSettings;
-          if (typeof direct === 'function') direct.call(frame.contentWindow);
-          else doc.getElementById('openSettings')?.click();
-        }
-        const ready = timeFrameView(frame) === 'settings' && Boolean(doc.querySelector('.settings-page'));
-        if (ready) {
-          bindExclusiveAccordions(doc, '.settings-accordion');
-          const first = doc.querySelector('.settings-accordion');
-          if (first && !doc.querySelector('.settings-accordion[open]')) first.open = true;
-          frame.classList.remove('km-settings-frame-loading');
-          frame.dataset.ready = '1';
-          frame.hidden = false;
-          frame.removeAttribute('aria-hidden');
-          host.querySelector('.km-shell-settings-panel-status')?.remove();
-          host.removeAttribute('aria-busy');
-          syncAccordionTimeFrameHeight(frame);
-          return;
-        }
-      }
-    } catch (error) {
-      console.warn('Tijdinstellingen konden nog niet worden geopend.', error);
-    }
-
-    if (attempt >= 30) {
-      frame.classList.remove('km-settings-frame-loading');
-      frame.dataset.ready = '0';
-      frame.hidden = true;
-      frame.setAttribute('aria-hidden', 'true');
-      host.removeAttribute('aria-busy');
-      setSettingsPanelStatus(
-        host,
-        'De tijdinstellingen reageren nog niet.',
-        'error',
-        () => {
-          host.setAttribute('aria-busy', 'true');
-          frame.hidden = false;
-          frame.removeAttribute('aria-hidden');
-          frame.dataset.ready = '0';
-          frame.classList.add('km-settings-frame-loading');
-          setSettingsPanelStatus(host, 'Tijdinstellingen opnieuw laden…');
-          openTimeSettingsInFrame(frame, host, token, 0);
-        }
-      );
-      return;
-    }
-    setTimeout(() => openTimeSettingsInFrame(frame, host, token, attempt + 1), Math.min(320, 70 + attempt * 12));
-  }
-
-  function timeSettingsUrl() {
-    const mainFrame = $('#timeAppFrame');
-    const url = new URL(mainFrame?.src || './time/', window.location.href);
-    url.searchParams.set('embedded', '1');
-    url.searchParams.set('settings', '1');
-    url.searchParams.set('instance', 'settings');
-    return url.href;
-  }
-
   function mountTimeSettings(host, token) {
-    if (!host) return false;
-    const frame = document.createElement('iframe');
-    frame.id = 'kmShellTimeSettingsFrame';
-    frame.className = 'time-app-frame km-shell-time-settings-frame km-settings-frame-loading';
-    frame.title = 'Instellingen tijd en taken';
-    frame.setAttribute('scrolling', 'no');
-    frame.setAttribute('aria-label', 'Instellingen tijd en taken');
-    frame.dataset.ready = '0';
-    frame.style.setProperty('height', '300px', 'important');
-    timeSettingsFrame = frame;
-
-    const open = () => openTimeSettingsInFrame(frame, host, token, 0);
-    frame.addEventListener('load', open, { once: true });
-    frame.src = timeSettingsUrl();
-    host.appendChild(frame);
+    const root = $('#timeModuleRoot');
+    const time = window.LogTimeModule;
+    if (!host || !root || !time?.showSettings || token !== settingsMountToken) return false;
+    timeModulePlaceholder = document.createComment('time-module-placeholder');
+    root.parentNode?.insertBefore(timeModulePlaceholder, root);
+    host.appendChild(root);
+    root.hidden = false;
+    timeSettingsMounted = true;
+    time.showSettings({ scroll: false });
+    const page = root.querySelector('.settings-page');
+    if (!page) {
+      restoreTimeModule();
+      return false;
+    }
+    bindExclusiveAccordions(page, '.settings-accordion');
+    const first = page.querySelector('.settings-accordion');
+    if (first && !page.querySelector('.settings-accordion[open]')) first.open = true;
+    host.querySelector('.km-shell-settings-panel-status')?.remove();
+    host.removeAttribute('aria-busy');
     return true;
   }
 
-  function timeFrameView(frame = $('#timeAppFrame')) {
-    try {
-      return frame?.contentDocument?.getElementById('appTaskCount')?.dataset.navigationView === 'settings' ? 'settings' : 'home';
-    } catch (_) {
-      return 'home';
-    }
-  }
-
-  function setTimeSettingsOpen(open) {
-    timeSettingsOpen = Boolean(open);
-    document.body.classList.toggle('km-shell-time-settings-open', timeSettingsOpen);
-    syncChrome();
-  }
-
-  function clickTimeSettingsToggle(wantedView) {
-    const frame = $('#timeAppFrame');
-    if (!frame) return false;
-    try {
-      const current = timeFrameView();
-      if (current === wantedView) {
-        setTimeSettingsOpen(wantedView === 'settings');
-        return true;
-      }
-      const button = frame.contentDocument?.getElementById('openSettings');
-      if (!button) return false;
-      button.click();
-      requestAnimationFrame(() => setTimeSettingsOpen(timeFrameView() === 'settings'));
-      return true;
-    } catch (error) {
-      console.warn('Tijdinstellingen konden niet worden geopend.', error);
-      return false;
-    }
-  }
-
-  function openTimeSettingsPage() {
-    closeDrawer();
-    if (clickTimeSettingsToggle('settings')) return;
-    const frame = $('#timeAppFrame');
-    frame?.addEventListener('load', () => clickTimeSettingsToggle('settings'), { once: true });
-  }
-
-  function closeTimeSettingsPage() {
-    if (!clickTimeSettingsToggle('home')) setTimeSettingsOpen(false);
-  }
-
-  function openSettingsSheet() {
+  function openSettingsSheet(target = '') {
     const settings = $('#kmShellSettings');
     if (!settings || settings.classList.contains('open')) return;
-    if (timeSettingsOpen) closeTimeSettingsPage();
     if (!renderGeneralSettings()) return;
     settings.classList.add('open');
     document.body.classList.add('km-shell-settings-open');
     document.body.style.overflow = 'hidden';
+    if (target) requestAnimationFrame(() => {
+      const detail = $(`.km-shell-settings-accordion[data-settings-target="${CSS.escape(target)}"]`, settings);
+      if (detail) detail.open = true;
+    });
   }
 
   function restoreKmApp() {
@@ -2031,8 +1761,8 @@
       kmAppPlaceholder.remove();
     } else if (app) {
       const shell = $('.shell');
-      const frame = $('#timeAppFrame');
-      if (shell) shell.insertBefore(app, frame || null);
+      const timeRoot = $('#timeModuleRoot');
+      if (shell) shell.insertBefore(app, timeRoot || null);
     }
     app?.removeAttribute('data-shell-settings-scope');
     kmAppPlaceholder = null;
@@ -2040,14 +1770,19 @@
     ensureKmView('ride');
   }
 
-  function destroyTimeSettingsFrame() {
-    const frame = timeSettingsFrame || $('#kmShellTimeSettingsFrame');
-    timeFrameSettingsObserver?.disconnect();
-    timeFrameSettingsObserver = null;
-    timeFrameSettingsResizeObserver?.disconnect();
-    timeFrameSettingsResizeObserver = null;
-    frame?.remove();
-    timeSettingsFrame = null;
+  function restoreTimeModule() {
+    if (!timeSettingsMounted) return;
+    const root = $('#timeModuleRoot');
+    if (root && timeModulePlaceholder?.parentNode) {
+      timeModulePlaceholder.parentNode.insertBefore(root, timeModulePlaceholder);
+      timeModulePlaceholder.remove();
+    } else if (root) {
+      $('.shell')?.appendChild(root);
+    }
+    timeModulePlaceholder = null;
+    timeSettingsMounted = false;
+    window.LogTimeModule?.showHome?.({ scroll: false });
+    if (root) root.hidden = section !== 'time';
   }
 
   function closeSettingsSheet() {
@@ -2069,43 +1804,20 @@
 
   function scrollActiveSectionToTop() {
     document.body.classList.remove('km-shell-search-revealed');
-    if (section === 'time') {
-      try {
-        $('#timeAppFrame')?.contentDocument?.scrollingElement?.scrollTo({ top: 0, behavior: 'smooth' });
-      } catch (_) {}
-    } else {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  }
-
-  function bindTimeFrameEnhancements() {
-    const frame = $('#timeAppFrame');
-    try {
-      applyUnifiedTimeStyles(frame);
-      bindTimeEnhancements(frame);
-      applyShellSearch();
-    } catch (_) {}
-  }
-
-  function bindEmbeddedTimeApp() {
-    const frame = $('#timeAppFrame');
-    frame?.addEventListener('load', () => requestAnimationFrame(bindTimeFrameEnhancements), { passive: true });
-    bindTimeFrameEnhancements();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function bindGlobalEvents() {
     window.addEventListener('kmreg-test-shell-select-section', event => selectSection(event.detail?.section));
-    window.addEventListener('kmreg-test-shell-open-settings', () => openSettingsSheet());
+    window.addEventListener('kmreg-test-shell-open-settings', event => openSettingsSheet(event.detail?.target || ''));
+    window.addEventListener('log-time-state-change', () => {
+      syncChrome();
+      applyShellSearch();
+    });
     window.addEventListener('log-backup-updated', () => {
       const content = $('#kmShellSettingsContent');
       if (content?.dataset.mode === 'general') renderGeneralSettings();
     });
-    window.addEventListener('message', event => {
-      const frame = $('#timeAppFrame');
-      if (event.origin !== window.location.origin || event.source !== frame?.contentWindow || event.data?.type !== 'urenregistratie-view') return;
-      setTimeSettingsOpen(event.data.view === 'settings');
-    });
-
     document.addEventListener('click', event => {
       const target = event.target instanceof Element ? event.target : event.target?.parentElement;
       if (!target) return;
@@ -2193,7 +1905,6 @@
     searchStatus.hidden = true;
     $('#kmShellSearch')?.insertAdjacentElement('afterend', searchStatus);
     bindGlobalEvents();
-    bindEmbeddedTimeApp();
     bindHeaderCollapse();
     refreshShellUI();
     refreshMenuDocument();

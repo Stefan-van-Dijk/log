@@ -1,13 +1,10 @@
 (function(){
   'use strict';
 
-  const BUILD='0.31.10-test.47';
+  const BUILD='0.31.10-test.63';
   const HORIZONTAL_RATIO=1.25;
   const SNAP_PROGRESS=0.28;
   const FLING_VELOCITY=0.45;
-  const TIME_FRAME_ID='timeAppFrame';
-  const LEGACY_TIME_EDGE=40;
-
   let scrollLocked=false;
   let lockedScrollY=0;
   let savedBodyStyle=null;
@@ -15,7 +12,6 @@
   let gesture=null;
   let animating=false;
   const boundDocuments=new WeakSet();
-  const legacyTimeGuardDocuments=new WeakSet();
 
   const $=(selector,root=document)=>root.querySelector(selector);
   const clamp=(value,min=0,max=1)=>Math.min(max,Math.max(min,value));
@@ -26,8 +22,7 @@
 
   function blockedByOverlay(){
     return document.body.classList.contains('km-shell-settings-open')||
-      document.body.classList.contains('editor-view')||
-      document.body.classList.contains('km-shell-time-settings-open');
+      document.body.classList.contains('editor-view');
   }
 
   function updateVersion(){
@@ -49,8 +44,8 @@
     style.id='kmShellGestureStyles';
     style.textContent=`
       body.km-shell-gesture-active{overscroll-behavior:none}
-      body.km-shell-gesture-active .shell>#timeAppFrame,
-      body.km-shell-drawer-open .shell>#timeAppFrame{visibility:visible!important;pointer-events:none!important;-webkit-backface-visibility:hidden;backface-visibility:hidden;transform:translateZ(0)!important}
+      body.km-shell-gesture-active .shell>#timeModuleRoot,
+      body.km-shell-drawer-open .shell>#timeModuleRoot{pointer-events:none!important;-webkit-backface-visibility:hidden;backface-visibility:hidden;transform:translateZ(0)!important}
       body.km-shell-drawer-open #kmShellDrawer{overscroll-behavior:contain}
       body.km-shell-drawer-open #kmShellBackdrop{touch-action:none}
     `;
@@ -328,55 +323,25 @@
     settleGesture(gesture.mode==='open'?0:1);
   }
 
-  function installLegacyTimeGestureGuard(doc){
-    if(!doc||doc===document||legacyTimeGuardDocuments.has(doc))return;
-    let embedded=false;
-    try{embedded=new URL(doc.defaultView.location.href).searchParams.get('embedded')==='1';}catch(_){}
-    if(!embedded)return;
-    legacyTimeGuardDocuments.add(doc);
-    doc.addEventListener('pointerdown',event=>{
-      if(event.button!=null&&event.button!==0)return;
-      if(isInteractiveTarget(event.target))return;
-      const width=Math.max(doc.documentElement?.clientWidth||0,doc.defaultView?.innerWidth||0);
-      if(width&&event.clientX>=width-LEGACY_TIME_EDGE)event.stopImmediatePropagation();
-    },true);
-  }
-
   function bindGestureDocument(doc){
     if(!doc||boundDocuments.has(doc))return;
     boundDocuments.add(doc);
-    installLegacyTimeGestureGuard(doc);
     doc.addEventListener('touchstart',beginGesture,{passive:true});
     doc.addEventListener('touchmove',moveGesture,{passive:false});
     doc.addEventListener('touchend',endGesture,{passive:true});
     doc.addEventListener('touchcancel',cancelGesture,{passive:true});
   }
 
-  function bindTimeFrame(){
-    const frame=$(`#${TIME_FRAME_ID}`);
-    if(!frame)return;
-    const bind=()=>{
-      try{bindGestureDocument(frame.contentDocument);}catch(_){}
-    };
-    if(frame.dataset.logShellGestureBound!=='1'){
-      frame.dataset.logShellGestureBound='1';
-      frame.addEventListener('load',()=>requestAnimationFrame(bind),{passive:true});
-    }
-    bind();
-  }
-
   function init(){
     installGestureStyles();
     promoteSharedStyles();
     bindGestureDocument(document);
-    bindTimeFrame();
     updateVersion();
     syncDrawerScrollLock();
 
     const observer=new MutationObserver(()=>{
       updateVersion();
       if(!gesture?.visualActive)syncDrawerScrollLock();
-      bindTimeFrame();
     });
     observer.observe(document.body,{attributes:true,attributeFilter:['class'],childList:true,subtree:false});
 
@@ -385,7 +350,6 @@
       promoteSharedStyles();
       updateVersion();
       syncDrawerScrollLock();
-      bindTimeFrame();
     });
     window.addEventListener('resize',()=>{
       if(gesture?.visualActive){
