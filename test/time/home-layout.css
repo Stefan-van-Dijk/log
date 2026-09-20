@@ -13,6 +13,7 @@
 }
 .period-overview .period-head{margin-bottom:5px}
 .period-overview .period-center{gap:4px;cursor:pointer;border-radius:10px;padding:3px 8px}
+.period-overview .period-center-single{display:flex;align-items:center;justify-content:center}
 .period-overview .period-center:active{background:color-mix(in srgb,var(--surface2) 60%,transparent)}
 .period-overview .period-center strong{font-size:25px;letter-spacing:-.025em}
 .period-overview .period-center strong::after{content:' ⌄';color:var(--muted);font-size:13px;vertical-align:middle}
@@ -68,8 +69,10 @@
 .start-confirm{margin-top:3px;min-height:48px}
 .inline-register-context{margin-top:8px;text-align:center;color:var(--muted);font-size:10px}
 
-.period-choice-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:4px}
-.period-choice{min-height:52px;padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--surface2);color:var(--text);font-weight:750;text-align:center;cursor:pointer}
+.period-choice-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0;margin-top:4px;overflow:hidden;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+.period-choice{min-height:52px;padding:10px;border:0;border-radius:0;background:transparent;color:var(--text);font-weight:750;text-align:center;cursor:pointer}
+.period-choice:nth-child(even){border-left:1px solid var(--line)}
+.period-choice:nth-child(n+3){border-top:1px solid var(--line)}
 .period-choice.active{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 13%,var(--surface2))}
 .period-choice-help{display:grid;gap:7px;margin-top:14px;padding-top:13px;border-top:1px solid var(--line);color:var(--muted);font-size:11px;line-height:1.4}
 

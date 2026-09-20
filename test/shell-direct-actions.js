@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const BUILD='0.31.10-test.67';
+  const BUILD='0.31.10-test.68';
   const EDIT_THRESHOLD=48;
   const LIFECYCLE_EXTRA=44;
   const AXIS_LOCK_DISTANCE=10;

@@ -286,6 +286,24 @@ body{font-size:16px;line-height:1.35;font-weight:400}
   font-size:13px!important;
   font-weight:650!important;
 }
+.app-shell .period-choice-list{
+  gap:0!important;
+  overflow:hidden!important;
+  border:var(--log-hairline) solid var(--line)!important;
+  border-radius:14px!important;
+  background:var(--surface)!important;
+}
+.app-shell .period-choice-list .period-choice{
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+}
+.app-shell .period-choice-list .period-choice:nth-child(even){border-left:var(--log-hairline) solid var(--line)!important}
+.app-shell .period-choice-list .period-choice:nth-child(n+3){border-top:var(--log-hairline) solid var(--line)!important}
+.app-shell .period-choice-list .period-choice.active{
+  background:color-mix(in srgb,var(--accent) 13%,var(--surface))!important;
+  color:var(--accent)!important;
+}
 
 @media(prefers-color-scheme:light){
   .km-shell-drawer{background:rgba(255,255,255,.96)!important;box-shadow:18px 0 48px rgba(30,45,65,.12)!important}

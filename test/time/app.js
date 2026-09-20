@@ -300,8 +300,7 @@ function periodLabel() {
 
 function periodSubLabel() {
   const { start, end } = periodBounds();
-  if (state.ui.periodMode === 'day') return dateText(start);
-  if (state.ui.periodMode === 'year') return `${start.getFullYear()}`;
+  if (state.ui.periodMode === 'day' || state.ui.periodMode === 'year') return '';
   if (state.ui.periodMode === 'all') return 'Volledige historie';
   return `${new Intl.DateTimeFormat('nl-NL', { day: 'numeric', month: 'short' }).format(start)} – ${new Intl.DateTimeFormat('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' }).format(end)}`;
 }
@@ -431,7 +430,8 @@ function reopenLastTask(id = state.lastCompletion?.entryId) {
 
 function renderPeriodNav() {
   const all = state.ui.periodMode === 'all';
-  return `<section class="period-nav"><div class="period-head"><button id="periodPrev" class="period-arrow" aria-label="Vorige periode" ${all ? 'disabled' : ''}>‹</button><div class="period-center"><strong>${safeText(periodLabel())}</strong><small>${safeText(periodSubLabel())}</small></div><button id="periodNext" class="period-arrow" aria-label="Volgende periode" ${all ? 'disabled' : ''}>›</button></div></section>`;
+  const subLabel = periodSubLabel();
+  return `<section class="period-nav"><div class="period-head"><button id="periodPrev" class="period-arrow" aria-label="Vorige periode" ${all ? 'disabled' : ''}>‹</button><div class="period-center${subLabel ? '' : ' period-center-single'}"><strong>${safeText(periodLabel())}</strong>${subLabel ? `<small>${safeText(subLabel)}</small>` : ''}</div><button id="periodNext" class="period-arrow" aria-label="Volgende periode" ${all ? 'disabled' : ''}>›</button></div></section>`;
 }
 
 function renderSummary(t) {
@@ -450,7 +450,7 @@ function renderActionCard() {
   }
   const s = suggestion();
   if (!s) return `<section class="suggestion"><div class="kicker">Start hier</div><h2>Eerste activiteit</h2><p class="suggestion-sub">Voeg tijdens het starten meteen je eerste thema toe.</p><button id="startOther" class="btn primary full">Start activiteit</button></section>`;
-  return `<section class="suggestion"><div class="kicker">Waarschijnlijk nu</div><h2>${safeText(s.theme.name)}</h2>${s.sub ? `<p class="suggestion-sub">${safeText(s.sub.name)}</p>` : '<p class="suggestion-sub">Geen subthema</p>'}<div class="suggestion-meta">${s.locationName ? `<span class="chip">⌖ ${safeText(s.locationName)}</span>` : ''}<span class="chip">Gebaseerd op eerder gebruik</span></div><button id="quickStart" class="btn primary full">Start</button><button id="startOther" class="btn ghost full" style="margin-top:7px">Anders kiezen</button></section>`;
+  return `<section class="suggestion"><div class="kicker">Waarschijnlijk nu</div><h2>${safeText(s.theme.name)}</h2>${s.sub ? `<p class="suggestion-sub">${safeText(s.sub.name)}</p>` : ''}<div class="suggestion-meta">${s.locationName ? `<span class="chip">⌖ ${safeText(s.locationName)}</span>` : ''}<span class="chip">Gebaseerd op eerder gebruik</span></div><button id="quickStart" class="btn primary full">Start</button><button id="startOther" class="btn ghost full" style="margin-top:7px">Anders kiezen</button></section>`;
 }
 
 function renderPeriodList(entries) {
@@ -500,9 +500,8 @@ function entryDayLabel(entry) {
 
 function entryRow(e, interruption = false) {
   const start = e.startISO ? timeText(e.startISO) : '—';
-  const subtitle = e.subthemeName || 'Geen subthema';
   const total = Number(e.totalMinutes) !== Number(e.ownMinutes) ? `<small>Totaal ${displayMinutes(e.totalMinutes)}</small>` : '';
-  return `<div class="entry ${interruption ? 'interruption' : ''}" data-entry="${e.id}"><div class="entry-time">${safeText(start)}</div><div class="entry-main"><strong>${safeText(e.themeName || (interruption ? 'Tussenstop' : 'Activiteit'))}</strong><small class="entry-subtheme">${safeText(subtitle)}</small></div><div class="entry-value-stack"><strong>${displayMinutes(e.ownMinutes)}</strong>${total}</div><div class="chev">›</div></div>`;
+  return `<div class="entry ${interruption ? 'interruption' : ''}" data-entry="${e.id}"><div class="entry-time">${safeText(start)}</div><div class="entry-main"><strong>${safeText(e.themeName || (interruption ? 'Tussenstop' : 'Activiteit'))}</strong>${e.subthemeName ? `<small class="entry-subtheme">${safeText(e.subthemeName)}</small>` : ''}</div><div class="entry-value-stack"><strong>${displayMinutes(e.ownMinutes)}</strong>${total}</div><div class="chev">›</div></div>`;
 }
 
 function wireHome() {
