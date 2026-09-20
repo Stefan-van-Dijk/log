@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const BUILD='0.31.10-test.64';
+  const BUILD='0.31.10-test.65';
   const DATA_KEY='kmreg-test-v4-data';
   const SECTION_KEY='kmreg-test-shell-section-v1';
   let gps={status:'idle',lat:null,lng:null,accuracy:null,matchedId:null,matchedRootId:null,distance:null,nearestId:null,nearestDistance:null,updatedAt:0,error:''};
@@ -95,7 +95,8 @@
       .editor-back{position:fixed!important;z-index:92!important;top:calc(env(safe-area-inset-top) + 10px);left:max(12px,calc((100vw - 820px)/2 + 12px))}
       .editor-nav-actions{position:fixed!important;z-index:92!important;top:calc(env(safe-area-inset-top) + 10px);right:max(12px,calc((100vw - 820px)/2 + 12px));margin:0!important}
       .km-current-status{margin:0 0 12px;padding:9px 1px 11px;border-bottom:1px solid var(--line);color:var(--muted);font-size:11px;line-height:1.4}
-      .km-current-status.good{color:var(--good)}
+      .km-current-status.good{padding:10px 12px;border:1px solid color-mix(in srgb,var(--good) 34%,var(--line));border-radius:12px;background:color-mix(in srgb,var(--good) 10%,transparent);color:var(--good);font-weight:750}
+      .km-current-status.good::before{content:'✓';display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;margin-right:7px;border-radius:50%;background:var(--good);color:var(--bg);font-size:11px;font-weight:900}
       .km-current-status.warn{color:var(--warn)}
       .km-shell-location-node.km-current-location>.km-shell-location-row{background:color-mix(in srgb,var(--accent) 8%,transparent)}
       .km-shell-location-node.km-current-location>.km-shell-location-row .km-shell-location-icon{border-color:color-mix(in srgb,var(--accent) 55%,var(--line));color:var(--accent)}

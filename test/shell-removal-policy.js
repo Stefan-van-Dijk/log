@@ -144,6 +144,14 @@
     }
   }
 
+  function removeActiveLocationRows(ids){
+    const view=$(`#${VIEW_ID}`);
+    if(!view)return;
+    for(const node of $$('[data-shell-location-node]',view)){
+      if(ids.has(String(node.dataset.shellLocationNode||'')))node.remove();
+    }
+  }
+
   function archiveLocation(plan){
     const raw=readKm();
     const ids=new Set((plan.meta?.locationIds||[plan.id]).map(String));
@@ -152,6 +160,7 @@
     policy.archiveBatch({source:'km',entityType:'location',rootId:plan.id,items,reason:policy.archiveCopy(plan).message});
     raw.locations=raw.locations.filter(item=>!ids.has(String(item.id)));
     writeKm(raw);
+    removeActiveLocationRows(ids);
     refreshLocations('location-archive');
   }
 
@@ -161,6 +170,7 @@
     const ids=new Set((plan.meta?.locationIds||[plan.id]).map(String));
     raw.locations=raw.locations.filter(item=>!ids.has(String(item.id)));
     writeKm(raw);
+    removeActiveLocationRows(ids);
     refreshLocations('location-delete');
   }
 

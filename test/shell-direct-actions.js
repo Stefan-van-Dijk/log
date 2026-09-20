@@ -1,8 +1,9 @@
 (function(){
   'use strict';
 
-  const BUILD='0.31.10-test.64';
-  const EDIT_THRESHOLD=36;
+  const BUILD='0.31.10-test.65';
+  const EDIT_THRESHOLD=48;
+  const LIFECYCLE_EXTRA=44;
   let gesture=null;
   let versionObserver=null;
   let versionQueued=false;
@@ -77,7 +78,7 @@
     gesture=null;
     if(g.cancelled||!g.horizontal||g.dx>-EDIT_THRESHOLD||Math.abs(g.dx)<=Math.abs(g.dy))return;
     const distance=Math.abs(g.dx);
-    const lifecycleThreshold=actionWidth()+EDIT_THRESHOLD;
+    const lifecycleThreshold=actionWidth()+LIFECYCLE_EXTRA;
     const action=g.ctx.lifecycle&&(!g.ctx.edit||distance>=lifecycleThreshold)?g.ctx.lifecycle:g.ctx.edit;
     if(!action)return;
     setTimeout(()=>{

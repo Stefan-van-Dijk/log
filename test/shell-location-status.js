@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const BUILD='0.31.10-test.64';
+  const BUILD='0.31.10-test.65';
   const VIEW_ID='kmShellLocationsView';
   const SECTION_KEY='kmreg-test-shell-section-v1';
   const DATA_KEY='kmreg-test-v4-data';
@@ -31,7 +31,8 @@
     const style=document.createElement('style');
     style.id='kmShellLocationStatusStyle';
     style.textContent=`
-      .km-shell-location-actions{grid-template-columns:minmax(0,1fr) minmax(0,2fr)!important}
+      .km-shell-location-actions{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+      .km-shell-location-actions.km-location-known{grid-template-columns:minmax(0,1fr) minmax(0,2fr)!important}
       .km-shell-location-actions [data-shell-current-location]{min-width:0!important;padding-left:10px!important;padding-right:10px!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px!important;transition:background .18s ease,color .18s ease}
       .km-shell-location-actions [data-shell-current-location].km-location-confirmed{background:color-mix(in srgb,var(--good) 13%,var(--surface))!important;color:var(--good)!important}
       .km-shell-location-actions [data-shell-current-location].km-location-confirmed:active{background:color-mix(in srgb,var(--good) 21%,var(--surface))!important}
@@ -123,6 +124,8 @@
     if(!view||!button)return;
     const name=matchedName(view);
     const confirmed=Boolean(name);
+    const actions=button.closest('.km-shell-location-actions');
+    actions?.classList.toggle('km-location-known',confirmed);
     button.classList.toggle('km-location-confirmed',confirmed);
     button.dataset.registeredLocation=name;
     const label=confirmed?`✓ ${name}`:'Huidige locatie';
