@@ -457,26 +457,26 @@ function renderPeriodList(entries) {
   const mains = entries.filter(e => e.activityType !== 'interruption').sort((a,b) => new Date(b.dateISO || b.endISO || b.createdAt) - new Date(a.dateISO || a.endISO || a.createdAt));
   const interruptions = entries.filter(e => e.activityType === 'interruption');
   if (!entries.length) return `<section class="section"><div class="section-title"><h2>Registraties</h2><button id="manualEntry" class="btn small">+ Toevoegen</button></div><div class="empty">Nog geen registraties in deze periode.</div></section>`;
-  const html = [];
-  let currentDay = '';
-  for (const e of mains) {
-    const day = entryDayKey(e);
-    if (day !== currentDay) {
-      currentDay = day;
-      html.push(`<div class="activity-group-title">${safeText(entryDayLabel(e))}</div>`);
+  const groups = [];
+  const addRows = (entry, rows) => {
+    const day = entryDayKey(entry);
+    let group = groups[groups.length - 1];
+    if (!group || group.day !== day) {
+      group = { day, label: entryDayLabel(entry), rows: [] };
+      groups.push(group);
     }
-    html.push(entryRow(e));
-    interruptions.filter(x => x.parentActivityId === e.id).sort((a,b)=>new Date(a.startISO)-new Date(b.startISO)).forEach(child => html.push(entryRow(child, true)));
+    group.rows.push(...rows);
+  };
+  for (const e of mains) {
+    const rows = [entryRow(e)];
+    interruptions.filter(x => x.parentActivityId === e.id).sort((a,b)=>new Date(a.startISO)-new Date(b.startISO)).forEach(child => rows.push(entryRow(child, true)));
+    addRows(e, rows);
   }
   interruptions.filter(x => !mains.some(e => e.id === x.parentActivityId)).sort((a,b) => new Date(b.dateISO || b.endISO || b.createdAt) - new Date(a.dateISO || a.endISO || a.createdAt)).forEach(x => {
-    const day = entryDayKey(x);
-    if (day !== currentDay) {
-      currentDay = day;
-      html.push(`<div class="activity-group-title">${safeText(entryDayLabel(x))}</div>`);
-    }
-    html.push(entryRow(x, true));
+    addRows(x, [entryRow(x, true)]);
   });
-  return `<section class="section"><div class="section-title"><h2>Registraties</h2><button id="manualEntry" class="btn small">+ Toevoegen</button></div><div class="list">${html.join('')}</div></section>`;
+  const html = groups.map(group => `<div class="activity-group"><div class="activity-group-title">${safeText(group.label)}</div><div class="list">${group.rows.join('')}</div></div>`).join('');
+  return `<section class="section"><div class="section-title"><h2>Registraties</h2><button id="manualEntry" class="btn small">+ Toevoegen</button></div>${html}</section>`;
 }
 
 function entryMoment(entry) {
@@ -492,9 +492,12 @@ function entryDayLabel(entry) {
   const today = dateInputValue(new Date());
   const yesterdayDate = new Date();
   yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+  const dayBeforeYesterdayDate = new Date();
+  dayBeforeYesterdayDate.setDate(dayBeforeYesterdayDate.getDate() - 2);
   const key = dateInputValue(date);
   if (key === today) return 'Vandaag';
   if (key === dateInputValue(yesterdayDate)) return 'Gisteren';
+  if (key === dateInputValue(dayBeforeYesterdayDate)) return 'Eergisteren';
   return new Intl.DateTimeFormat('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' }).format(date);
 }
 

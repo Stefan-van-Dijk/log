@@ -86,8 +86,9 @@
 
 /* Kilometer-app style inline details and left-swipe actions. */
 .section .list{gap:0}
-.activity-group-title{padding:18px 2px 8px;border-bottom:1px solid var(--line);color:var(--muted);font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
-.activity-group-title:first-child{padding-top:4px}
+.activity-group{margin-top:18px}
+.section-title+.activity-group{margin-top:0}
+.activity-group-title{padding:0 2px 7px;border:0;color:var(--muted);font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
 .activity-entry-shell{border-bottom:1px solid var(--line)}
 .activity-entry-shell.interruption-shell{margin-left:20px}
 .activity-swipe-row{position:relative;overflow:hidden;background:linear-gradient(90deg,var(--surface2),var(--surface2));border-radius:0}
