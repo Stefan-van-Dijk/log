@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const BUILD='0.31.10-test.76';
+  const BUILD='0.31.10-test.77';
   const STORAGE_KEY='urenregistratie.test.pwa.v1';
   const policy=window.LogRemovalPolicy;
   if(!policy){console.error('LogRemovalPolicy ontbreekt in Tijd en taken.');return;}
@@ -64,6 +64,11 @@
     });
   }
 
+  function applyThemeRemovalPreference(plan,raw){
+    if(!plan||plan.action!=='delete'||raw.settings?.swipeDeleteEnabled!==false)return plan;
+    return {...plan,action:'archive',meta:{...plan.meta,archiveBecauseDeleteDisabled:true}};
+  }
+
   function subthemePlan(id,raw=readState()){
     const item=raw.subthemes.find(value=>String(value.id)===String(id));
     if(!item)return null;
@@ -77,7 +82,7 @@
       ],
       meta:{neverUsed:(Number(item.usageCount)||0)===0}
     });
-    return plan;
+    return applyThemeRemovalPreference(plan,raw);
   }
 
   function themePlan(id,raw=readState()){
@@ -96,7 +101,7 @@
       ],
       meta:{subthemeIds:[...subIds],neverUsed:(Number(item.usageCount)||0)===0&&subs.every(sub=>(Number(sub.usageCount)||0)===0)}
     });
-    return plan;
+    return applyThemeRemovalPreference(plan,raw);
   }
 
   function hideDeleteToast(){
@@ -289,7 +294,7 @@
       row.appendChild(button);
     }
     const swipeHint=$('#swipeDeleteEnabled')?.closest('.settings-toggle-row')?.querySelector('small');
-    const hint='Swipe links: kort voor Bewerken, verder voor Archiveer/Verwijder. Nooit gebruikte thema’s en subthema’s worden direct verwijderd met een melding.';
+    const hint='Swipe links: kort voor Bewerken, verder voor Archiveer/Verwijder. Staat verwijderen uit, dan blijft Archiveren beschikbaar.';
     if(swipeHint&&swipeHint.textContent!==hint)swipeHint.textContent=hint;
   }
 
