@@ -1,12 +1,13 @@
 (function(){
   'use strict';
 
-  const BUILD='0.31.10-test.71';
+  const BUILD='0.31.10-test.72';
   const HORIZONTAL_RATIO=1.25;
   const SNAP_PROGRESS=0.28;
   const FLING_VELOCITY=0.45;
   let scrollLocked=false;
   let lockedScrollY=0;
+  let lockedSection='';
   let savedBodyStyle=null;
   let savedHtmlStyle=null;
   let gesture=null;
@@ -61,6 +62,7 @@
     if(scrollLocked)return;
     scrollLocked=true;
     lockedScrollY=Math.max(0,window.scrollY||window.pageYOffset||0);
+    lockedSection=localStorage.getItem('kmreg-test-shell-section-v1')||'';
     savedHtmlStyle={
       overflow:document.documentElement.style.overflow,
       overscrollBehavior:document.documentElement.style.overscrollBehavior
@@ -87,9 +89,11 @@
       document.body.style.overscrollBehavior=savedBodyStyle.overscrollBehavior;
     }
     const y=lockedScrollY;
+    const restoreLockedPosition=lockedSection===(localStorage.getItem('kmreg-test-shell-section-v1')||'');
     savedHtmlStyle=null;
     savedBodyStyle=null;
-    requestAnimationFrame(()=>window.scrollTo(0,y));
+    lockedSection='';
+    if(restoreLockedPosition)requestAnimationFrame(()=>window.scrollTo(0,y));
   }
 
   function syncDrawerScrollLock(){

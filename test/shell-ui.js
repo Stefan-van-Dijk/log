@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const BUILD = '0.31.10-test.71';
+  const BUILD = '0.31.10-test.72';
   const SHELL_VERSION = (() => {
     try {
       const script = document.currentScript || [...document.scripts].find(item => item.src.includes('shell-ui.js'));
@@ -99,12 +99,26 @@
   let activeSettingsTarget = null;
   let settingsMountToken = 0;
   let sectionTransitioning = false;
-  const windowScrollState = { top: Math.max(0, window.scrollY || 0), reverse: 0 };
+  let scrollRestoreToken = 0;
+  const windowScrollState = { top: viewportScrollTop(), reverse: 0 };
   const sectionScrollPositions = new Map([[section, windowScrollState.top]]);
 
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
   const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+
+  function viewportScrollTop() {
+    if (document.scrollingElement) return Math.max(0, Number(document.scrollingElement.scrollTop) || 0);
+    return Math.max(0, Number(window.scrollY) || Number(window.pageYOffset) || Number(document.documentElement?.scrollTop) || Number(document.body?.scrollTop) || 0);
+  }
+
+  function setViewportScrollTop(top) {
+    const target = Math.max(0, Number(top) || 0);
+    if (document.scrollingElement) document.scrollingElement.scrollTop = target;
+    document.documentElement.scrollTop = target;
+    document.body.scrollTop = target;
+    window.scrollTo(0, target);
+  }
 
   async function refreshMenuDocument() {
     try {
@@ -767,7 +781,9 @@
 
   function bindHeaderCollapse() {
     const update = () => {
-      updateScrollChrome(window.scrollY, windowScrollState);
+      const top = viewportScrollTop();
+      if (!sectionTransitioning) sectionScrollPositions.set(section, top);
+      updateScrollChrome(top, windowScrollState);
     };
     window.addEventListener('scroll', update, { passive: true });
     update();
@@ -782,12 +798,14 @@
       return;
     }
 
-    sectionScrollPositions.set(section, Math.max(0, window.scrollY || 0));
+    sectionScrollPositions.set(section, viewportScrollTop());
+    sectionTransitioning = true;
+    const restoreToken = ++scrollRestoreToken;
     const openedFromDrawer = drawerOpen;
     closeDrawer();
     section = next;
     document.body.classList.remove('km-shell-scrolled', 'km-shell-search-revealed', 'km-shell-tab-transition');
-    windowScrollState.top = Math.max(0, window.scrollY || 0);
+    windowScrollState.top = viewportScrollTop();
     windowScrollState.reverse = 0;
     localStorage.setItem(SECTION_KEY, section);
     localStorage.setItem(MODE_KEY, section === 'time' ? 'time' : 'kilometers');
@@ -798,7 +816,7 @@
     }
     showSection();
     resetShellSearch();
-    restoreSectionScroll();
+    restoreSectionScroll(restoreToken);
 
     if (!openedFromDrawer) {
       void $('.shell')?.offsetWidth;
@@ -807,17 +825,27 @@
     }
   }
 
-  function restoreSectionScroll() {
+  function restoreSectionScroll(token) {
     const target = Math.max(0, sectionScrollPositions.get(section) || 0);
     const apply = () => {
-      window.scrollTo({ top: target, behavior: 'auto' });
-      windowScrollState.top = Math.max(0, window.scrollY || 0);
+      if (token !== scrollRestoreToken) return;
+      setViewportScrollTop(target);
+      windowScrollState.top = viewportScrollTop();
       windowScrollState.reverse = 0;
       updateScrollChrome(windowScrollState.top, windowScrollState);
     };
+    apply();
     requestAnimationFrame(() => {
       apply();
-      requestAnimationFrame(apply);
+      requestAnimationFrame(() => {
+        apply();
+        setTimeout(() => {
+          if (token !== scrollRestoreToken) return;
+          apply();
+          sectionTransitioning = false;
+          sectionScrollPositions.set(section, viewportScrollTop());
+        }, 60);
+      });
     });
   }
 
