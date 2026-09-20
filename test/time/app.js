@@ -548,6 +548,37 @@ function addSubtheme(themeId, rawName) {
   const item = { id: uid(), themeId, themeName: theme.name, name, usageCount: 0, createdAt: new Date().toISOString() }; state.subthemes.push(item); saveState(); return item;
 }
 
+function renameTheme(themeId, rawName) {
+  const theme = state.themes.find(item => String(item.id) === String(themeId));
+  const name = cleanName(rawName);
+  if (!theme || !name) return null;
+  const duplicate = state.themes.find(item => String(item.id) !== String(theme.id) && item.name.localeCompare(name, 'nl', { sensitivity: 'base' }) === 0);
+  if (duplicate) return null;
+  const oldName = theme.name;
+  theme.name = name;
+  state.subthemes.filter(item => String(item.themeId) === String(theme.id)).forEach(item => { item.themeName = name; });
+  state.entries.filter(item => String(item.themeId) === String(theme.id) || (!item.themeId && item.themeName === oldName)).forEach(item => { item.themeName = name; });
+  if (String(state.timer?.themeId || '') === String(theme.id)) state.timer.themeName = name;
+  if (String(state.timer?.interruption?.themeId || '') === String(theme.id)) state.timer.interruption.themeName = name;
+  saveState();
+  return theme;
+}
+
+function renameSubtheme(subthemeId, rawName) {
+  const subtheme = state.subthemes.find(item => String(item.id) === String(subthemeId));
+  const name = cleanName(rawName);
+  if (!subtheme || !name) return null;
+  const duplicate = state.subthemes.find(item => String(item.id) !== String(subtheme.id) && String(item.themeId) === String(subtheme.themeId) && item.name.localeCompare(name, 'nl', { sensitivity: 'base' }) === 0);
+  if (duplicate) return null;
+  const oldName = subtheme.name;
+  subtheme.name = name;
+  state.entries.filter(item => String(item.subthemeId) === String(subtheme.id) || (!item.subthemeId && item.subthemeName === oldName && String(item.themeId || '') === String(subtheme.themeId || ''))).forEach(item => { item.subthemeName = name; });
+  if (String(state.timer?.subthemeId || '') === String(subtheme.id)) state.timer.subthemeName = name;
+  if (String(state.timer?.interruption?.subthemeId || '') === String(subtheme.id)) state.timer.interruption.subthemeName = name;
+  saveState();
+  return subtheme;
+}
+
 function addColleague(rawName) {
   const name = cleanName(rawName); if (!name) return null;
   const existing = state.colleagues.find(c => c.name.localeCompare(name, 'nl', { sensitivity: 'base' }) === 0); if (existing) return existing;
@@ -760,6 +791,8 @@ window.LogTimeModule = Object.freeze({
   getThemeCatalog: () => ({ themes: state.themes.map(item => ({ ...item })), subthemes: state.subthemes.map(item => ({ ...item })) }),
   createTheme: rawName => addTheme(rawName),
   createSubtheme: (themeId, rawName) => addSubtheme(themeId, rawName),
+  renameTheme,
+  renameSubtheme,
   getView: () => currentView,
   showHome: options => closeSettings(options),
   showSettings: options => openSettings(options),

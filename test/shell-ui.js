@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const BUILD = '0.31.10-test.74';
+  const BUILD = '0.31.10-test.75';
   const SHELL_VERSION = (() => {
     try {
       const script = document.currentScript || [...document.scripts].find(item => item.src.includes('shell-ui.js'));
@@ -90,6 +90,7 @@
   let expandedLocationId = null;
   let expandedThemeId = null;
   let locationSwipe = null;
+  let themeSwipe = null;
   let pendingParentForNew = null;
   let pendingParentSave = null;
   let kmSettingsMounted = false;
@@ -332,6 +333,7 @@
       .km-shell-module-settings{display:grid;gap:8px}.km-shell-module-row{display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;gap:8px;min-height:58px;padding:8px 10px;border:.5px solid var(--line);border-radius:14px;background:var(--card);transition:background .16s ease,box-shadow .16s ease,transform .16s ease}.km-shell-module-handle{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;padding:0;border:0;border-radius:10px;background:transparent;color:var(--muted);touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}.km-shell-module-handle:active,.km-shell-module-row.is-dragging .km-shell-module-handle{cursor:grabbing;background:var(--card2);color:var(--accent)}.km-shell-module-handle svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}.km-shell-module-row.is-dragging{position:fixed;z-index:140;background:color-mix(in srgb,var(--accent) 12%,var(--card));box-shadow:0 16px 38px rgba(0,0,0,.28);transform:scale(1.015);pointer-events:none}.km-shell-module-placeholder{min-height:58px;border:1px dashed color-mix(in srgb,var(--accent) 55%,var(--line));border-radius:12px;background:color-mix(in srgb,var(--accent) 8%,transparent)}.km-shell-module-copy strong,.km-shell-module-copy small{display:block}.km-shell-module-copy strong{font-size:13px}.km-shell-module-copy small{margin-top:3px;color:var(--muted);font-size:10px}.km-shell-module-controls{display:flex;align-items:center;gap:5px}.km-shell-module-toggle{display:inline-flex;align-items:center;margin-left:3px}.km-shell-module-toggle input{width:38px;height:22px;accent-color:var(--accent)}
       .km-shell-placeholder{padding:4px 0 28px}.km-shell-placeholder-hero{padding:22px 18px;border:.5px solid color-mix(in srgb,var(--accent) 24%,var(--line));border-radius:20px;background:linear-gradient(145deg,color-mix(in srgb,var(--accent) 12%,var(--card)),var(--card));box-shadow:0 10px 28px rgba(0,0,0,.08)}.km-shell-placeholder-hero svg{width:34px;height:34px;color:var(--accent);fill:none;stroke:currentColor;stroke-width:1.7}.km-shell-placeholder-hero h2{margin:14px 0 6px;font-size:25px}.km-shell-placeholder-hero p{margin:0;color:var(--muted);font-size:13px;line-height:1.5}.km-shell-placeholder-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.km-shell-placeholder-card{min-height:92px;padding:14px;border:.5px solid var(--line);border-radius:16px;background:var(--card)}.km-shell-placeholder-card strong,.km-shell-placeholder-card small{display:block}.km-shell-placeholder-card small{margin-top:6px;color:var(--muted);font-size:11px;line-height:1.4}.km-shell-placeholder-mode #app,.km-shell-placeholder-mode #timeModuleRoot,.km-shell-placeholder-mode .km-shell-locations{display:none!important}.km-shell-placeholder-mode .km-shell-search{display:none!important}
       .km-shell-themes{padding:2px 0 28px}.km-shell-theme-create{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:8px;margin:4px 0 16px;padding:16px;border:.5px solid var(--line);border-radius:16px;background:var(--card)}.km-shell-theme-create .field,.km-shell-subtheme-create .field{margin:0}.km-shell-theme-create button{min-height:42px}.km-shell-theme-list{overflow:hidden;border:.5px solid var(--line);border-radius:16px;background:var(--card)}.km-shell-theme-node+.km-shell-theme-node{border-top:.5px solid var(--line)}.km-shell-theme-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:6px;min-height:62px;padding:10px 9px 10px 14px;cursor:pointer}.km-shell-theme-row-copy{min-width:0}.km-shell-theme-row-copy strong,.km-shell-theme-row-copy small,.km-shell-subtheme-copy strong,.km-shell-subtheme-copy small{display:block}.km-shell-theme-row-copy strong{font-size:14px}.km-shell-theme-row-copy small{margin-top:3px;color:var(--muted);font-size:11px}.km-shell-theme-action{min-height:34px;padding:7px 9px;border:0;border-radius:9px;background:transparent;color:var(--muted);font:inherit;font-size:11px;font-weight:800}.km-shell-theme-action:active{background:var(--card2)}.km-shell-theme-toggle{width:34px;padding:0;font-size:20px}.km-shell-theme-details{padding:0 14px 13px;background:color-mix(in srgb,var(--card2) 42%,var(--card))}.km-shell-subtheme-list{border-top:.5px solid var(--line)}.km-shell-subtheme-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;min-height:50px;padding:7px 0}.km-shell-subtheme-row+.km-shell-subtheme-row{border-top:.5px solid var(--line)}.km-shell-subtheme-copy strong{font-size:13px}.km-shell-subtheme-copy small{margin-top:2px;color:var(--muted);font-size:10px}.km-shell-subtheme-create{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:8px;padding-top:12px}.km-shell-theme-archive{margin-top:14px;overflow:hidden;border:.5px solid var(--line);border-radius:16px;background:var(--card)}.km-shell-theme-archive>summary{display:flex;align-items:center;justify-content:space-between;min-height:54px;padding:11px 14px;list-style:none;cursor:pointer}.km-shell-theme-archive>summary::-webkit-details-marker{display:none}.km-shell-theme-archive-copy strong,.km-shell-theme-archive-copy small,.km-shell-theme-archive-row strong,.km-shell-theme-archive-row small{display:block}.km-shell-theme-archive-copy small,.km-shell-theme-archive-row small{margin-top:2px;color:var(--muted);font-size:10px}.km-shell-theme-archive-body{border-top:.5px solid var(--line)}.km-shell-theme-archive-row{display:flex;align-items:center;gap:10px;min-height:52px;padding:9px 13px}.km-shell-theme-archive-row+.km-shell-theme-archive-row{border-top:.5px solid var(--line)}.km-shell-theme-archive-row>div{flex:1;min-width:0}.km-shell-theme-archive-row button{min-height:34px;padding:6px 10px;border:0;border-radius:10px;background:var(--card2);color:var(--accent);font:inherit;font-size:11px;font-weight:800}
+      .km-shell-theme-swipe-row{position:relative;overflow:hidden;background:var(--card)}.km-shell-theme-swipe-actions{position:absolute;z-index:0;inset:0 0 0 auto;display:flex;justify-content:flex-end}.km-shell-theme-swipe-action{width:84px;padding:0;border:0;border-radius:0;color:#fff;font:inherit;font-size:11px;font-weight:800;opacity:.62;transition:opacity .12s ease,filter .12s ease}.km-shell-theme-swipe-edit{background:#0a84ff}.km-shell-theme-swipe-delete{background:#ff453a}.km-shell-theme-swipe-archive{background:#8a6500}.km-shell-theme-swipe-row.swipe-edit-armed .km-shell-theme-swipe-edit,.km-shell-theme-swipe-row.delete-armed .km-shell-theme-swipe-delete,.km-shell-theme-swipe-row.delete-armed .km-shell-theme-swipe-archive{opacity:1;filter:brightness(1.12)}.km-shell-theme-swipe-surface{position:relative;z-index:1;background:var(--card);touch-action:pan-y;transition:transform .18s cubic-bezier(.2,.8,.2,1);user-select:none;-webkit-user-select:none}.km-shell-subtheme-item+.km-shell-subtheme-item{border-top:.5px solid var(--line)}.km-shell-subtheme-item .km-shell-subtheme-row{border:0}.km-shell-theme-editor{position:fixed;z-index:150;inset:0;display:flex;align-items:flex-end;justify-content:center;padding:18px;background:rgba(0,0,0,.42)}.km-shell-theme-editor-panel{width:min(100%,520px);padding:17px;border:1px solid var(--line);border-radius:20px;background:var(--bg);box-shadow:0 18px 54px rgba(0,0,0,.36)}.km-shell-theme-editor-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}.km-shell-theme-editor-head h2{margin:0;font-size:20px}.km-shell-theme-editor-close{width:38px;height:38px;border:0;border-radius:50%;background:var(--card2);color:var(--text);font-size:24px}.km-shell-theme-editor-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
       body.km-shell-drawer-open .km-shell-tabbar,body.km-shell-settings-open .km-shell-tabbar,body.editor-view .km-shell-tabbar{opacity:0;transform:translate(-50%,18px) scale(.98);pointer-events:none}
       .shell{padding-bottom:calc(108px + env(safe-area-inset-bottom))!important}
       @keyframes kmTabPageIn{from{opacity:.72;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
@@ -364,6 +366,7 @@
       .km-shell-location-row{padding-left:12px!important;padding-right:8px!important}
       @media(max-width:520px){.km-shell-location-swipe-action{width:78px}}
       @media(max-width:520px){.km-shell-theme-create,.km-shell-subtheme-create{grid-template-columns:1fr}.km-shell-theme-create button,.km-shell-subtheme-create button{width:100%}}
+      @media(max-width:520px){.km-shell-theme-swipe-action{width:78px}}
       .km-shell-location-node:last-child>.km-shell-location-row{border-bottom:0}
       .km-shell-location-sort{border-radius:12px!important;background:var(--card)!important}
       .km-shell-general-settings{max-width:760px;margin:0 auto;padding:8px 0 30px}
@@ -880,12 +883,132 @@
     });
   }
 
-  function themeLifecycleButton(id, type) {
+  function themeLifecycle(id, type) {
     const lifecycle = window.LogTimeRemovalPolicy;
     const plan = type === 'theme' ? lifecycle?.themePlan?.(id) : lifecycle?.subthemePlan?.(id);
-    const action = plan?.action === 'archive' ? 'Archiveer' : 'Verwijder';
+    return { plan, action: plan?.action === 'archive' ? 'Archiveer' : 'Verwijder' };
+  }
+
+  function themeSwipeActions(id, type) {
+    const { plan, action } = themeLifecycle(id, type);
     const attribute = type === 'theme' ? 'data-log-delete-theme' : 'data-del-sub';
-    return `<button type="button" class="km-shell-theme-action ${plan?.action === 'archive' ? 'log-time-archive-action' : 'log-time-delete-action'}" ${attribute}="${esc(id)}">${action}</button>`;
+    const lifecycleClass = plan?.action === 'archive' ? 'km-shell-theme-swipe-archive log-time-archive-action' : 'km-shell-theme-swipe-delete log-time-delete-action';
+    return `<div class="km-shell-theme-swipe-actions"><button type="button" class="km-shell-theme-swipe-action ${lifecycleClass}" ${attribute}="${esc(id)}">${action}</button><button type="button" class="km-shell-theme-swipe-action km-shell-theme-swipe-edit" data-shell-theme-edit="${esc(id)}" data-shell-theme-type="${type}">Bewerk</button></div>`;
+  }
+
+  function resetThemeSwipeRow(row) {
+    if (!row) return;
+    const surface = $('.km-shell-theme-swipe-surface', row);
+    if (surface) {
+      surface.style.transition = 'transform .18s cubic-bezier(.2,.8,.2,1)';
+      surface.style.transform = 'translateX(0)';
+      delete surface.dataset.swipeOpen;
+    }
+    row.classList.remove('swipe-open', 'swipe-edit-armed', 'delete-armed');
+  }
+
+  function closeThemeSwipes(except = null) {
+    $$('.km-shell-theme-swipe-row').forEach(row => {
+      if (row !== except) resetThemeSwipeRow(row);
+    });
+  }
+
+  function openThemeNameEditor(id, type) {
+    const catalog = window.LogTimeModule?.getThemeCatalog?.() || { themes: [], subthemes: [] };
+    const collection = type === 'subtheme' ? catalog.subthemes : catalog.themes;
+    const item = collection.find(candidate => String(candidate.id) === String(id));
+    if (!item) return;
+    $('#kmShellThemeEditor')?.remove();
+    const previousOverflow = document.body.style.overflow;
+    const editor = document.createElement('div');
+    editor.id = 'kmShellThemeEditor';
+    editor.className = 'km-shell-theme-editor';
+    editor.innerHTML = `<form class="km-shell-theme-editor-panel" aria-labelledby="kmShellThemeEditorTitle"><div class="km-shell-theme-editor-head"><h2 id="kmShellThemeEditorTitle">${type === 'subtheme' ? 'Subthema' : 'Thema'} bewerken</h2><button type="button" class="km-shell-theme-editor-close" data-theme-editor-close aria-label="Sluiten">×</button></div><div class="field"><label for="kmShellThemeEditorName">Naam</label><input id="kmShellThemeEditorName" value="${esc(item.name)}" autocomplete="off"></div><div id="kmShellThemeEditorError" class="hint" role="alert"></div><div class="km-shell-theme-editor-actions"><button type="button" class="btn secondary" data-theme-editor-close>Annuleren</button><button type="submit" class="btn primary">Bewaren</button></div></form>`;
+    const close = () => {
+      editor.remove();
+      document.body.style.overflow = previousOverflow;
+    };
+    editor.addEventListener('click', event => {
+      if (event.target === editor || event.target.closest('[data-theme-editor-close]')) close();
+    });
+    editor.addEventListener('keydown', event => { if (event.key === 'Escape') close(); });
+    editor.querySelector('form').addEventListener('submit', event => {
+      event.preventDefault();
+      const input = $('#kmShellThemeEditorName', editor);
+      const value = input?.value.trim() || '';
+      const renamed = type === 'subtheme'
+        ? window.LogTimeModule?.renameSubtheme?.(id, value)
+        : window.LogTimeModule?.renameTheme?.(id, value);
+      if (!renamed) {
+        const error = $('#kmShellThemeEditorError', editor);
+        if (error) error.textContent = 'Kies een unieke, niet-lege naam.';
+        input?.focus();
+        return;
+      }
+      close();
+      renderThemes();
+      syncChrome();
+    });
+    document.body.appendChild(editor);
+    document.body.style.overflow = 'hidden';
+    const input = $('#kmShellThemeEditorName', editor);
+    input?.focus();
+    input?.select();
+  }
+
+  function bindThemeSwipeInteractions(root) {
+    root.onpointerdown = event => {
+      if (event.button != null && event.button !== 0) return;
+      const target = event.target instanceof Element ? event.target : null;
+      if (!target || target.closest('button,input,select,textarea')) return;
+      const surface = target.closest('.km-shell-theme-swipe-surface');
+      const row = surface?.closest('.km-shell-theme-swipe-row');
+      if (!surface || !row) return;
+      closeThemeSwipes(row);
+      themeSwipe = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, row, surface, horizontal: false, cancelled: false, peakLeft: 0 };
+      try { surface.setPointerCapture(event.pointerId); } catch (_) {}
+    };
+    root.onpointermove = event => {
+      const gesture = themeSwipe;
+      if (!gesture || gesture.pointerId !== event.pointerId || gesture.cancelled) return;
+      const rawX = event.clientX - gesture.startX;
+      const rawY = event.clientY - gesture.startY;
+      if (!gesture.horizontal) {
+        const absX = Math.abs(rawX);
+        const absY = Math.abs(rawY);
+        if (absX < 10 && absY < 10) return;
+        if (absX >= 10 && absX >= absY * 1.08) gesture.horizontal = true;
+        else if (absY >= 10 && absY >= absX * 1.35) { gesture.cancelled = true; return; }
+        else return;
+      }
+      if (event.cancelable) event.preventDefault();
+      const actionWidth = innerWidth <= 520 ? 78 : 84;
+      const maxDistance = actionWidth * 2;
+      const dx = Math.max(-maxDistance, Math.min(0, rawX));
+      const distance = Math.abs(dx);
+      const lifecycleThreshold = actionWidth + 44;
+      gesture.peakLeft = Math.max(gesture.peakLeft, distance);
+      const editArmed = gesture.peakLeft >= 48 && distance >= 36;
+      const lifecycleArmed = gesture.peakLeft >= lifecycleThreshold && distance >= lifecycleThreshold - 18;
+      gesture.surface.style.transition = 'none';
+      gesture.surface.style.transform = `translateX(${dx}px)`;
+      gesture.row.classList.toggle('swipe-edit-armed', editArmed && !lifecycleArmed);
+      gesture.row.classList.toggle('delete-armed', lifecycleArmed);
+    };
+    root.onpointerup = event => {
+      const gesture = themeSwipe;
+      if (!gesture || gesture.pointerId !== event.pointerId) return;
+      themeSwipe = null;
+      if (gesture.horizontal) {
+        gesture.surface.dataset.suppressClick = '1';
+        setTimeout(() => { if (gesture.surface) delete gesture.surface.dataset.suppressClick; }, 450);
+      }
+      resetThemeSwipeRow(gesture.row);
+    };
+    root.onpointercancel = () => {
+      if (themeSwipe) resetThemeSwipeRow(themeSwipe.row);
+      themeSwipe = null;
+    };
   }
 
   function renderThemes() {
@@ -899,8 +1022,8 @@
         .filter(subtheme => String(subtheme.themeId) === String(theme.id))
         .sort((a, b) => (Number(b.usageCount) || 0) - (Number(a.usageCount) || 0) || String(a.name).localeCompare(String(b.name), 'nl', { sensitivity: 'base' }));
       const expanded = String(expandedThemeId) === String(theme.id);
-      const details = expanded ? `<div class="km-shell-theme-details"><div class="km-shell-subtheme-list">${subthemes.length ? subthemes.map(subtheme => `<div class="km-shell-subtheme-row"><div class="km-shell-subtheme-copy"><strong>${esc(subtheme.name)}</strong><small>${Number(subtheme.usageCount) || 0}× gebruikt</small></div>${themeLifecycleButton(subtheme.id, 'subtheme')}</div>`).join('') : '<div class="km-shell-empty">Nog geen subthema’s.</div>'}</div><div class="km-shell-subtheme-create"><div class="field"><label for="kmShellNewSubtheme-${esc(theme.id)}">Nieuw subthema</label><input id="kmShellNewSubtheme-${esc(theme.id)}" data-new-subtheme="${esc(theme.id)}" autocomplete="off" placeholder="Naam"></div><button type="button" class="btn" data-add-subtheme="${esc(theme.id)}">Toevoegen</button></div></div>` : '';
-      return `<section class="km-shell-theme-node" data-theme-node="${esc(theme.id)}"><span class="km-shell-legacy">${esc(subthemes.map(subtheme => subtheme.name).join(' '))}</span><div class="km-shell-theme-row" data-theme-toggle="${esc(theme.id)}"><div class="km-shell-theme-row-copy"><strong>${esc(theme.name)}</strong><small>${subthemes.length} ${subthemes.length === 1 ? 'subthema' : 'subthema’s'} · ${Number(theme.usageCount) || 0}× gebruikt</small></div>${themeLifecycleButton(theme.id, 'theme')}<button type="button" class="km-shell-theme-action km-shell-theme-toggle" data-theme-expand="${esc(theme.id)}" aria-expanded="${expanded}" aria-label="${expanded ? 'Subthema’s sluiten' : 'Subthema’s tonen'}">${expanded ? '⌄' : '›'}</button></div>${details}</section>`;
+      const details = expanded ? `<div class="km-shell-theme-details"><div class="km-shell-subtheme-list">${subthemes.length ? subthemes.map(subtheme => `<div class="km-shell-subtheme-item"><div class="km-shell-theme-swipe-row" data-shell-theme-swipe="${esc(subtheme.id)}" data-shell-theme-type="subtheme">${themeSwipeActions(subtheme.id, 'subtheme')}<div class="km-shell-subtheme-row km-shell-theme-swipe-surface"><div class="km-shell-subtheme-copy"><strong>${esc(subtheme.name)}</strong><small>${Number(subtheme.usageCount) || 0}× gebruikt</small></div><span class="km-shell-location-chevron" aria-hidden="true">›</span></div></div></div>`).join('') : '<div class="km-shell-empty">Nog geen subthema’s.</div>'}</div><div class="km-shell-subtheme-create"><div class="field"><label for="kmShellNewSubtheme-${esc(theme.id)}">Nieuw subthema</label><input id="kmShellNewSubtheme-${esc(theme.id)}" data-new-subtheme="${esc(theme.id)}" autocomplete="off" placeholder="Naam"></div><button type="button" class="btn" data-add-subtheme="${esc(theme.id)}">Toevoegen</button></div></div>` : '';
+      return `<section class="km-shell-theme-node" data-theme-node="${esc(theme.id)}"><span class="km-shell-legacy">${esc(subthemes.map(subtheme => subtheme.name).join(' '))}</span><div class="km-shell-theme-swipe-row" data-shell-theme-swipe="${esc(theme.id)}" data-shell-theme-type="theme">${themeSwipeActions(theme.id, 'theme')}<div class="km-shell-theme-row km-shell-theme-swipe-surface" data-theme-toggle="${esc(theme.id)}"><div class="km-shell-theme-row-copy"><strong>${esc(theme.name)}</strong><small>${subthemes.length} ${subthemes.length === 1 ? 'subthema' : 'subthema’s'} · ${Number(theme.usageCount) || 0}× gebruikt</small></div><button type="button" class="km-shell-theme-action km-shell-theme-toggle" data-theme-expand="${esc(theme.id)}" aria-expanded="${expanded}" aria-label="${expanded ? 'Subthema’s sluiten' : 'Subthema’s tonen'}">${expanded ? '⌄' : '›'}</button></div></div>${details}</section>`;
     }).join('');
     const archiveRecords = window.LogTimeRemovalPolicy?.themeArchiveRecords?.() || [];
     const archive = archiveRecords.length ? `<details class="km-shell-theme-archive"><summary><span class="km-shell-theme-archive-copy"><strong>Archief</strong><small>${archiveRecords.length} ${archiveRecords.length === 1 ? 'item' : 'items'} · tik om te herstellen</small></span><span aria-hidden="true">›</span></summary><div class="km-shell-theme-archive-body">${archiveRecords.map(record => `<div class="km-shell-theme-archive-row"><div><strong>${esc(window.LogTimeRemovalPolicy?.archiveRecordName?.(record) || 'Thema')}</strong><small>${record.entityType === 'theme' ? 'Thema' : 'Subthema'}</small></div><button type="button" data-log-time-restore="${esc(record.batchId)}">Herstel</button></div>`).join('')}</div></details>` : '';
@@ -925,9 +1048,15 @@
     }));
     $$('[data-theme-toggle]', root).forEach(row => row.addEventListener('click', event => {
       if (event.target.closest('button,input')) return;
+      if (row.closest('.km-shell-theme-swipe-surface')?.dataset.suppressClick === '1') return;
       expandedThemeId = String(expandedThemeId) === String(row.dataset.themeToggle) ? null : row.dataset.themeToggle;
       renderThemes();
       applyShellSearch();
+    }));
+    $$('[data-shell-theme-edit]', root).forEach(button => button.addEventListener('click', event => {
+      event.preventDefault();
+      event.stopPropagation();
+      openThemeNameEditor(button.dataset.shellThemeEdit, button.dataset.shellThemeType || 'theme');
     }));
     $$('[data-add-subtheme]', root).forEach(button => {
       const add = () => {
@@ -938,6 +1067,7 @@
       button.addEventListener('click', add);
       $(`[data-new-subtheme="${CSS.escape(button.dataset.addSubtheme)}"]`, root)?.addEventListener('keydown', event => { if (event.key === 'Enter') add(); });
     });
+    bindThemeSwipeInteractions(root);
   }
 
   function renderPlaceholderModule() {

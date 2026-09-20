@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const BUILD='0.31.10-test.74';
+  const BUILD='0.31.10-test.75';
   const EDIT_THRESHOLD=48;
   const LIFECYCLE_EXTRA=44;
   const AXIS_LOCK_DISTANCE=10;
@@ -38,6 +38,16 @@
         lifecycle:$('[data-shell-location-swipe-action="delete"]',row)
       };
     }
+    if(surface.matches('.km-shell-theme-swipe-surface')){
+      const row=surface.closest('.km-shell-theme-swipe-row');
+      if(!row)return null;
+      return {
+        row,
+        surface,
+        edit:$('[data-shell-theme-edit]',row),
+        lifecycle:$('[data-log-delete-theme],[data-del-sub]',row)
+      };
+    }
     const row=surface.closest('.swipe-row');
     if(!row)return null;
     return {
@@ -59,7 +69,7 @@
   function pointerDown(event){
     if(event.button!=null&&event.button!==0)return;
     if(event.target.closest?.('button,input,select,textarea'))return;
-    const surface=event.target.closest?.('.activity-swipe-surface,.km-shell-location-swipe-surface,.swipe-surface');
+    const surface=event.target.closest?.('.activity-swipe-surface,.km-shell-location-swipe-surface,.km-shell-theme-swipe-surface,.swipe-surface');
     if(!surface)return;
     const ctx=contextFor(surface);
     if(!ctx||(!ctx.edit&&!ctx.lifecycle))return;
