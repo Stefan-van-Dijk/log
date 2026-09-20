@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const BUILD = '0.31.10-test.63';
+  const BUILD = '0.31.10-test.64';
   const SHELL_VERSION = (() => {
     try {
       const script = document.currentScript || [...document.scripts].find(item => item.src.includes('shell-ui.js'));
@@ -11,6 +11,7 @@
     }
   })();
   const DATA_KEY = 'kmreg-test-v4-data';
+  const KM_STATE_EVENT = 'log-km-state-change';
   const MODE_KEY = 'kmreg-test-active-app-v1';
   const SECTION_KEY = 'kmreg-test-shell-section-v1';
   const DRAWER_KEY = 'kmreg-test-shell-drawer-v1';
@@ -89,7 +90,6 @@
   let locationSwipe = null;
   let pendingParentForNew = null;
   let pendingParentSave = null;
-  let pendingHierarchyReload = false;
   let kmSettingsMounted = false;
   let timeSettingsMounted = false;
   let kmAppPlaceholder = null;
@@ -178,6 +178,16 @@
       syncChrome();
       applyShellSearch();
     });
+  }
+
+  function refreshKmState() {
+    if (section === 'locations') {
+      renderLocations();
+      notifyActiveViewRefresh();
+    }
+    filterTripLocationSelects();
+    syncChrome();
+    applyShellSearch();
   }
 
   function focusModuleHandle(id) {
@@ -1276,8 +1286,6 @@
             if (target) {
               if (pendingParentSave.parentId) target.parentId = pendingParentSave.parentId;
               else delete target.parentId;
-              const previous = pendingParentSave.previousParentId || '';
-              if (previous !== (pendingParentSave.parentId || '')) pendingHierarchyReload = true;
               value = JSON.stringify(payload);
             }
           }
@@ -1299,7 +1307,6 @@
     pendingParentSave = {
       id,
       parentId: select.value || '',
-      previousParentId: stored?.parentId || '',
       beforeIds: new Set(snapshot.locations.map(location => location.id))
     };
     setTimeout(() => { pendingParentSave = null; }, 2500);
@@ -1867,20 +1874,17 @@
         document.body.classList.add('km-shell-locations-mode');
         renderLocations();
       }
-      if (!editor && pendingHierarchyReload) {
-        pendingHierarchyReload = false;
-        localStorage.setItem(SECTION_KEY, 'locations');
-        setTimeout(() => location.reload(), 60);
-      }
       syncChrome();
       applyShellSearch();
     });
     observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
 
+    window.addEventListener(KM_STATE_EVENT, event => {
+      if (!event.detail?.key || event.detail.key === DATA_KEY) refreshKmState();
+    });
     window.addEventListener('storage', event => {
       if (event.key === DATA_KEY) {
-        renderLocations();
-        refreshShellUI();
+        refreshKmState();
       } else if (event.key === 'urenregistratie.test.pwa.v1') {
         syncChrome();
       }

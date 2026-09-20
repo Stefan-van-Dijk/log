@@ -3,6 +3,7 @@
 
   const BUILD='0.31.10-test.55';
   const DATA_KEY='kmreg-test-v4-data';
+  const KM_STATE_EVENT='log-km-state-change';
   const SECTION_KEY='kmreg-test-shell-section-v1';
   const VIEW_ID='kmShellLocationsView';
   const policy=window.LogRemovalPolicy;
@@ -26,21 +27,14 @@
     }catch(_){return {locations:[],trips:[],events:[],trackPoints:[]};}
   }
 
-  function dispatchStorage(key,oldValue,newValue){
-    try{
-      window.dispatchEvent(new StorageEvent('storage',{key,oldValue,newValue,storageArea:localStorage,url:location.href}));
-    }catch(_){
-      const event=new Event('storage');
-      try{Object.defineProperty(event,'key',{value:key});}catch(__){}
-      window.dispatchEvent(event);
-    }
-  }
-
   function writeKm(raw){
-    const oldValue=localStorage.getItem(DATA_KEY);
     const newValue=JSON.stringify(raw);
     localStorage.setItem(DATA_KEY,newValue);
-    dispatchStorage(DATA_KEY,oldValue,newValue);
+    if(localStorage.getItem(DATA_KEY)!==newValue)throw new Error('Locatiewijziging kon niet worden opgeslagen.');
+  }
+
+  function notifyKmStateChange(reason){
+    window.dispatchEvent(new CustomEvent(KM_STATE_EVENT,{detail:{key:DATA_KEY,reason,source:'shell-removal'}}));
   }
 
   function descendantsOf(id,locations){
@@ -141,13 +135,13 @@
     [0,40,140,320].forEach(delay=>setTimeout(hide,delay));
   }
 
-  function refreshLocations(){
+  function refreshLocations(reason='location-update'){
     localStorage.setItem(SECTION_KEY,'locations');
+    notifyKmStateChange(reason);
     if(document.body.classList.contains('editor-view')){
       const back=$('[data-action="editor-back"]');
       if(back)back.click();
     }
-    requestAnimationFrame(()=>window.dispatchEvent(new CustomEvent('kmreg-test-shell-select-section',{detail:{section:'locations'}})));
   }
 
   function archiveLocation(plan){
@@ -158,7 +152,7 @@
     policy.archiveBatch({source:'km',entityType:'location',rootId:plan.id,items,reason:policy.archiveCopy(plan).message});
     raw.locations=raw.locations.filter(item=>!ids.has(String(item.id)));
     writeKm(raw);
-    refreshLocations();
+    refreshLocations('location-archive');
   }
 
   async function deleteLocationGroup(plan){
@@ -167,7 +161,7 @@
     const ids=new Set((plan.meta?.locationIds||[plan.id]).map(String));
     raw.locations=raw.locations.filter(item=>!ids.has(String(item.id)));
     writeKm(raw);
-    refreshLocations();
+    refreshLocations('location-delete');
   }
 
   function replayNativeDelete(button){
@@ -282,7 +276,7 @@
     }
     writeKm(raw);
     policy.removeBatch(batchId);
-    refreshLocations();
+    refreshLocations('location-restore');
   }
 
   function scheduleDecorate(){
@@ -308,6 +302,7 @@
     const observer=new MutationObserver(scheduleDecorate);
     observer.observe(document.body,{childList:true,subtree:true});
     window.addEventListener('log-shell-view-refresh',scheduleDecorate);
+    window.addEventListener(KM_STATE_EVENT,scheduleDecorate);
     window.addEventListener('pageshow',scheduleDecorate);
     window.addEventListener('storage',event=>{
       if(event.key===DATA_KEY||event.key===policy.ARCHIVE_KEY)scheduleDecorate();
