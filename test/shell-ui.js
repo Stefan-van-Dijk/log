@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const BUILD = '0.31.10-test.69';
+  const BUILD = '0.31.10-test.70';
   const SHELL_VERSION = (() => {
     try {
       const script = document.currentScript || [...document.scripts].find(item => item.src.includes('shell-ui.js'));
@@ -100,6 +100,7 @@
   let settingsMountToken = 0;
   let sectionTransitioning = false;
   const windowScrollState = { top: Math.max(0, window.scrollY || 0), reverse: 0 };
+  const sectionScrollPositions = new Map([[section, windowScrollState.top]]);
 
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -781,6 +782,7 @@
       return;
     }
 
+    sectionScrollPositions.set(section, Math.max(0, window.scrollY || 0));
     const openedFromDrawer = drawerOpen;
     closeDrawer();
     section = next;
@@ -796,12 +798,27 @@
     }
     showSection();
     resetShellSearch();
+    restoreSectionScroll();
 
     if (!openedFromDrawer) {
       void $('.shell')?.offsetWidth;
       document.body.classList.add('km-shell-tab-transition');
       setTimeout(() => document.body.classList.remove('km-shell-tab-transition'), 240);
     }
+  }
+
+  function restoreSectionScroll() {
+    const target = Math.max(0, sectionScrollPositions.get(section) || 0);
+    const apply = () => {
+      window.scrollTo({ top: target, behavior: 'auto' });
+      windowScrollState.top = Math.max(0, window.scrollY || 0);
+      windowScrollState.reverse = 0;
+      updateScrollChrome(windowScrollState.top, windowScrollState);
+    };
+    requestAnimationFrame(() => {
+      apply();
+      requestAnimationFrame(apply);
+    });
   }
 
   function renderPlaceholderModule() {
