@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const BUILD='0.31.10-test.75';
+  const BUILD='0.31.10-test.76';
   const STORAGE_KEY='urenregistratie.test.pwa.v1';
   const policy=window.LogRemovalPolicy;
   if(!policy){console.error('LogRemovalPolicy ontbreekt in Tijd en taken.');return;}
@@ -24,6 +24,16 @@
 
   function writeState(raw){
     localStorage.setItem(STORAGE_KEY,JSON.stringify(raw));
+  }
+
+  let messageTimer=0;
+  function showMessage(message){
+    const toast=$('#toast');
+    if(!toast)return;
+    clearTimeout(messageTimer);
+    toast.textContent=message;
+    toast.classList.add('show');
+    messageTimer=setTimeout(()=>toast.classList.remove('show'),2600);
   }
 
   function entryPlan(id,raw=readState()){
@@ -59,13 +69,15 @@
     if(!item)return null;
     const references=raw.entries.filter(entry=>String(entry.subthemeId||'')===String(id));
     const timerReference=String(raw.timer?.subthemeId||'')===String(id)?1:0;
-    return policy.createPlan({
+    const plan=policy.createPlan({
       entityType:'subtheme',id,label:item.name||'Subthema',owned:[],
       incoming:[
         references.length?{key:'entries',label:references.length===1?'registratie':'registraties',count:references.length,ids:references.map(entry=>entry.id)}:null,
         timerReference?{key:'timer',label:'actieve timer',count:1}:null
-      ]
+      ],
+      meta:{neverUsed:(Number(item.usageCount)||0)===0}
     });
+    return plan;
   }
 
   function themePlan(id,raw=readState()){
@@ -75,15 +87,16 @@
     const subIds=new Set(subs.map(sub=>String(sub.id)));
     const references=raw.entries.filter(entry=>String(entry.themeId||'')===String(id)||subIds.has(String(entry.subthemeId||'')));
     const timerReference=String(raw.timer?.themeId||'')===String(id)||subIds.has(String(raw.timer?.subthemeId||''))?1:0;
-    return policy.createPlan({
+    const plan=policy.createPlan({
       entityType:'theme',id,label:item.name||'Thema',
       owned:[subs.length?{key:'subthemes',label:subs.length===1?'subthema':'subthema’s',count:subs.length,ids:subs.map(sub=>sub.id)}:null],
       incoming:[
         references.length?{key:'entries',label:references.length===1?'registratie':'registraties',count:references.length,ids:references.map(entry=>entry.id)}:null,
         timerReference?{key:'timer',label:'actieve timer',count:1}:null
       ],
-      meta:{subthemeIds:[...subIds]}
+      meta:{subthemeIds:[...subIds],neverUsed:(Number(item.usageCount)||0)===0&&subs.every(sub=>(Number(sub.usageCount)||0)===0)}
     });
+    return plan;
   }
 
   function hideDeleteToast(){
@@ -132,14 +145,16 @@
     raw[collection]=raw[collection].filter(value=>String(value.id)!==String(id));
     writeState(raw);
     refreshTime('settings');
+    showMessage(`${plan.label} gearchiveerd.`);
     return true;
   }
 
-  async function removeSimple(raw,collection,id,plan){
-    if(!await policy.confirmDelete(plan))return false;
+  async function removeSimple(raw,collection,id,plan,{immediate=false}={}){
+    if(!immediate&&!await policy.confirmDelete(plan))return false;
     raw[collection]=raw[collection].filter(value=>String(value.id)!==String(id));
     writeState(raw);
     refreshTime('settings');
+    showMessage(`${plan.label} verwijderd.`);
     return true;
   }
 
@@ -153,16 +168,18 @@
     raw.subthemes=raw.subthemes.filter(sub=>!subIds.has(String(sub.id)));
     writeState(raw);
     refreshTime('settings');
+    showMessage(`${plan.label} gearchiveerd.`);
     return true;
   }
 
-  async function removeTheme(raw,id,plan){
-    if(!await policy.confirmDelete(plan))return false;
+  async function removeTheme(raw,id,plan,{immediate=false}={}){
+    if(!immediate&&!await policy.confirmDelete(plan))return false;
     const subIds=new Set(plan.meta?.subthemeIds||[]);
     raw.themes=raw.themes.filter(value=>String(value.id)!==String(id));
     raw.subthemes=raw.subthemes.filter(sub=>!subIds.has(String(sub.id)));
     writeState(raw);
     refreshTime('settings');
+    showMessage(`${plan.label} verwijderd.`);
     return true;
   }
 
@@ -202,7 +219,7 @@
       const raw=readState(),plan=subthemePlan(id,raw);
       if(!plan)return;
       if(plan.action==='archive')archiveSimple(raw,'subthemes','subtheme',id,plan);
-      else await removeSimple(raw,'subthemes',id,plan);
+      else await removeSimple(raw,'subthemes',id,plan,{immediate:plan.meta?.neverUsed===true});
       return;
     }
 
@@ -213,7 +230,7 @@
       const raw=readState(),plan=themePlan(id,raw);
       if(!plan)return;
       if(plan.action==='archive')archiveTheme(raw,id,plan);
-      else await removeTheme(raw,id,plan);
+      else await removeTheme(raw,id,plan,{immediate:plan.meta?.neverUsed===true});
       return;
     }
 
@@ -252,6 +269,7 @@
       if(!plan)continue;
       const text=lifecycleLabel(plan);
       if(button.textContent!==text)button.textContent=text;
+      if(button.classList.contains('km-shell-theme-swipe-action'))continue;
       button.classList.toggle('log-time-archive-action',plan.action==='archive');
       button.classList.toggle('log-time-delete-action',plan.action==='delete');
     }
@@ -271,7 +289,7 @@
       row.appendChild(button);
     }
     const swipeHint=$('#swipeDeleteEnabled')?.closest('.settings-toggle-row')?.querySelector('small');
-    const hint='Swipe links: kort voor Bewerken, verder voor Archiveer/Verwijder. Verwijderen vraagt altijd eerst bevestiging.';
+    const hint='Swipe links: kort voor Bewerken, verder voor Archiveer/Verwijder. Nooit gebruikte thema’s en subthema’s worden direct verwijderd met een melding.';
     if(swipeHint&&swipeHint.textContent!==hint)swipeHint.textContent=hint;
   }
 
