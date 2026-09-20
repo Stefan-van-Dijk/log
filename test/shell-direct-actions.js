@@ -1,9 +1,14 @@
 (function(){
   'use strict';
 
-  const BUILD='0.31.10-test.65';
+  const BUILD='0.31.10-test.66';
   const EDIT_THRESHOLD=48;
   const LIFECYCLE_EXTRA=44;
+  const AXIS_LOCK_DISTANCE=10;
+  const HORIZONTAL_DOMINANCE=1.08;
+  const VERTICAL_DOMINANCE=1.35;
+  const EDIT_RELEASE_THRESHOLD=36;
+  const LIFECYCLE_RELEASE_BUFFER=18;
   let gesture=null;
   let versionObserver=null;
   let versionQueued=false;
@@ -58,7 +63,7 @@
     if(!surface)return;
     const ctx=contextFor(surface);
     if(!ctx||(!ctx.edit&&!ctx.lifecycle))return;
-    gesture={pointerId:event.pointerId,startX:event.clientX,startY:event.clientY,dx:0,dy:0,horizontal:false,cancelled:false,ctx};
+    gesture={pointerId:event.pointerId,startX:event.clientX,startY:event.clientY,dx:0,dy:0,peakLeft:0,horizontal:false,cancelled:false,ctx};
   }
 
   function pointerMove(event){
@@ -67,19 +72,28 @@
     g.dx=event.clientX-g.startX;
     g.dy=event.clientY-g.startY;
     if(!g.horizontal){
-      if(Math.abs(g.dy)>10&&Math.abs(g.dy)>Math.abs(g.dx)){g.cancelled=true;return;}
-      if(Math.abs(g.dx)>8&&Math.abs(g.dx)>Math.abs(g.dy))g.horizontal=true;
+      const absX=Math.abs(g.dx);
+      const absY=Math.abs(g.dy);
+      if(absX<AXIS_LOCK_DISTANCE&&absY<AXIS_LOCK_DISTANCE)return;
+      if(absX>=AXIS_LOCK_DISTANCE&&absX>=absY*HORIZONTAL_DOMINANCE)g.horizontal=true;
+      else if(absY>=AXIS_LOCK_DISTANCE&&absY>=absX*VERTICAL_DOMINANCE){g.cancelled=true;return;}
+      else return;
     }
+    g.peakLeft=Math.max(g.peakLeft,Math.max(0,-g.dx));
   }
 
   function pointerUp(event){
     const g=gesture;
     if(!g||g.pointerId!==event.pointerId)return;
     gesture=null;
-    if(g.cancelled||!g.horizontal||g.dx>-EDIT_THRESHOLD||Math.abs(g.dx)<=Math.abs(g.dy))return;
-    const distance=Math.abs(g.dx);
+    if(g.cancelled||!g.horizontal)return;
+    const distance=Math.max(0,-g.dx);
     const lifecycleThreshold=actionWidth()+LIFECYCLE_EXTRA;
-    const action=g.ctx.lifecycle&&(!g.ctx.edit||distance>=lifecycleThreshold)?g.ctx.lifecycle:g.ctx.edit;
+    const lifecycleArmed=g.peakLeft>=lifecycleThreshold&&distance>=lifecycleThreshold-LIFECYCLE_RELEASE_BUFFER;
+    const editArmed=g.peakLeft>=EDIT_THRESHOLD&&distance>=EDIT_RELEASE_THRESHOLD;
+    const action=g.ctx.lifecycle&&lifecycleArmed
+      ?g.ctx.lifecycle
+      :(g.ctx.edit&&editArmed?g.ctx.edit:(!g.ctx.edit&&g.ctx.lifecycle&&editArmed?g.ctx.lifecycle:null));
     if(!action)return;
     setTimeout(()=>{
       if(!action.isConnected)return;

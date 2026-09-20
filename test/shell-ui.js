@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const BUILD = '0.31.10-test.65';
+  const BUILD = '0.31.10-test.66';
   const SHELL_VERSION = (() => {
     try {
       const script = document.currentScript || [...document.scripts].find(item => item.src.includes('shell-ui.js'));
@@ -407,6 +407,7 @@
       .km-shell-location-buttons button{color:var(--accent)!important;font-size:17px!important}.km-shell-location-chevron{color:color-mix(in srgb,var(--muted) 62%,transparent)!important;font-size:21px!important}
       .section-title h2{letter-spacing:-.02em}
       button,.btn,[role="button"],summary{touch-action:manipulation}
+      .swipe-surface,.activity-swipe-surface,.km-shell-location-swipe-surface{touch-action:pan-y}
       /* Zoeken, compacte navigatie en eenduidige invoerschermen. */
       .km-shell-search{position:sticky;top:calc(59px + env(safe-area-inset-top));z-index:39;display:flex;align-items:center;gap:7px;min-height:38px;margin:0 0 12px;padding:0 11px;border-radius:12px;background:color-mix(in srgb,var(--muted) 14%,var(--bg));color:var(--muted);transform:translateY(0);opacity:1;transition:transform .2s cubic-bezier(.22,1,.36,1),opacity .14s ease,box-shadow .2s ease;-webkit-backdrop-filter:blur(20px) saturate(170%);backdrop-filter:blur(20px) saturate(170%)}
       body.km-shell-scrolled:not(.km-shell-search-revealed) .km-shell-search{transform:translateY(calc(-100% - 14px));opacity:0;pointer-events:none}
@@ -1116,6 +1117,7 @@
         surface,
         horizontal: false,
         cancelled: false,
+        peakLeft: 0,
         maxDistance: 0
       };
       try { surface.setPointerCapture(event.pointerId); } catch (_) {}
@@ -1127,11 +1129,14 @@
       const rawX = event.clientX - gesture.startX;
       const rawY = event.clientY - gesture.startY;
       if (!gesture.horizontal) {
-        if (Math.abs(rawY) > 10 && Math.abs(rawY) > Math.abs(rawX)) {
+        const absX = Math.abs(rawX);
+        const absY = Math.abs(rawY);
+        if (absX < 10 && absY < 10) return;
+        if (absX >= 10 && absX >= absY * 1.08) gesture.horizontal = true;
+        else if (absY >= 10 && absY >= absX * 1.35) {
           gesture.cancelled = true;
           return;
         }
-        if (Math.abs(rawX) > 8 && Math.abs(rawX) > Math.abs(rawY)) gesture.horizontal = true;
         else return;
       }
       if (event.cancelable) event.preventDefault();
@@ -1142,12 +1147,15 @@
       const distance = Math.abs(dx);
       const editThreshold = 48;
       const lifecycleThreshold = actionWidth + 44;
+      gesture.peakLeft = Math.max(gesture.peakLeft, distance);
+      const editArmed = gesture.peakLeft >= editThreshold && distance >= 36;
+      const lifecycleArmed = gesture.peakLeft >= lifecycleThreshold && distance >= lifecycleThreshold - 18;
       gesture.maxDistance = maxDistance;
       gesture.dx = dx;
       gesture.surface.style.transition = 'none';
       gesture.surface.style.transform = `translateX(${dx}px)`;
-      gesture.row.classList.toggle('swipe-edit-armed', distance >= editThreshold && distance < lifecycleThreshold);
-      gesture.row.classList.toggle('delete-armed', distance >= lifecycleThreshold && actionCount > 1);
+      gesture.row.classList.toggle('swipe-edit-armed', editArmed && !lifecycleArmed);
+      gesture.row.classList.toggle('delete-armed', lifecycleArmed && actionCount > 1);
     };
 
     root.onpointerup = event => {
