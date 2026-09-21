@@ -660,6 +660,13 @@ function includeAllThemesInTotals() {
   return true;
 }
 
+function excludeAllThemesFromTotals() {
+  state.themes.forEach(theme => { theme.includeInTotals = false; });
+  saveState();
+  render();
+  return true;
+}
+
 function setThemeSortMode(mode, visibleOrder = []) {
   const next = ['smart', 'alpha', 'custom'].includes(mode) ? mode : 'smart';
   if (next === 'custom' && !Array.isArray(state.settings.themeOrder)) state.settings.themeOrder = normalizedThemeOrder(visibleOrder);
@@ -952,6 +959,7 @@ window.LogTimeModule = Object.freeze({
   setThemeColor,
   setThemeIncludedInTotals,
   includeAllThemesInTotals,
+  excludeAllThemesFromTotals,
   setThemeSortMode,
   setThemeOrder,
   getView: () => currentView,

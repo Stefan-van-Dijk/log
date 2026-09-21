@@ -1,30 +1,30 @@
-const CACHE='kmreg-test-shell-0.31.10-test.94';
+const CACHE='kmreg-test-shell-0.31.10-test.95';
 const SHELL=[
   './',
   './index.html',
   './log-json-v2.js?v=2.0.0',
-  './log-ui.css?v=0.31.10-test.94',
-  './removal-policy.js?v=0.31.10-test.94',
-  './shell-backup-archive.js?v=0.31.10-test.94',
-  './shell-ui.js?v=0.31.10-test.94',
-  './shell-ui-stable.js?v=0.31.10-test.94',
-  './shell-gestures.js?v=0.31.10-test.94',
-  './shell-location-status.js?v=0.31.10-test.94',
-  './shell-removal-policy.js?v=0.31.10-test.94',
-  './shell-quick-actions.js?v=0.31.10-test.94',
-  './shell-direct-actions.js?v=0.31.10-test.94',
+  './log-ui.css?v=0.31.10-test.95',
+  './removal-policy.js?v=0.31.10-test.95',
+  './shell-backup-archive.js?v=0.31.10-test.95',
+  './shell-ui.js?v=0.31.10-test.95',
+  './shell-ui-stable.js?v=0.31.10-test.95',
+  './shell-gestures.js?v=0.31.10-test.95',
+  './shell-location-status.js?v=0.31.10-test.95',
+  './shell-removal-policy.js?v=0.31.10-test.95',
+  './shell-quick-actions.js?v=0.31.10-test.95',
+  './shell-direct-actions.js?v=0.31.10-test.95',
   './id-converter.html',
   './manifest.webmanifest',
   './app-icon.svg',
   './config/modules.json',
   './time/index.html',
-  './time/app.js?v=0.31.10-test.94',
-  './time/styles.css?v=0.31.10-test.94',
-  './time/home-layout.css?v=0.31.10-test.94',
-  './time/home-layout.js?v=0.31.10-test.94',
-  './time/home-top.css?v=0.31.10-test.94',
-  './time/home-top.js?v=0.31.10-test.94',
-  './time/removal-policy-ui.js?v=0.31.10-test.94'
+  './time/app.js?v=0.31.10-test.95',
+  './time/styles.css?v=0.31.10-test.95',
+  './time/home-layout.css?v=0.31.10-test.95',
+  './time/home-layout.js?v=0.31.10-test.95',
+  './time/home-top.css?v=0.31.10-test.95',
+  './time/home-top.js?v=0.31.10-test.95',
+  './time/removal-policy-ui.js?v=0.31.10-test.95'
 ];
 
 self.addEventListener('install',event=>{

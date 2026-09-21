@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const BUILD = '0.31.10-test.94';
+  const BUILD = '0.31.10-test.95';
   const SHELL_VERSION = (() => {
     try {
       const script = document.currentScript || [...document.scripts].find(item => item.src.includes('shell-ui.js'));
@@ -553,7 +553,7 @@
       .km-shell-search input::placeholder{color:var(--muted)}
       .km-shell-search input::-webkit-search-cancel-button{display:none}
       .km-shell-search button{flex:0 0 auto;width:28px;height:28px;padding:0;border:0;border-radius:50%;background:color-mix(in srgb,var(--muted) 24%,transparent);color:var(--text);font-size:18px;line-height:1}.km-shell-search button[hidden]{display:none}
-      .km-shell-search-status{margin:-3px 0 14px;padding:20px 2px;color:var(--muted);font-size:13px;text-align:center}
+      .km-shell-search-status{margin:-3px 0 14px;padding:20px 2px;color:var(--muted);font-size:13px;text-align:center}.km-shell-search-status.total{padding:0 2px 8px;font-size:11px;font-weight:750;text-align:right}
       body.km-shell-scrolled .top.km-shell-top{min-height:59px!important;padding-top:calc(9px + env(safe-area-inset-top))!important;padding-bottom:9px!important}
       .top.km-shell-top,.km-shell-title,.km-shell-meta{transition:min-height .22s ease,padding .22s ease,font-size .22s ease,opacity .18s ease,margin .22s ease}
       body.km-shell-scrolled .km-shell-title{font-size:18px!important;letter-spacing:-.015em!important}
@@ -624,7 +624,7 @@
       .km-shell-module-toggle input{width:42px;height:24px}
       @media(max-width:390px){.km-shell-tab-button{font-size:9px}.km-shell-tab-button svg{width:21px;height:21px}.km-shell-title{font-size:29px!important}}
       .km-shell-theme-row{grid-template-columns:minmax(0,1fr) auto auto!important;gap:6px!important;padding-left:10px!important;border-left:3px solid var(--theme-color,var(--accent))!important}.km-shell-theme-node>.km-shell-theme-swipe-row .km-shell-theme-row-copy small{color:var(--theme-color,var(--accent))!important}
-      .km-shell-theme-count-tools{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:-4px 2px 12px;color:var(--muted);font-size:11px}.km-shell-theme-count-all{padding:7px 0;border:0;background:transparent;color:var(--accent);font:inherit;font-weight:800}.km-shell-theme-count-toggle{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;padding:0;border:0;border-radius:50%;background:transparent;color:var(--muted)}.km-shell-theme-count-toggle svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.km-shell-theme-count-toggle[aria-pressed="true"]{background:color-mix(in srgb,var(--theme-color) 14%,transparent);color:var(--theme-color)}.km-shell-theme-count-toggle[aria-pressed="false"]{opacity:.52}
+      .km-shell-theme-count-tools{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:-4px 2px 12px;color:var(--muted);font-size:11px}.km-shell-theme-count-actions{display:flex;align-items:center;gap:10px}.km-shell-theme-count-all{padding:7px 0;border:0;background:transparent;color:var(--accent);font:inherit;font-weight:800;white-space:nowrap}.km-shell-theme-count-all:disabled{color:var(--muted);opacity:.42}.km-shell-theme-count-toggle{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;padding:0;border:0;border-radius:50%;background:transparent;color:var(--muted)}.km-shell-theme-count-toggle svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.km-shell-theme-count-toggle[aria-pressed="true"]{background:color-mix(in srgb,var(--theme-color) 14%,transparent);color:var(--theme-color)}.km-shell-theme-count-toggle[aria-pressed="false"]{opacity:.52}
       .km-shell-theme-sort{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;padding:4px;margin-bottom:12px;border:.5px solid var(--line);border-radius:9px;background:color-mix(in srgb,var(--muted) 13%,transparent)}.km-shell-theme-sort button{min-height:34px;padding:5px;border:0;border-radius:7px;background:transparent;color:var(--muted);font-size:11px;font-weight:800}.km-shell-theme-sort button.active{background:var(--card);color:var(--text)}.km-shell-theme-row.km-shell-theme-custom-row{grid-template-columns:auto minmax(0,1fr) auto auto!important}.km-shell-theme-drag-handle{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;padding:0;border:0;border-radius:9px;background:transparent;color:var(--muted);touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}.km-shell-theme-drag-handle svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}.km-shell-theme-node.is-dragging{position:fixed;z-index:160;overflow:hidden;border:.5px solid var(--line);border-radius:13px;background:var(--card);box-shadow:0 16px 38px rgba(0,0,0,.28);pointer-events:none}.km-shell-theme-placeholder{border:1px dashed color-mix(in srgb,var(--accent) 55%,var(--line));border-radius:13px;background:color-mix(in srgb,var(--accent) 8%,transparent)}
       .km-shell-location-row.km-shell-location-custom-row{grid-template-columns:auto 28px minmax(0,1fr) auto}.km-shell-location-drag-handle{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;padding:0;border:0;border-radius:9px;background:transparent;color:var(--muted);touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}.km-shell-location-drag-handle svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}.km-shell-location-group.is-dragging{position:fixed;z-index:160;overflow:hidden;border:.5px solid var(--line);border-radius:13px;background:var(--card);box-shadow:0 16px 38px rgba(0,0,0,.28);pointer-events:none}.km-shell-location-placeholder{border:1px dashed color-mix(in srgb,var(--accent) 55%,var(--line));border-radius:13px;background:color-mix(in srgb,var(--accent) 8%,transparent)}
       .km-shell-location-icon svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.km-shell-location-icon:has(svg[data-location-type="home"]){color:var(--home,#ff9f0a)!important}.km-shell-location-icon:has(svg[data-location-type="work"]){color:var(--commute,#4da3ff)!important}.km-shell-location-icon:has(svg[data-location-type="business"]){color:var(--business,#a875ff)!important}.km-shell-location-icon:has(svg[data-location-type="private"]){color:var(--private,#49d17d)!important}.km-shell-location-icon:has(svg[data-location-type="other"]){color:var(--other,#8e8e93)!important}
@@ -884,6 +884,18 @@
     input.placeholder = labels[section] || `Zoek in ${moduleById(section)?.label?.toLocaleLowerCase('nl-NL') || 'onderdelen'}`;
   }
 
+  function compactFilterTime(minutes) {
+    const total = Math.max(0, Math.round(Number(minutes) || 0));
+    const hours = Math.floor(total / 60);
+    const remainder = total % 60;
+    return `${hours ? `${hours}u` : ''}${hours && remainder ? ' ' : ''}${remainder || !hours ? `${remainder}m` : ''}`;
+  }
+
+  function visiblePeriodTimeEntries(time) {
+    const visibleIds = new Set($$('#timeModuleRoot .entry[data-entry]').map(node => String(node.dataset.entry || '')));
+    return (Array.isArray(time.entries) ? time.entries : []).filter(entry => visibleIds.has(String(entry.id || '')));
+  }
+
   function updateThemeFilterOptions() {
     const select = $('#kmShellThemeFilter');
     if (!select) return;
@@ -894,10 +906,21 @@
     try { time = JSON.parse(localStorage.getItem('urenregistratie.test.pwa.v1') || '{}'); } catch (_) {}
     const themes = Array.isArray(time.themes) ? [...time.themes] : [];
     const subthemes = Array.isArray(time.subthemes) ? time.subthemes : [];
+    const periodEntries = visiblePeriodTimeEntries(time);
+    const minutesFor = (theme, subtheme = null) => periodEntries.reduce((sum, entry) => {
+      const themeMatch = String(entry.themeId || '') === String(theme.id || '') || (!entry.themeId && String(entry.themeName || '') === String(theme.name || ''));
+      if (!themeMatch) return sum;
+      if (subtheme) {
+        const subthemeMatch = String(entry.subthemeId || '') === String(subtheme.id || '') || (!entry.subthemeId && String(entry.subthemeName || '') === String(subtheme.name || ''));
+        if (!subthemeMatch) return sum;
+      }
+      return sum + (Number(entry.ownMinutes) || 0);
+    }, 0);
     themes.sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'nl', { sensitivity: 'base' }));
-    const optionsHtml = '<option value="all">Alle thema’s</option>' + themes.map(theme => {
+    const allMinutes = periodEntries.reduce((sum, entry) => sum + (Number(entry.ownMinutes) || 0), 0);
+    const optionsHtml = `<option value="all">Alle thema’s · ${compactFilterTime(allMinutes)}</option>` + themes.map(theme => {
       const children = subthemes.filter(item => String(item.themeId) === String(theme.id)).sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'nl', { sensitivity: 'base' }));
-      return `<option value="theme:${esc(theme.id)}">${esc(theme.name || 'Thema')}</option>${children.map(subtheme => `<option value="subtheme:${esc(subtheme.id)}">↳ ${esc(subtheme.name || 'Subthema')}</option>`).join('')}`;
+      return `<option value="theme:${esc(theme.id)}">${esc(theme.name || 'Thema')} · ${compactFilterTime(minutesFor(theme))}</option>${children.map(subtheme => `<option value="subtheme:${esc(subtheme.id)}">↳ ${esc(subtheme.name || 'Subthema')} · ${compactFilterTime(minutesFor(theme, subtheme))}</option>`).join('')}`;
     }).join('');
     if (select.innerHTML !== optionsHtml) select.innerHTML = optionsHtml;
     select.value = [...select.options].some(option => option.value === previous) ? previous : 'all';
@@ -944,19 +967,41 @@
       visible = setSearchMatches($$('#kmShellThemesView .km-shell-theme-node'), query);
     } else {
       const nodes = $$('#timeModuleRoot .activity-entry-shell');
+      const entries = new Map((window.LogTimeModule?.getState?.().entries || []).map(entry => [String(entry.id), entry]));
+      let filteredMinutes = 0;
       for (const node of nodes) {
         const queryMatch = !query || normalizedSearch(node.textContent).includes(query);
         const filterMatch = themeFilter === 'all' || (themeFilter.startsWith('theme:') && String(node.dataset.themeId) === themeFilter.slice(6)) || (themeFilter.startsWith('subtheme:') && String(node.dataset.subthemeId) === themeFilter.slice(9));
         node.hidden = !(queryMatch && filterMatch);
-        if (!node.hidden) visible += 1;
+        if (!node.hidden) {
+          visible += 1;
+          filteredMinutes += Number(entries.get(String(node.dataset.id || ''))?.ownMinutes) || 0;
+        }
+      }
+      const status = $('#kmShellSearchStatus');
+      if (status && themeFilter !== 'all' && visible > 0) {
+        const option = $('#kmShellThemeFilter')?.selectedOptions?.[0];
+        const label = String(option?.textContent || 'Selectie').replace(/\s·\s[^·]+$/, '');
+        const timeState = window.LogTimeModule?.getState?.() || { themes: [], subthemes: [] };
+        const themeId = themeFilter.startsWith('theme:')
+          ? themeFilter.slice(6)
+          : timeState.subthemes?.find(item => String(item.id) === themeFilter.slice(9))?.themeId;
+        const theme = timeState.themes?.find(item => String(item.id) === String(themeId || ''));
+        status.classList.add('total');
+        status.hidden = false;
+        status.textContent = `${label} · ${compactFilterTime(filteredMinutes)}${theme?.includeInTotals === false ? ' · telt niet mee' : ''}`;
       }
     }
     const status = $('#kmShellSearchStatus');
     if (status) {
       const filtering = Boolean(query) || themeFilter !== 'all';
-      status.hidden = !filtering || visible > 0;
-      const nextText = filtering && visible === 0 ? 'Geen resultaten gevonden.' : '';
-      if (status.textContent !== nextText) status.textContent = nextText;
+      const hasThemeTotal = section === 'time' && themeFilter !== 'all' && visible > 0;
+      status.classList.toggle('total', hasThemeTotal);
+      if (!hasThemeTotal) {
+        status.hidden = !filtering || visible > 0;
+        const nextText = filtering && visible === 0 ? 'Geen resultaten gevonden.' : '';
+        if (status.textContent !== nextText) status.textContent = nextText;
+      }
     }
   }
 
@@ -1300,6 +1345,7 @@
       return (Number(b.lastUsedAt) || 0) - (Number(a.lastUsedAt) || 0) || (Number(b.usageCount) || 0) - (Number(a.usageCount) || 0) || String(a.name).localeCompare(String(b.name), 'nl', { sensitivity: 'base' });
     });
     const excludedCount = themes.filter(theme => theme.includeInTotals === false).length;
+    const includedCount = themes.length - excludedCount;
     if (expandedThemeId && !themes.some(theme => String(theme.id) === String(expandedThemeId))) expandedThemeId = null;
     const nodes = themes.map(theme => {
       const subthemes = catalog.subthemes
@@ -1313,7 +1359,8 @@
     }).join('');
     const archiveRecords = window.LogTimeRemovalPolicy?.themeArchiveRecords?.() || [];
     const archive = archiveRecords.length ? `<details class="km-shell-theme-archive"><summary><span class="km-shell-theme-archive-copy"><strong>Archief</strong><small>${archiveRecords.length} ${archiveRecords.length === 1 ? 'item' : 'items'} · tik om te herstellen</small></span><span aria-hidden="true">›</span></summary><div class="km-shell-theme-archive-body">${archiveRecords.map(record => `<div class="km-shell-theme-archive-row"><div><strong>${esc(window.LogTimeRemovalPolicy?.archiveRecordName?.(record) || 'Thema')}</strong><small>${record.entityType === 'theme' ? 'Thema' : 'Subthema'}</small></div><button type="button" data-log-time-restore="${esc(record.batchId)}">Herstel</button></div>`).join('')}</div></details>` : '';
-    const countTools = excludedCount ? `<div class="km-shell-theme-count-tools"><span>${excludedCount} ${excludedCount === 1 ? 'thema telt' : 'thema’s tellen'} niet mee</span><button type="button" class="km-shell-theme-count-all" data-theme-count-all>Alles meetellen</button></div>` : '';
+    const countStatus = excludedCount === 0 ? 'Alle thema’s tellen mee' : includedCount === 0 ? 'Geen thema telt mee' : `${excludedCount} ${excludedCount === 1 ? 'thema telt' : 'thema’s tellen'} niet mee`;
+    const countTools = themes.length ? `<div class="km-shell-theme-count-tools"><span>${countStatus}</span><div class="km-shell-theme-count-actions"><button type="button" class="km-shell-theme-count-all" data-theme-count-all${excludedCount === 0 ? ' disabled' : ''}>Alles aan</button><button type="button" class="km-shell-theme-count-all" data-theme-count-none${includedCount === 0 ? ' disabled' : ''}>Alles uit</button></div></div>` : '';
     const sortControls = `<div class="km-shell-theme-sort" aria-label="Thema’s sorteren"><button type="button" class="${sortMode === 'smart' ? 'active' : ''}" data-theme-sort="smart">◎ Logisch</button><button type="button" class="${sortMode === 'alpha' ? 'active' : ''}" data-theme-sort="alpha">A–Z Naam</button><button type="button" class="${sortMode === 'custom' ? 'active' : ''}" data-theme-sort="custom">☰ Eigen</button></div>`;
     root.innerHTML = `<div class="km-shell-theme-create"><div class="field"><label for="kmShellNewTheme">Nieuw thema</label><input id="kmShellNewTheme" autocomplete="off" placeholder="Naam"></div><button type="button" class="btn primary" data-add-theme>Toevoegen</button></div>${sortControls}${countTools}${themes.length ? `<div class="km-shell-theme-list">${nodes}</div>` : '<div class="km-shell-empty">Nog geen thema’s opgeslagen.</div>'}${archive}`;
 
@@ -1340,6 +1387,10 @@
     }));
     $('[data-theme-count-all]', root)?.addEventListener('click', () => {
       window.LogTimeModule?.includeAllThemesInTotals?.();
+      renderThemes();
+    });
+    $('[data-theme-count-none]', root)?.addEventListener('click', () => {
+      window.LogTimeModule?.excludeAllThemesFromTotals?.();
       renderThemes();
     });
     $$('[data-theme-expand]', root).forEach(button => button.addEventListener('click', event => {
