@@ -2,6 +2,7 @@
 
 const STORAGE_KEY = 'urenregistratie.test.pwa.v1';
 const ROUNDING_UNITS = [3, 6, 12, 15, 30, 60];
+const THEME_COLORS = ['#a875ff', '#4da3ff', '#49d17d', '#ff9f0a', '#ff6767', '#4da3ff', '#ffbd4a', '#8e8e93'];
 
 const defaultTimer = () => ({
   status: 'inactive',
@@ -78,7 +79,10 @@ function loadState() {
       settings,
       ui,
       timer,
-      themes: Array.isArray(parsed.themes) ? parsed.themes : [],
+      themes: Array.isArray(parsed.themes) ? parsed.themes.map(theme => ({
+        ...theme,
+        color: validThemeColor(theme.color) ? theme.color : fallbackThemeColor(theme.id || theme.name)
+      })) : [],
       subthemes: Array.isArray(parsed.subthemes) ? parsed.subthemes : [],
       colleagues: Array.isArray(parsed.colleagues) ? parsed.colleagues : [],
       employers: Array.isArray(parsed.employers) ? parsed.employers : [],
@@ -133,10 +137,21 @@ function safeText(value) {
 }
 
 function themeColor(value) {
-  const palette = ['var(--business,#a875ff)', 'var(--commute,#4da3ff)', 'var(--private,#49d17d)', 'var(--home,#ff9f0a)', 'var(--bad,#ff6767)', 'var(--accent,#4da3ff)', 'var(--warn,#ffbd4a)', 'var(--other,#8e8e93)'];
+  const theme = typeof value === 'object'
+    ? value
+    : state.themes.find(item => String(item.id) === String(value)) || state.themes.find(item => item.name === value);
+  if (validThemeColor(theme?.color)) return theme.color;
+  return fallbackThemeColor(theme?.id || theme?.name || value);
+}
+
+function validThemeColor(value) {
+  return /^#[0-9a-f]{6}$/i.test(String(value || ''));
+}
+
+function fallbackThemeColor(value) {
   let hash = 0;
   for (const char of String(value || 'theme')) hash = ((hash << 5) - hash + char.charCodeAt(0)) | 0;
-  return palette[Math.abs(hash) % palette.length];
+  return THEME_COLORS[Math.abs(hash) % THEME_COLORS.length];
 }
 
 function cleanName(value) {
@@ -194,6 +209,14 @@ function decimalHours(minutes) {
 function displayMinutes(minutes, withUnit = true) {
   if (state.settings.timeDisplay === 'clock') return `${clockMinutes(minutes)}${withUnit ? ' uur' : ''}`;
   return `${decimalHours(minutes)}${withUnit ? ' uur' : ''}`;
+}
+
+function periodHours(minutes) {
+  const total = Math.max(0, Math.round(Number(minutes) || 0));
+  const hours = Math.floor(total / 60);
+  const remainder = total % 60;
+  const label = `${hours} uur${remainder ? ` en ${remainder} minuten` : ''}`;
+  return `<span class="period-hours" aria-label="${label}"><span class="period-hours-main">${hours} uur</span>${remainder ? `<small>+ ${remainder} min</small>` : ''}</span>`;
 }
 
 function actualMinutes(startISO, stopISO) {
@@ -442,7 +465,7 @@ function renderPeriodNav() {
 }
 
 function renderSummary(t) {
-  return `<section class="summary"><div class="summary-main"><div class="summary-label">Geboekte eigen tijd</div><div class="summary-value">${displayMinutes(t.own)}</div></div><div class="summary-parts"><div class="summary-part"><span>Collega's</span><strong>${displayMinutes(t.colleague)}</strong></div><div class="summary-part"><span>Totale inzet</span><strong>${displayMinutes(t.total)}</strong></div><div class="summary-part"><span>Tussenstops</span><strong>${t.interruptions}</strong></div></div></section>`;
+  return `<section class="summary"><div class="summary-main"><div class="summary-label">Geboekte eigen tijd</div><div class="summary-value">${periodHours(t.own)}</div></div><div class="summary-parts"><div class="summary-part"><span>Collega's</span><strong>${periodHours(t.colleague)}</strong></div><div class="summary-part"><span>Totale inzet</span><strong>${periodHours(t.total)}</strong></div><div class="summary-part"><span>Tussenstops</span><strong>${t.interruptions}</strong></div></div></section>`;
 }
 
 function renderActionCard() {
@@ -546,7 +569,8 @@ function subthemeOptions(themeId, selectedId = '') {
 function addTheme(rawName) {
   const name = cleanName(rawName); if (!name) return null;
   const existing = state.themes.find(t => t.name.localeCompare(name, 'nl', { sensitivity: 'base' }) === 0); if (existing) return existing;
-  const item = { id: uid(), name, usageCount: 0, createdAt: new Date().toISOString() }; state.themes.push(item); saveState(); return item;
+  const id = uid();
+  const item = { id, name, color: fallbackThemeColor(id), usageCount: 0, createdAt: new Date().toISOString() }; state.themes.push(item); saveState(); return item;
 }
 
 function addSubtheme(themeId, rawName) {
@@ -568,6 +592,15 @@ function renameTheme(themeId, rawName) {
   if (String(state.timer?.themeId || '') === String(theme.id)) state.timer.themeName = name;
   if (String(state.timer?.interruption?.themeId || '') === String(theme.id)) state.timer.interruption.themeName = name;
   saveState();
+  return theme;
+}
+
+function setThemeColor(themeId, color) {
+  const theme = state.themes.find(item => String(item.id) === String(themeId));
+  if (!theme || !validThemeColor(color)) return null;
+  theme.color = String(color).toLowerCase();
+  saveState();
+  render();
   return theme;
 }
 
@@ -644,20 +677,41 @@ function beginStop() {
   if (state.timer.status !== 'active') return; if (state.timer.interruption) return toast('Beëindig eerst de tussenstop'); state.timer.status = 'pending'; state.timer.stopISO = new Date().toISOString(); saveState(); render(); openStopModal();
 }
 
-function colleagueSection(ownMinutes, prefix) {
+function colleagueSection(ownMinutes, prefix, initialAllocations = []) {
   const colleagues = sortedByUsage(state.colleagues);
-  return `<div class="settings-section"><h3>Collega-inzet</h3><div id="${prefix}ColleagueList" class="check-list">${colleagues.map(c=>`<div class="check-row"><input type="checkbox" id="${prefix}c-${c.id}" value="${c.id}" class="${prefix}col-check"><label for="${prefix}c-${c.id}">${safeText(c.name)}</label><small>${c.usageCount||0}×</small></div>`).join('') || '<p class="muted small">Geen collega\'s.</p>'}</div><div class="inline-form"><div class="field"><label>Nieuwe collega</label><input id="${prefix}NewColleague"></div><button id="${prefix}AddColleague" class="btn small">Toevoegen</button></div><div id="${prefix}ColleagueTimes" style="display:none"><div class="field"><label>Verdeling</label><select id="${prefix}Mode"><option value="same">Zelfde als mijn geboekte tijd</option><option value="common">Eén tijd voor iedereen</option><option value="individual">Per collega</option></select></div><div id="${prefix}CommonWrap" class="field" style="display:none"><label>Minuten per collega</label><input id="${prefix}CommonMinutes" type="number" min="0" value="${ownMinutes}"></div><div id="${prefix}IndividualWrap" style="display:none"></div></div></div>`;
+  const selected = new Set(initialAllocations.map(item => String(item.colleagueId)));
+  const initialMode = selected.size ? 'individual' : 'same';
+  return `<div class="settings-section"><h3>Collega-inzet</h3><div id="${prefix}ColleagueList" class="check-list">${colleagues.map(c=>`<div class="check-row"><input type="checkbox" id="${prefix}c-${c.id}" value="${c.id}" class="${prefix}col-check" ${selected.has(String(c.id))?'checked':''}><label for="${prefix}c-${c.id}">${safeText(c.name)}</label><small>${c.usageCount||0}×</small></div>`).join('') || '<p class="muted small">Geen collega\'s.</p>'}</div><div class="inline-form"><div class="field"><label>Nieuwe collega</label><input id="${prefix}NewColleague"></div><button id="${prefix}AddColleague" class="btn small" type="button">Toevoegen</button></div><div id="${prefix}ColleagueTimes" style="display:none"><div class="field"><label>Verdeling</label><select id="${prefix}Mode"><option value="same" ${initialMode==='same'?'selected':''}>Zelfde als mijn geboekte tijd</option><option value="common">Eén tijd voor iedereen</option><option value="individual" ${initialMode==='individual'?'selected':''}>Per collega</option></select></div><div id="${prefix}CommonWrap" class="field" style="display:none"><label>Minuten per collega</label><input id="${prefix}CommonMinutes" type="number" min="0" value="${ownMinutes}"></div><div id="${prefix}IndividualWrap" style="display:none"></div></div></div>`;
 }
 
-function wireColleagueSection(prefix, ownMinutes) {
+function wireColleagueSection(prefix, ownMinutes, initialAllocations = []) {
   const list = $(`#${prefix}ColleagueList`), times = $(`#${prefix}ColleagueTimes`), mode = $(`#${prefix}Mode`), commonWrap = $(`#${prefix}CommonWrap`), individualWrap = $(`#${prefix}IndividualWrap`);
+  const initialById = new Map(initialAllocations.map(item => [String(item.colleagueId), Math.max(0, Number(item.minutes) || 0)]));
+  const currentOwnMinutes = () => Math.max(0, Number(typeof ownMinutes === 'function' ? ownMinutes() : ownMinutes) || 0);
   const selectedIds = () => $$(`.${prefix}col-check`, list).filter(x=>x.checked).map(x=>x.value);
-  const renderIndividual = () => { individualWrap.innerHTML = selectedIds().map(id => { const c=state.colleagues.find(x=>x.id===id); return `<div class="field"><label>${safeText(c?.name||'')}</label><input class="${prefix}individual" data-id="${id}" type="number" min="0" value="${ownMinutes}"></div>`; }).join(''); };
+  const renderIndividual = () => {
+    const current = new Map($$(`.${prefix}individual`, individualWrap).map(input => [String(input.dataset.id), input.value]));
+    individualWrap.innerHTML = selectedIds().map(id => {
+      const c=state.colleagues.find(x=>String(x.id)===String(id));
+      const value = current.get(String(id)) ?? initialById.get(String(id)) ?? currentOwnMinutes();
+      return `<div class="field"><label>${safeText(c?.name||'')}</label><input class="${prefix}individual" data-id="${id}" type="number" min="0" value="${value}"></div>`;
+    }).join('');
+  };
   const refresh = () => { const ids=selectedIds(); times.style.display=ids.length?'':'none'; commonWrap.style.display=ids.length&&mode.value==='common'?'':'none'; individualWrap.style.display=ids.length&&mode.value==='individual'?'':'none'; if(mode.value==='individual')renderIndividual(); };
   list.addEventListener('change', refresh); mode.addEventListener('change', refresh);
   $(`#${prefix}AddColleague`).addEventListener('click',()=>{const selected=new Set(selectedIds());const c=addColleague($(`#${prefix}NewColleague`).value);if(!c)return;selected.add(c.id);list.innerHTML=sortedByUsage(state.colleagues).map(x=>`<div class="check-row"><input type="checkbox" id="${prefix}c-${x.id}" value="${x.id}" class="${prefix}col-check" ${selected.has(x.id)?'checked':''}><label for="${prefix}c-${x.id}">${safeText(x.name)}</label></div>`).join('');$(`#${prefix}NewColleague`).value='';refresh();});
   refresh();
-  return () => { const ids=selectedIds(); const modeValue=mode.value; const common=Math.max(0,Number($(`#${prefix}CommonMinutes`)?.value||ownMinutes)); return ids.map(id=>{const c=state.colleagues.find(x=>x.id===id);let minutes=ownMinutes;if(modeValue==='common')minutes=common;if(modeValue==='individual')minutes=Math.max(0,Number($(`.${prefix}individual[data-id="${id}"]`)?.value||ownMinutes));return{colleagueId:id,colleagueName:c?.name||'',minutes:Math.round(minutes)};}); };
+  return () => { const ids=selectedIds(); const own=currentOwnMinutes(); const modeValue=mode.value; const common=Math.max(0,Number($(`#${prefix}CommonMinutes`)?.value||own)); return ids.map(id=>{const c=state.colleagues.find(x=>x.id===id);let minutes=own;if(modeValue==='common')minutes=common;if(modeValue==='individual')minutes=Math.max(0,Number($(`.${prefix}individual[data-id="${id}"]`)?.value||own));return{colleagueId:id,colleagueName:c?.name||'',minutes:Math.round(minutes)};}); };
+}
+
+function reconcileAllocationUsage(previous = [], next = []) {
+  const previousIds = new Set(previous.map(item => String(item.colleagueId)));
+  const nextIds = new Set(next.map(item => String(item.colleagueId)));
+  state.colleagues.forEach(colleague => {
+    const id = String(colleague.id);
+    if (previousIds.has(id) && !nextIds.has(id)) colleague.usageCount = Math.max(0, Number(colleague.usageCount || 0) - 1);
+    if (!previousIds.has(id) && nextIds.has(id)) colleague.usageCount = Number(colleague.usageCount || 0) + 1;
+  });
 }
 
 function openStopModal() {
@@ -679,15 +733,32 @@ function openManualModal() {
 
 function openEntryDetail(entryId) {
   const e=state.entries.find(x=>x.id===entryId);if(!e)return; const children=state.entries.filter(x=>x.parentActivityId===e.id);
-  openModal(`<div class="modal-head"><h2 id="modalTitle">${e.activityType==='interruption'?'Tussenstop':'Registratie'}</h2><button class="close">×</button></div><div class="detail-hero"><div class="kicker">${safeText(e.kind||'Activiteit')}</div><h2>${safeText(e.themeName||'Activiteit')}</h2>${e.subthemeName?`<div class="muted">${safeText(e.subthemeName)}</div>`:''}</div><div class="detail-grid"><div class="detail-item"><span>Werkelijk</span><strong>${clockMinutes(e.actualMinutes)}</strong></div><div class="detail-item"><span>Geboekt</span><strong>${displayMinutes(e.ownMinutes)}</strong></div>${e.deductedInterruptionMinutes?`<div class="detail-item"><span>Aftrek tussenstops</span><strong>${clockMinutes(e.deductedInterruptionMinutes)}</strong></div>`:''}${e.activityType==='interruption'?`<div class="detail-item"><span>Aftrek hoofdactiviteit</span><strong>${clockMinutes(e.deductMinutes)}</strong></div>`:''}<div class="detail-item"><span>Collega-inzet</span><strong>${displayMinutes(e.colleagueMinutes)}</strong></div><div class="detail-item"><span>Totale inzet</span><strong>${displayMinutes(e.totalMinutes)}</strong></div></div><div class="settings-section"><h3>Informatie</h3><div class="list"><div class="entry"><div class="entry-main"><strong>Datum</strong><small>${dateText(e.dateISO)}</small></div></div>${e.startISO?`<div class="entry"><div class="entry-main"><strong>Tijd</strong><small>${timeText(e.startISO)}–${timeText(e.endISO)}</small></div></div>`:''}${e.locationName?`<div class="entry"><div class="entry-main"><strong>Locatie</strong><small>${safeText(e.locationName)}</small></div></div>`:''}${e.departmentName?`<div class="entry"><div class="entry-main"><strong>Afdeling</strong><small>${safeText(e.departmentName)}</small></div></div>`:''}${e.people?.length?`<div class="entry"><div class="entry-main"><strong>Bij / met</strong><small>${safeText(e.people.map(p=>p.name).join(', '))}</small></div></div>`:''}${e.note?`<div class="entry"><div class="entry-main"><strong>Notitie</strong><small>${safeText(e.note)}</small></div></div>`:''}</div></div>${children.length?`<div class="settings-section"><h3>Tussenstops</h3><div class="list">${children.map(c=>entryRow(c,true)).join('')}</div></div>`:''}<div class="row"><button id="editEntry" class="btn primary">Wijzigen</button><button id="deleteEntry" class="btn danger">Verwijderen</button></div>`);
+  const allocationDetails = Array.isArray(e.allocations) && e.allocations.length
+    ? `<div class="settings-section"><h3>Collega-inzet</h3><div class="list">${e.allocations.map(allocation => `<div class="entry"><div class="entry-main"><strong>${safeText(allocation.colleagueName || state.colleagues.find(item => String(item.id) === String(allocation.colleagueId))?.name || 'Collega')}</strong><small>${displayMinutes(allocation.minutes)}</small></div></div>`).join('')}</div></div>`
+    : '';
+  openModal(`<div class="modal-head"><h2 id="modalTitle">${e.activityType==='interruption'?'Tussenstop':'Registratie'}</h2><button class="close">×</button></div><div class="detail-hero" style="--item-accent:${themeColor(e.themeId || e.themeName)}"><div class="kicker">${safeText(e.kind||'Activiteit')}</div><h2>${safeText(e.themeName||'Activiteit')}</h2>${e.subthemeName?`<div class="muted">${safeText(e.subthemeName)}</div>`:''}</div><div class="detail-grid"><div class="detail-item"><span>Werkelijk</span><strong>${clockMinutes(e.actualMinutes)}</strong></div><div class="detail-item"><span>Geboekt</span><strong>${displayMinutes(e.ownMinutes)}</strong></div>${e.deductedInterruptionMinutes?`<div class="detail-item"><span>Aftrek tussenstops</span><strong>${clockMinutes(e.deductedInterruptionMinutes)}</strong></div>`:''}${e.activityType==='interruption'?`<div class="detail-item"><span>Aftrek hoofdactiviteit</span><strong>${clockMinutes(e.deductMinutes)}</strong></div>`:''}<div class="detail-item"><span>Collega-inzet</span><strong>${displayMinutes(e.colleagueMinutes)}</strong></div><div class="detail-item"><span>Totale inzet</span><strong>${displayMinutes(e.totalMinutes)}</strong></div></div><div class="settings-section"><h3>Informatie</h3><div class="list"><div class="entry"><div class="entry-main"><strong>Datum</strong><small>${dateText(e.dateISO)}</small></div></div>${e.startISO?`<div class="entry"><div class="entry-main"><strong>Tijd</strong><small>${timeText(e.startISO)}–${timeText(e.endISO)}</small></div></div>`:''}${e.locationName?`<div class="entry"><div class="entry-main"><strong>Locatie</strong><small>${safeText(e.locationName)}</small></div></div>`:''}${e.departmentName?`<div class="entry"><div class="entry-main"><strong>Afdeling</strong><small>${safeText(e.departmentName)}</small></div></div>`:''}${e.people?.length?`<div class="entry"><div class="entry-main"><strong>Bij / met</strong><small>${safeText(e.people.map(p=>p.name).join(', '))}</small></div></div>`:''}${e.note?`<div class="entry"><div class="entry-main"><strong>Notitie</strong><small>${safeText(e.note)}</small></div></div>`:''}</div></div>${allocationDetails}${children.length?`<div class="settings-section"><h3>Tussenstops</h3><div class="list">${children.map(c=>entryRow(c,true)).join('')}</div></div>`:''}<div class="row"><button id="editEntry" class="btn primary">Wijzigen</button><button id="deleteEntry" class="btn danger">Verwijderen</button></div>`);
   $$('[data-entry]').forEach(el=>el.addEventListener('click',()=>openEntryDetail(el.dataset.entry))); $('#editEntry').addEventListener('click',()=>openEntryEdit(entryId)); $('#deleteEntry').addEventListener('click',()=>{ const childCount=state.entries.filter(x=>x.parentActivityId===entryId).length; const msg=childCount?`Deze registratie en ${childCount} gekoppelde tussenstop(s) verwijderen?`:'Deze registratie verwijderen?'; if(!confirm(msg))return; state.entries=state.entries.filter(x=>x.id!==entryId&&x.parentActivityId!==entryId);saveState();closeModal();render();toast('Registratie verwijderd'); });
 }
 
 function openEntryEdit(entryId) {
   const e=state.entries.find(x=>x.id===entryId);if(!e)return; const isManual=!e.startISO||!e.endISO;
-  openModal(`<div class="modal-head"><h2 id="modalTitle">Registratie wijzigen</h2><button class="close">×</button></div><div class="field"><label>Thema</label><select id="editTheme">${themeOptions(e.themeId,e.activityType==='interruption')}</select></div><div class="field"><label>Subthema</label><select id="editSub">${e.themeId?subthemeOptions(e.themeId,e.subthemeId):'<option value="">Geen subthema</option>'}</select></div>${isManual?`<div class="field"><label>Datum</label><input id="editDate" type="date" value="${dateInputValue(new Date(e.dateISO))}"></div><div class="field"><label>Werkelijke minuten</label><input id="editMinutes" type="number" min="1" value="${e.actualMinutes}"></div>`:`<div class="field"><label>Start</label><input id="editStart" type="datetime-local" value="${localDateTimeInput(e.startISO)}"></div><div class="field"><label>Einde</label><input id="editEnd" type="datetime-local" value="${localDateTimeInput(e.endISO)}"></div>`}<div class="field"><label>Locatie</label><input id="editLocation" value="${safeText(e.locationName||'')}"></div>${e.activityType==='interruption'?`<div class="field"><label>Afdeling</label><input id="editDepartment" value="${safeText(e.departmentName||'')}"></div>`:''}<div class="field"><label>Notitie</label><textarea id="editNote">${safeText(e.note||'')}</textarea></div><p class="hint">Collega-inzet blijft bij deze wijziging gelijk. Tijd en totalen worden automatisch opnieuw berekend.</p><button id="saveEdit" class="btn primary full">Bewaar wijzigingen</button>`);
+  const previousAllocations = Array.isArray(e.allocations) ? e.allocations.map(item => ({ ...item })) : [];
+  const legacyColleagueMinutes = !previousAllocations.length ? Math.max(0, Number(e.colleagueMinutes) || 0) : 0;
+  const colleagueEditor = e.activityType === 'interruption' ? '' : `${colleagueSection(e.ownMinutes, 'edit', previousAllocations)}${legacyColleagueMinutes ? `<p class="hint">Eerder vastgelegde collega-inzet zonder persoonsverdeling: ${displayMinutes(legacyColleagueMinutes)}. Deze blijft behouden totdat je hierboven een persoon kiest.</p>` : ''}`;
+  openModal(`<div class="modal-head"><h2 id="modalTitle">Registratie wijzigen</h2><button class="close">×</button></div><div class="field"><label>Thema</label><select id="editTheme">${themeOptions(e.themeId,e.activityType==='interruption')}</select></div><div class="field"><label>Subthema</label><select id="editSub">${e.themeId?subthemeOptions(e.themeId,e.subthemeId):'<option value="">Geen subthema</option>'}</select></div>${isManual?`<div class="field"><label>Datum</label><input id="editDate" type="date" value="${dateInputValue(new Date(e.dateISO))}"></div><div class="field"><label>Werkelijke minuten</label><input id="editMinutes" type="number" min="1" value="${e.actualMinutes}"></div>`:`<div class="field"><label>Start</label><input id="editStart" type="datetime-local" value="${localDateTimeInput(e.startISO)}"></div><div class="field"><label>Einde</label><input id="editEnd" type="datetime-local" value="${localDateTimeInput(e.endISO)}"></div>`}<div class="field"><label>Locatie</label><input id="editLocation" value="${safeText(e.locationName||'')}"></div>${e.activityType==='interruption'?`<div class="field"><label>Afdeling</label><input id="editDepartment" value="${safeText(e.departmentName||'')}"></div>`:''}<div class="field"><label>Notitie</label><textarea id="editNote">${safeText(e.note||'')}</textarea></div>${colleagueEditor}<p class="hint">Tijd, collega-inzet en totalen worden na bewaren opnieuw berekend.</p><button id="saveEdit" class="btn primary full">Bewaar wijzigingen</button>`);
+  const editedOwnMinutes = () => {
+    if (isManual) return roundByRule(Math.max(1, Number($('#editMinutes')?.value) || 1));
+    const start = new Date($('#editStart')?.value);
+    const end = new Date($('#editEnd')?.value);
+    if (!(end > start)) return Number(e.ownMinutes) || 0;
+    const span = actualMinutes(start.toISOString(), end.toISOString());
+    if (e.activityType === 'interruption') return interruptionBooking(span);
+    const deducted = state.entries.filter(item => item.activityType === 'interruption' && item.parentActivityId === e.id).reduce((sum,item)=>sum+(Number(item.deductMinutes)||0),0);
+    return roundByRule(Math.max(1, span - deducted));
+  };
+  const getEditAllocations = e.activityType === 'interruption' ? null : wireColleagueSection('edit', editedOwnMinutes, previousAllocations);
   $('#editTheme').addEventListener('change',ev=>{$('#editSub').innerHTML=ev.target.value?subthemeOptions(ev.target.value):'<option value="">Geen subthema</option>';});
-  $('#saveEdit').addEventListener('click',()=>{ const theme=state.themes.find(t=>t.id===$('#editTheme').value);const sub=state.subthemes.find(s=>s.id===$('#editSub').value); e.themeId=theme?.id||null;e.themeName=theme?.name||(e.activityType==='interruption'?'Tussenstop':'Activiteit');e.subthemeId=sub?.id||null;e.subthemeName=sub?.name||'';e.locationName=cleanName($('#editLocation').value);e.note=$('#editNote').value.trim();if(e.activityType==='interruption')e.departmentName=cleanName($('#editDepartment').value); if(isManual){const actual=Math.max(1,Number($('#editMinutes').value)||1);e.dateISO=new Date(`${$('#editDate').value}T12:00:00`).toISOString();e.actualMinutes=actual;e.netActualMinutes=actual;e.roundedMinutes=roundByRule(actual);e.ownMinutes=e.roundedMinutes;} else{const start=new Date($('#editStart').value);const end=new Date($('#editEnd').value);if(!(end>start))return toast('Eindtijd moet na starttijd liggen');e.startISO=start.toISOString();e.endISO=end.toISOString();e.dateISO=e.endISO;e.actualMinutes=actualMinutes(e.startISO,e.endISO);if(e.activityType==='interruption'){e.netActualMinutes=e.actualMinutes;e.roundedMinutes=interruptionBooking(e.actualMinutes);e.ownMinutes=e.roundedMinutes;e.deductMinutes=interruptionDeduction(e.actualMinutes);}else{recalculateNormalEntry(e);}} e.totalMinutes=(Number(e.ownMinutes)||0)+(Number(e.colleagueMinutes)||0);if(e.parentActivityId){const parent=state.entries.find(x=>x.id===e.parentActivityId);if(parent)recalculateNormalEntry(parent);}saveState();closeModal();render();toast('Registratie bijgewerkt'); });
+  $('#saveEdit').addEventListener('click',()=>{ const theme=state.themes.find(t=>t.id===$('#editTheme').value);const sub=state.subthemes.find(s=>s.id===$('#editSub').value); e.themeId=theme?.id||null;e.themeName=theme?.name||(e.activityType==='interruption'?'Tussenstop':'Activiteit');e.subthemeId=sub?.id||null;e.subthemeName=sub?.name||'';e.locationName=cleanName($('#editLocation').value);e.note=$('#editNote').value.trim();if(e.activityType==='interruption')e.departmentName=cleanName($('#editDepartment').value); if(isManual){const actual=Math.max(1,Number($('#editMinutes').value)||1);e.dateISO=new Date(`${$('#editDate').value}T12:00:00`).toISOString();e.actualMinutes=actual;e.netActualMinutes=actual;e.roundedMinutes=roundByRule(actual);e.ownMinutes=e.roundedMinutes;} else{const start=new Date($('#editStart').value);const end=new Date($('#editEnd').value);if(!(end>start))return toast('Eindtijd moet na starttijd liggen');e.startISO=start.toISOString();e.endISO=end.toISOString();e.dateISO=e.endISO;e.actualMinutes=actualMinutes(e.startISO,e.endISO);if(e.activityType==='interruption'){e.netActualMinutes=e.actualMinutes;e.roundedMinutes=interruptionBooking(e.actualMinutes);e.ownMinutes=e.roundedMinutes;e.deductMinutes=interruptionDeduction(e.actualMinutes);}else{recalculateNormalEntry(e);}} if(getEditAllocations){const allocations=getEditAllocations();reconcileAllocationUsage(previousAllocations,allocations);e.allocations=allocations;e.colleagueMinutes=allocations.length?allocations.reduce((sum,item)=>sum+(Number(item.minutes)||0),0):legacyColleagueMinutes;} e.totalMinutes=(Number(e.ownMinutes)||0)+(Number(e.colleagueMinutes)||0);if(e.parentActivityId){const parent=state.entries.find(x=>x.id===e.parentActivityId);if(parent)recalculateNormalEntry(parent);}saveState();closeModal();render();toast('Registratie bijgewerkt'); });
 }
 
 function recalculateNormalEntry(entry) {
@@ -800,6 +871,7 @@ window.LogTimeModule = Object.freeze({
   createSubtheme: (themeId, rawName) => addSubtheme(themeId, rawName),
   renameTheme,
   renameSubtheme,
+  setThemeColor,
   getView: () => currentView,
   showHome: options => closeSettings(options),
   showSettings: options => openSettings(options),

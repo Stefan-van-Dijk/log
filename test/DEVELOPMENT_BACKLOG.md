@@ -42,9 +42,12 @@ Bij iedere nieuwe ontwikkeling of wijziging:
 | UI-002 | Compacte titel bij scrollen | Gepland | Grote moduletitel bij naar beneden scrollen transformeren naar compacte sticky header en terug vergroten bij terugscrollen. | iOS-achtig, vloeiende overgang. |
 | UI-003 | Kleuren bij items terugbrengen | Gepland | Kleuraccenten opnieuw toepassen bij relevante items en waarden. | Betekenisvol en consequent per type/thema/status. |
 | UI-004 | Iconen bij adressen/locaties | Gepland | Locaties voorzien van herkenbare iconen en voorbereiden op meerdere locatietypen. | Hoofd- en sublocaties meenemen. |
+| UI-005 | Uren leesbaar in periodeoverzicht | Testen | Totalen primair als hele uren tonen en resterende minuten ondergeschikt weergeven. | Hoofdwaarde toont hele uren; resterende minuten, zoals een half uur, staan kleiner ernaast. Release 0.31.10-test.88. |
 | LOC-001 | Hoofd- en sublocaties | Gepland | Sublocaties onder hoofdlocaties kunnen hangen. | Relatie moet ook bruikbaar zijn voor herkenning. |
 | LOC-002 | Locatieherkenning hoofd + sub | Gepland | Bij locatieherkenning zowel hoofdlocatie als relevante sublocatie kunnen tonen. | Voorkom dubbelzinnige weergave. |
 | FILTER-001 | Filter op thema's | Gepland | Taken/tijdregistratie kunnen filteren op thema en subthema naast zoeken. | Filtergedrag consistent met module-opbouw. |
+| TIME-001 | Collega-inzet achteraf wijzigen | Testen | Bij een bestaande tijdregistratie personen en minuten per persoon kunnen aanpassen. | Persoonsverdeling, gebruiksteller en totale inzet worden opnieuw berekend zonder opslagmigratie. Release 0.31.10-test.88. |
+| THEME-001 | Kleur per thema | Testen | Aan ieder thema een eigen kleur kunnen toekennen en die gebruiken bij Tijd/Taken. | Kleurknop staat direct in Thema’s; bestaande thema’s krijgen veilig hun eerdere afgeleide kleur. Release 0.31.10-test.88. |
 | QUICK-001 | Snelle actie configureren | Gepland | Instellen welke actie direct bij openen van de app of module wordt gestart. | Generiek mechanisme voor toekomstige modules. |
 | QUICK-002 | Snelle actie met bevestiging | Gepland | Vooraf ingevulde actie openen waarbij alleen nog bevestigen nodig is. | Bijvoorbeeld rit of tijdregistratie. |
 | BAR-001 | Barcode/QR-code scannen | Gepland | Camera gebruiken om barcodes en QR-codes te lezen. | Resultaat als generieke waarde beschikbaar maken. |
@@ -66,6 +69,7 @@ Bij iedere nieuwe ontwikkeling of wijziging:
 
 | Datum | Wijziging |
 |---|---|
+| 2026-09-21 | TIME-001, THEME-001 en UI-005 gebouwd voor testrelease 0.31.10-test.88: collega-inzet bewerken, themakleuren en hele-urenweergave met kleine restminuten. |
 | 2026-09-21 | UI-001 en NAV-003 gecorrigeerd voor testrelease 0.31.10-test.87: zoekruimte alleen tijdens zoeken, veilige nulresultaatstatus en zijmenu op 50% schermbreedte. |
 | 2026-09-21 | NAV-003 en NAV-004 vereenvoudigd voor testrelease 0.31.10-test.86: direct halfopen en Instellingen als zichtbare menurij. |
 | 2026-09-21 | NAV-001, NAV-002 en NAV-006 gebouwd voor testrelease 0.31.10-test.85; gerichte controle en testomgeving volgen. |
