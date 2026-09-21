@@ -81,7 +81,8 @@ function loadState() {
       timer,
       themes: Array.isArray(parsed.themes) ? parsed.themes.map(theme => ({
         ...theme,
-        color: validThemeColor(theme.color) ? theme.color : fallbackThemeColor(theme.id || theme.name)
+        color: validThemeColor(theme.color) ? theme.color : fallbackThemeColor(theme.id || theme.name),
+        includeInTotals: theme.includeInTotals !== false
       })) : [],
       subthemes: Array.isArray(parsed.subthemes) ? parsed.subthemes : [],
       colleagues: Array.isArray(parsed.colleagues) ? parsed.colleagues : [],
@@ -216,7 +217,9 @@ function periodHours(minutes) {
   const hours = Math.floor(total / 60);
   const remainder = total % 60;
   const label = `${hours} uur${remainder ? ` en ${remainder} minuten` : ''}`;
-  return `<span class="period-hours" aria-label="${label}"><span class="period-hours-main">${hours} uur</span>${remainder ? `<small>+ ${remainder} min</small>` : ''}</span>`;
+  const hourPart = hours || !remainder ? `<span class="period-hours-part"><strong>${hours}</strong><small>u</small></span>` : '';
+  const minutePart = remainder ? `<span class="period-hours-part"><strong>${remainder}</strong><small>m</small></span>` : '';
+  return `<span class="period-hours" aria-label="${label}">${hourPart}${minutePart}</span>`;
 }
 
 function actualMinutes(startISO, stopISO) {
@@ -365,7 +368,12 @@ function entriesForPeriod() {
 }
 
 function totals(entries = state.entries) {
-  return entries.reduce((acc, e) => {
+  const includedEntries = entries.filter(entry => {
+    const theme = state.themes.find(item => String(item.id) === String(entry.themeId))
+      || state.themes.find(item => item.name === entry.themeName);
+    return theme?.includeInTotals !== false;
+  });
+  return includedEntries.reduce((acc, e) => {
     acc.own += Number(e.ownMinutes) || 0;
     acc.colleague += Number(e.colleagueMinutes) || 0;
     acc.total += Number(e.totalMinutes) || 0;
@@ -465,7 +473,9 @@ function renderPeriodNav() {
 }
 
 function renderSummary(t) {
-  return `<section class="summary"><div class="summary-main"><div class="summary-label">Geboekte eigen tijd</div><div class="summary-value">${periodHours(t.own)}</div></div><div class="summary-parts"><div class="summary-part"><span>Collega's</span><strong>${periodHours(t.colleague)}</strong></div><div class="summary-part"><span>Totale inzet</span><strong>${periodHours(t.total)}</strong></div><div class="summary-part"><span>Tussenstops</span><strong>${t.interruptions}</strong></div></div></section>`;
+  const excluded = state.themes.filter(theme => theme.includeInTotals === false).length;
+  const selection = excluded ? ` · selectie actief` : '';
+  return `<section class="summary"><div class="summary-main"><div class="summary-label">Geboekte eigen tijd${selection}</div><div class="summary-value">${periodHours(t.own)}</div></div><div class="summary-parts"><div class="summary-part"><span>Collega's</span><strong>${periodHours(t.colleague)}</strong></div><div class="summary-part"><span>Totale inzet</span><strong>${periodHours(t.total)}</strong></div><div class="summary-part"><span>Tussenstops</span><strong>${t.interruptions}</strong></div></div></section>`;
 }
 
 function renderActionCard() {
@@ -570,7 +580,7 @@ function addTheme(rawName) {
   const name = cleanName(rawName); if (!name) return null;
   const existing = state.themes.find(t => t.name.localeCompare(name, 'nl', { sensitivity: 'base' }) === 0); if (existing) return existing;
   const id = uid();
-  const item = { id, name, color: fallbackThemeColor(id), usageCount: 0, createdAt: new Date().toISOString() }; state.themes.push(item); saveState(); return item;
+  const item = { id, name, color: fallbackThemeColor(id), includeInTotals: true, usageCount: 0, createdAt: new Date().toISOString() }; state.themes.push(item); saveState(); return item;
 }
 
 function addSubtheme(themeId, rawName) {
@@ -602,6 +612,22 @@ function setThemeColor(themeId, color) {
   saveState();
   render();
   return theme;
+}
+
+function setThemeIncludedInTotals(themeId, included) {
+  const theme = state.themes.find(item => String(item.id) === String(themeId));
+  if (!theme) return null;
+  theme.includeInTotals = included !== false;
+  saveState();
+  render();
+  return theme;
+}
+
+function includeAllThemesInTotals() {
+  state.themes.forEach(theme => { theme.includeInTotals = true; });
+  saveState();
+  render();
+  return true;
 }
 
 function renameSubtheme(subthemeId, rawName) {
@@ -872,6 +898,8 @@ window.LogTimeModule = Object.freeze({
   renameTheme,
   renameSubtheme,
   setThemeColor,
+  setThemeIncludedInTotals,
+  includeAllThemesInTotals,
   getView: () => currentView,
   showHome: options => closeSettings(options),
   showSettings: options => openSettings(options),

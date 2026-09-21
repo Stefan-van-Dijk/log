@@ -29,11 +29,12 @@
 .period-overview .period-summary .summary-part+.summary-part{border:0}
 .period-overview .period-summary .summary-part span,.period-overview .period-summary .summary-part strong{display:inline;font-size:11px}
 .period-overview .period-summary .summary-part strong{margin:0 0 0 4px;font-size:12px}
-.period-hours{display:inline-flex!important;align-items:baseline;justify-content:center;gap:6px;white-space:nowrap}
-.period-hours-main{font:inherit;color:inherit}
-.period-hours small{font-size:.38em!important;font-weight:750;letter-spacing:0;color:var(--muted);white-space:nowrap}
+.period-hours{display:inline-flex!important;align-items:baseline;justify-content:center;gap:.22em;white-space:nowrap}
+.period-hours-part{display:inline-flex;align-items:baseline;gap:.06em}
+.period-hours-part strong{font:inherit;color:inherit}
+.period-hours-part small{font-size:.38em!important;font-weight:750;letter-spacing:0;color:var(--muted);white-space:nowrap}
 .period-overview .period-summary .summary-part .period-hours{display:inline-flex!important;gap:3px}
-.period-overview .period-summary .summary-part .period-hours small{font-size:9px!important}
+.period-overview .period-summary .summary-part .period-hours-part small{font-size:9px!important}
 .detail-hero{border-left:4px solid var(--item-accent,var(--accent))}
 
 .content>.suggestion,.content>.active-card{margin-bottom:6px}
