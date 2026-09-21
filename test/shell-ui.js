@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const BUILD = '0.31.10-test.96';
+  const BUILD = '0.31.10-test.97';
   const SHELL_VERSION = (() => {
     try {
       const script = document.currentScript || [...document.scripts].find(item => item.src.includes('shell-ui.js'));
@@ -964,7 +964,8 @@
   function applyShellSearch() {
     const query = currentSearchValue();
     const themeFilter = section === 'time' ? ($('#kmShellThemeFilter')?.value || 'all') : 'all';
-    document.body.classList.toggle('km-shell-searching', Boolean(query) || themeFilter !== 'all');
+    const searching = Boolean(query) || themeFilter !== 'all';
+    if (document.body.classList.contains('km-shell-searching') !== searching) document.body.classList.toggle('km-shell-searching', searching);
     let visible = 0;
     if (section === 'rides') {
       const nodes = $$('#app .trip-entry');
@@ -984,7 +985,8 @@
       for (const node of nodes) {
         const queryMatch = !query || normalizedSearch(node.textContent).includes(query);
         const filterMatch = themeFilter === 'all' || (themeFilter.startsWith('theme:') && String(node.dataset.themeId) === themeFilter.slice(6)) || (themeFilter.startsWith('subtheme:') && String(node.dataset.subthemeId) === themeFilter.slice(9));
-        node.hidden = !(queryMatch && filterMatch);
+        const shouldHide = !(queryMatch && filterMatch);
+        if (node.hidden !== shouldHide) node.hidden = shouldHide;
         if (!node.hidden) {
           visible += 1;
           filteredMinutes += Number(entries.get(String(node.dataset.id || ''))?.ownMinutes) || 0;
@@ -1000,8 +1002,8 @@
           : timeState.subthemes?.find(item => String(item.id) === themeFilter.slice(9))?.themeId;
         const theme = timeState.themes?.find(item => String(item.id) === String(themeId || ''));
         const nextText = `${label} · ${compactFilterTime(filteredMinutes)}${theme?.includeInTotals === false ? ' · telt niet mee' : ''}`;
-        status.classList.add('total');
-        status.hidden = false;
+        if (!status.classList.contains('total')) status.classList.add('total');
+        if (status.hidden) status.hidden = false;
         if (status.textContent !== nextText) status.textContent = nextText;
       }
     }
@@ -1009,9 +1011,10 @@
     if (status) {
       const filtering = Boolean(query) || themeFilter !== 'all';
       const hasThemeTotal = section === 'time' && themeFilter !== 'all' && visible > 0;
-      status.classList.toggle('total', hasThemeTotal);
+      if (status.classList.contains('total') !== hasThemeTotal) status.classList.toggle('total', hasThemeTotal);
       if (!hasThemeTotal) {
-        status.hidden = !filtering || visible > 0;
+        const shouldHide = !filtering || visible > 0;
+        if (status.hidden !== shouldHide) status.hidden = shouldHide;
         const nextText = filtering && visible === 0 ? 'Geen resultaten gevonden.' : '';
         if (status.textContent !== nextText) status.textContent = nextText;
       }
@@ -2694,20 +2697,38 @@
       if (target.closest('[data-action="location-sort"]') && section === 'locations') setTimeout(renderLocations, 0);
     }, false);
 
-    const observer = new MutationObserver(() => {
-      if ($('#locationForm')) queueLocationEditorAugment();
-      filterTripLocationSelects();
-      const editor = document.body.classList.contains('editor-view');
-      const editorClosed = lastEditorState && !editor;
-      lastEditorState = editor;
-      if (editorClosed && section === 'locations' && !$('#kmShellSettings')?.classList.contains('open')) {
-        document.body.classList.add('km-shell-locations-mode');
-        renderLocations();
-      }
-      syncChrome();
-      applyShellSearch();
+    let observerQueued = false;
+    const observer = new MutationObserver(mutations => {
+      const searchClasses = new Set(['km-shell-searching', 'km-shell-search-open', 'km-shell-search-revealed']);
+      const relevant = mutations.some(mutation => {
+        const target = mutation.target instanceof Element ? mutation.target : mutation.target?.parentElement;
+        if (target?.closest?.('#kmShellSearch,#kmShellSearchStatus')) return false;
+        if (mutation.type === 'attributes' && mutation.target === document.body && mutation.attributeName === 'class') {
+          const before = new Set(String(mutation.oldValue || '').split(/\s+/).filter(Boolean));
+          const after = new Set(document.body.className.split(/\s+/).filter(Boolean));
+          const changed = [...new Set([...before, ...after])].filter(name => before.has(name) !== after.has(name));
+          if (changed.length && changed.every(name => searchClasses.has(name))) return false;
+        }
+        return true;
+      });
+      if (!relevant || observerQueued) return;
+      observerQueued = true;
+      requestAnimationFrame(() => {
+        observerQueued = false;
+        if ($('#locationForm')) queueLocationEditorAugment();
+        filterTripLocationSelects();
+        const editor = document.body.classList.contains('editor-view');
+        const editorClosed = lastEditorState && !editor;
+        lastEditorState = editor;
+        if (editorClosed && section === 'locations' && !$('#kmShellSettings')?.classList.contains('open')) {
+          document.body.classList.add('km-shell-locations-mode');
+          renderLocations();
+        }
+        syncChrome();
+        applyShellSearch();
+      });
     });
-    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'], attributeOldValue: true });
 
     window.addEventListener(KM_STATE_EVENT, event => {
       if (!event.detail?.key || event.detail.key === DATA_KEY) refreshKmState(event.detail);
