@@ -275,6 +275,25 @@ body{font-size:16px;line-height:1.35;font-weight:400}
   line-height:1.2!important;
   font-weight:var(--log-weight-value)!important;
 }
+/* Categoriekleuren blijven zichtbaar boven de gedeelde lijst- en typografieregels. */
+body:not(.time-mode) #app .list .trip-swipe-surface.category-business,
+body:not(.time-mode) #app .list .trip-swipe-surface.category-commute,
+body:not(.time-mode) #app .list .trip-swipe-surface.category-private{
+  border-left:3px solid var(--category-color)!important;
+  padding-left:10px!important;
+}
+body:not(.time-mode) #app .list .trip-swipe-surface.category-business .trip-km-stack>span,
+body:not(.time-mode) #app .list .trip-swipe-surface.category-commute .trip-km-stack>span,
+body:not(.time-mode) #app .list .trip-swipe-surface.category-private .trip-km-stack>span{
+  color:var(--category-color)!important;
+}
+.app-shell .activity-swipe-surface.entry{
+  border-left:3px solid var(--item-accent,var(--accent))!important;
+  padding-left:10px!important;
+}
+.app-shell .activity-swipe-surface.entry .entry-value-stack>strong{
+  color:var(--item-accent,var(--accent))!important;
+}
 .form-group label,.field label,.inline-label,.inline-field>span,.activity-inline-item span{
   color:var(--muted)!important;
   font-size:var(--log-type-meta)!important;

@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const BUILD='0.31.10-test.81';
+  const BUILD='0.31.10-test.82';
   const DATA_KEY='kmreg-test-v4-data';
   const TIME_KEY='urenregistratie.test.pwa.v1';
   const POSITIVE_SWIPE_THRESHOLD=36;
