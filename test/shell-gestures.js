@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const BUILD='0.31.10-test.86';
+  const BUILD='0.31.10-test.87';
   const HORIZONTAL_RATIO=1.25;
   const SNAP_PROGRESS=0.28;
   const FLING_VELOCITY=0.45;
@@ -129,7 +129,7 @@
   }
 
   function drawerShift(){
-    return Math.min(window.innerWidth*0.46,180);
+    return Math.min(window.innerWidth*0.5,360);
   }
 
   function captureStyle(element,properties){
