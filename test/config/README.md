@@ -9,9 +9,10 @@ Het bestand `modules.json` is de centrale bron voor het zijmenu, de iOS-onderbal
 3. Persoonlijke keuzes voor positie en volgorde worden lokaal per apparaat toegepast.
 4. Een module kan in de onderbalk, het menu, beide of nergens zichtbaar zijn.
 5. De onderbalk en het menu hebben ieder een eigen volgorde. De standaardvolgorde komt uit dit document.
-6. Tot en met vijf gekozen onderdelen staan rechtstreeks in de onderbalk; bij meer onderdelen toont de balk vier onderdelen en **Meer**.
-7. Bij een onbereikbare bron gebruikt Log de laatst geldige opgeslagen versie.
-8. Als ook die ontbreekt, gebruikt Log de ingebouwde veilige standaardconfiguratie.
+6. De gebruiker kan de volledige onderbalk verbergen zonder de gekozen modules of hun volgorde te wissen.
+7. Tot en met vijf gekozen onderdelen staan rechtstreeks in de onderbalk; bij meer onderdelen toont de balk vier onderdelen en **Meer**.
+8. Bij een onbereikbare bron gebruikt Log de laatst geldige opgeslagen versie.
+9. Als ook die ontbreekt, gebruikt Log de ingebouwde veilige standaardconfiguratie.
 
 ## Velden per module
 
