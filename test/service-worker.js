@@ -1,4 +1,4 @@
-const CACHE='kmreg-test-shell-0.31.10-test.97';
+const CACHE='kmreg-test-shell-0.31.10-test.97-gps1';
 const SHELL=[
   './',
   './index.html',
@@ -47,6 +47,18 @@ self.addEventListener('fetch',event=>{
   if(url.pathname.endsWith('/import.html'))return;
   if(url.pathname.endsWith('/id-converter.html')){
     event.respondWith(caches.match('./id-converter.html').then(cached=>cached||fetch(req)));
+    return;
+  }
+  if(url.pathname.endsWith('/shell-ui-stable.js')){
+    event.respondWith(
+      fetch(new Request(req,{cache:'reload'}))
+        .then(resp=>{
+          const copy=resp.clone();
+          caches.open(CACHE).then(cache=>cache.put(req,copy));
+          return resp;
+        })
+        .catch(()=>caches.match(req))
+    );
     return;
   }
   if(url.pathname.endsWith('/config/modules.json')){
