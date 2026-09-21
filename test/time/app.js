@@ -133,7 +133,7 @@ function safeText(value) {
 }
 
 function themeColor(value) {
-  const palette = ['#0a84ff', '#30a46c', '#af52de', '#ff9f0a', '#ff375f', '#00a7a7', '#6e5ae6', '#8a6500'];
+  const palette = ['var(--business,#a875ff)', 'var(--commute,#4da3ff)', 'var(--private,#49d17d)', 'var(--home,#ff9f0a)', 'var(--bad,#ff6767)', 'var(--accent,#4da3ff)', 'var(--warn,#ffbd4a)', 'var(--other,#8e8e93)'];
   let hash = 0;
   for (const char of String(value || 'theme')) hash = ((hash << 5) - hash + char.charCodeAt(0)) | 0;
   return palette[Math.abs(hash) % palette.length];
