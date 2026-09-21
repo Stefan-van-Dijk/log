@@ -4,8 +4,8 @@
   const BUILD=(()=>{
     try{
       const script=document.currentScript||[...document.scripts].find(item=>item.src.includes('shell-ui-stable.js'));
-      return new URL(script?.src||location.href).searchParams.get('v')||'0.31.10-test.90';
-    }catch(_){return'0.31.10-test.90';}
+      return new URL(script?.src||location.href).searchParams.get('v')||'0.31.10-test.91';
+    }catch(_){return'0.31.10-test.91';}
   })();
   const DATA_KEY='kmreg-test-v4-data';
   const SECTION_KEY='kmreg-test-shell-section-v1';

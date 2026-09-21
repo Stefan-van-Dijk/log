@@ -367,12 +367,14 @@ function entriesForPeriod() {
   });
 }
 
+function entryIncludedInTotals(entry) {
+  const theme = state.themes.find(item => String(item.id) === String(entry.themeId))
+    || state.themes.find(item => item.name === entry.themeName);
+  return theme?.includeInTotals !== false;
+}
+
 function totals(entries = state.entries) {
-  const includedEntries = entries.filter(entry => {
-    const theme = state.themes.find(item => String(item.id) === String(entry.themeId))
-      || state.themes.find(item => item.name === entry.themeName);
-    return theme?.includeInTotals !== false;
-  });
+  const includedEntries = entries.filter(entryIncludedInTotals);
   return includedEntries.reduce((acc, e) => {
     acc.own += Number(e.ownMinutes) || 0;
     acc.colleague += Number(e.colleagueMinutes) || 0;
@@ -473,9 +475,7 @@ function renderPeriodNav() {
 }
 
 function renderSummary(t) {
-  const excluded = state.themes.filter(theme => theme.includeInTotals === false).length;
-  const selection = excluded ? ` · selectie actief` : '';
-  return `<section class="summary"><div class="summary-main"><div class="summary-label">Geboekte eigen tijd${selection}</div><div class="summary-value">${periodHours(t.own)}</div></div><div class="summary-parts"><div class="summary-part"><span>Collega's</span><strong>${periodHours(t.colleague)}</strong></div><div class="summary-part"><span>Totale inzet</span><strong>${periodHours(t.total)}</strong></div><div class="summary-part"><span>Tussenstops</span><strong>${t.interruptions}</strong></div></div></section>`;
+  return `<section class="summary"><div class="summary-main"><div class="summary-label">Geboekte eigen tijd</div><div class="summary-value">${periodHours(t.own)}</div></div><div class="summary-parts"><div class="summary-part"><span>Collega's</span><strong>${periodHours(t.colleague)}</strong></div><div class="summary-part"><span>Totale inzet</span><strong>${periodHours(t.total)}</strong></div><div class="summary-part"><span>Tussenstops</span><strong>${t.interruptions}</strong></div></div></section>`;
 }
 
 function renderActionCard() {
@@ -544,7 +544,8 @@ function entryDayLabel(entry) {
 function entryRow(e, interruption = false) {
   const start = e.startISO ? timeText(e.startISO) : '—';
   const total = Number(e.totalMinutes) !== Number(e.ownMinutes) ? `<small>Totaal ${displayMinutes(e.totalMinutes)}</small>` : '';
-  return `<div class="entry ${interruption ? 'interruption' : ''}" data-entry="${e.id}" data-theme-id="${safeText(e.themeId || '')}" data-subtheme-id="${safeText(e.subthemeId || '')}" style="--item-accent:${themeColor(e.themeId || e.themeName)}"><div class="entry-time">${safeText(start)}</div><div class="entry-main"><strong>${safeText(e.themeName || (interruption ? 'Tussenstop' : 'Activiteit'))}</strong>${e.subthemeName ? `<small class="entry-subtheme">${safeText(e.subthemeName)}</small>` : ''}</div><div class="entry-value-stack"><strong>${displayMinutes(e.ownMinutes)}</strong>${total}</div><div class="chev">›</div></div>`;
+  const excluded = entryIncludedInTotals(e) ? '' : ' excluded-from-totals';
+  return `<div class="entry ${interruption ? 'interruption' : ''}${excluded}" data-entry="${e.id}" data-theme-id="${safeText(e.themeId || '')}" data-subtheme-id="${safeText(e.subthemeId || '')}" style="--item-accent:${themeColor(e.themeId || e.themeName)}"><div class="entry-time">${safeText(start)}</div><div class="entry-main"><strong>${safeText(e.themeName || (interruption ? 'Tussenstop' : 'Activiteit'))}</strong>${e.subthemeName ? `<small class="entry-subtheme">${safeText(e.subthemeName)}</small>` : ''}</div><div class="entry-value-stack"><strong>${displayMinutes(e.ownMinutes)}</strong>${total}</div><div class="chev">›</div></div>`;
 }
 
 function wireHome() {

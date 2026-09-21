@@ -47,7 +47,7 @@ Bij iedere nieuwe ontwikkeling of wijziging:
 | LOC-002 | Locatieherkenning hoofd + sub | Gepland | Bij locatieherkenning zowel hoofdlocatie als relevante sublocatie kunnen tonen. | Voorkom dubbelzinnige weergave. |
 | FILTER-001 | Filter op thema's | Gepland | Taken/tijdregistratie kunnen filteren op thema en subthema naast zoeken. | Filtergedrag consistent met module-opbouw. |
 | TIME-001 | Collega-inzet achteraf wijzigen | Testen | Bij een bestaande tijdregistratie personen en minuten per persoon kunnen aanpassen. | Persoonsverdeling, gebruiksteller en totale inzet worden opnieuw berekend zonder opslagmigratie. Release 0.31.10-test.88. |
-| TIME-002 | Thema’s selectief meetellen | Testen | Per thema bepalen of registraties meetellen in de tijdtotalen. | Klokstatus in Thema’s, standaard aan; registraties blijven zichtbaar en Alles meetellen herstelt de volledige selectie. Release 0.31.10-test.90. |
+| TIME-002 | Thema’s selectief meetellen | Testen | Per thema bepalen of registraties meetellen in de tijdtotalen. | Klokstatus in Thema’s, standaard aan; uitgesloten tijden worden gedimd en Alles meetellen herstelt de volledige selectie. Release 0.31.10-test.91. |
 | THEME-001 | Kleur per thema | Testen | Aan ieder thema een eigen kleur kunnen toekennen en die gebruiken bij Tijd/Taken. | De accentlijn toont de gekozen kleur; aanpassen blijft beschikbaar via Bewerk. Release 0.31.10-test.89. |
 | QUICK-001 | Snelle actie configureren | Gepland | Instellen welke actie direct bij openen van de app of module wordt gestart. | Generiek mechanisme voor toekomstige modules. |
 | QUICK-002 | Snelle actie met bevestiging | Gepland | Vooraf ingevulde actie openen waarbij alleen nog bevestigen nodig is. | Bijvoorbeeld rit of tijdregistratie. |
@@ -70,6 +70,7 @@ Bij iedere nieuwe ontwikkeling of wijziging:
 
 | Datum | Wijziging |
 |---|---|
+| 2026-09-21 | TIME-002 verfijnd voor testrelease 0.31.10-test.91: uitgesloten tijden worden gedimd en de overbodige melding selectie actief is verwijderd. |
 | 2026-09-21 | UI-005 en TIME-002 gebouwd voor testrelease 0.31.10-test.90: compacte tijdnotatie en per thema instelbare deelname aan tijdtotalen, inclusief Alles meetellen. |
 | 2026-09-21 | THEME-001 verfijnd voor testrelease 0.31.10-test.89: het losse kleurbolletje is verwijderd; de accentlijn en kleurkeuze via Bewerk blijven behouden. |
 | 2026-09-21 | TIME-001, THEME-001 en UI-005 gebouwd voor testrelease 0.31.10-test.88: collega-inzet bewerken, themakleuren en hele-urenweergave met kleine restminuten. |
