@@ -294,6 +294,14 @@ body:not(.time-mode) #app .list .trip-swipe-surface.category-private .trip-km-st
 .app-shell .activity-swipe-surface.entry .entry-value-stack>strong{
   color:var(--item-accent,var(--accent))!important;
 }
+.app-shell .activity-swipe-surface.entry.excluded-from-totals .entry-value-stack{
+  opacity:.58!important;
+}
+.app-shell .activity-swipe-surface.entry.excluded-from-totals .entry-value-stack>strong,
+.app-shell .activity-swipe-surface.entry.excluded-from-totals .entry-value-stack>small{
+  color:var(--muted)!important;
+  font-weight:500!important;
+}
 .form-group label,.field label,.inline-label,.inline-field>span,.activity-inline-item span{
   color:var(--muted)!important;
   font-size:var(--log-type-meta)!important;
