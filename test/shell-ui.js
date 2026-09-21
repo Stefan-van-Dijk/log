@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const BUILD = '0.31.10-test.85';
+  const BUILD = '0.31.10-test.86';
   const SHELL_VERSION = (() => {
     try {
       const script = document.currentScript || [...document.scripts].find(item => item.src.includes('shell-ui.js'));
@@ -413,7 +413,7 @@
       body.km-shell-drawer-peek .km-shell-drawer.open{transform:translateX(calc(-100% + min(46vw,180px)))}
       .km-shell-drawer-head{padding:4px 8px 17px}.km-shell-drawer-head strong{display:block;font-size:19px;letter-spacing:-.02em}.km-shell-drawer-head small{display:block;margin-top:4px;color:var(--muted);font-size:11px}
       .km-shell-nav{display:grid;gap:4px}.km-shell-nav-button{display:flex;align-items:center;gap:12px;width:100%;min-height:48px;padding:9px 11px;border:0;border-radius:12px;background:transparent;color:var(--text);font-weight:760;text-align:left;cursor:pointer}.km-shell-nav-button .icon{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border:1px solid var(--line);border-radius:9px;color:var(--muted);font-size:15px}.km-shell-nav-button.active{background:var(--card2)}.km-shell-nav-button.active .icon{border-color:rgba(77,163,255,.45);color:var(--accent);background:rgba(77,163,255,.09)}.km-shell-nav-empty{padding:16px 13px;color:var(--muted);font-size:12px;line-height:1.4}
-      .km-shell-drawer-spacer{flex:1}.km-shell-drawer-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 4px 2px;border-top:1px solid var(--line)}.km-shell-version{display:inline-flex!important;align-items:center;gap:7px;flex:0 0 auto;min-width:0;padding:6px 9px;border:1px solid color-mix(in srgb,var(--accent) 28%,var(--line));border-radius:10px;background:color-mix(in srgb,var(--accent) 10%,transparent);color:var(--text)!important;font-size:11px;font-weight:750;line-height:1;white-space:nowrap;visibility:visible!important;opacity:1!important}.km-shell-version-label{color:var(--accent);font-size:9px;font-weight:850;letter-spacing:.08em}.km-shell-version-number{overflow:hidden;text-overflow:ellipsis}.km-shell-settings-button{display:inline-flex;align-items:center;justify-content:center;width:46px;height:46px;border:0;border-radius:14px;background:transparent;color:var(--text);font-size:23px;cursor:pointer}.km-shell-settings-button:active{background:var(--card2)}
+      .km-shell-drawer-spacer{flex:1}.km-shell-drawer-bottom{display:grid;gap:6px}.km-shell-settings-button{width:100%;cursor:pointer}.km-shell-drawer-footer{display:flex;align-items:center;padding:4px 11px 2px}.km-shell-version{display:inline-flex!important;align-items:center;gap:7px;flex:0 0 auto;min-width:0;padding:6px 9px;border:1px solid color-mix(in srgb,var(--accent) 28%,var(--line));border-radius:10px;background:color-mix(in srgb,var(--accent) 10%,transparent);color:var(--text)!important;font-size:11px;font-weight:750;line-height:1;white-space:nowrap;visibility:visible!important;opacity:1!important}.km-shell-version-label{color:var(--accent);font-size:9px;font-weight:850;letter-spacing:.08em}.km-shell-version-number{overflow:hidden;text-overflow:ellipsis}
       .km-shell-tabbar{--km-tab-count:3;position:fixed;z-index:80;left:50%;bottom:calc(9px + env(safe-area-inset-bottom));width:min(520px,calc(100vw - 20px));height:74px;display:grid;grid-template-columns:repeat(var(--km-tab-count),minmax(0,1fr));gap:5px;padding:6px;border:1px solid color-mix(in srgb,#fff 62%,var(--line));border-radius:29px;background:color-mix(in srgb,var(--card) 58%,transparent);box-shadow:0 14px 42px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.72),inset 0 -1px 0 color-mix(in srgb,var(--line) 75%,transparent);-webkit-backdrop-filter:blur(34px) saturate(210%);backdrop-filter:blur(34px) saturate(210%);transform:translateX(-50%);transition:opacity .2s ease,transform .28s cubic-bezier(.22,1,.36,1);isolation:isolate;overflow:hidden}
       .km-shell-tabbar[hidden]{display:none!important}
       .km-shell-tabbar::before{content:"";position:absolute;z-index:0;inset:0;background:linear-gradient(145deg,rgba(255,255,255,.34),transparent 44%,color-mix(in srgb,var(--accent) 9%,transparent));pointer-events:none}
@@ -506,7 +506,7 @@
       .km-shell-nav-button:not(:last-child)::after{content:"";position:absolute;left:52px;right:0;bottom:0;height:.5px;background:var(--line)}
       .km-shell-nav-button .icon{width:29px!important;height:29px!important;border:0!important;border-radius:50%!important;background:color-mix(in srgb,var(--accent) 14%,transparent)!important;color:var(--accent)!important;font-size:15px!important}
       .km-shell-nav-button.active{background:color-mix(in srgb,var(--accent) 11%,var(--card))!important;color:var(--accent)!important}.km-shell-nav-button.active .icon{background:var(--accent)!important;color:#fff!important}
-      .km-shell-drawer-footer{border-top:0!important;padding:12px 4px 2px!important}.km-shell-settings-button{margin-left:auto;border-radius:50%!important;background:var(--card)!important;color:var(--accent)!important}
+      .km-shell-drawer-bottom{gap:6px!important}.km-shell-settings-button{margin:0!important;border-radius:16px!important;background:var(--card)!important;color:var(--text)!important}.km-shell-settings-button .icon{background:color-mix(in srgb,var(--accent) 14%,transparent)!important;color:var(--accent)!important}.km-shell-drawer-footer{border-top:0!important;padding:4px 11px 2px!important}
       .km-shell-settings-surface::before{content:"";position:absolute;z-index:3;top:7px;left:50%;width:36px;height:5px;border-radius:99px;background:color-mix(in srgb,var(--muted) 45%,transparent);transform:translateX(-50%)}
       .km-shell-settings-surface{position:relative;border-radius:28px 28px 0 0!important}
       .km-shell-settings-head{padding-top:calc(15px + env(safe-area-inset-top))!important;border-bottom:.5px solid var(--line)!important}
@@ -719,8 +719,7 @@
 
     document.body.appendChild(menu);
     menu.addEventListener('click', () => {
-      if (!drawerOpen) openDrawer('peek');
-      else if (drawerPeek) openDrawer('full');
+      if (!drawerOpen) openDrawer();
       else closeDrawer();
     });
 
@@ -745,7 +744,10 @@
       <div class="km-shell-drawer-head"><strong>Log</strong><small>Jouw registratieonderdelen</small></div>
       <nav id="kmShellDrawerNav" class="km-shell-nav"></nav>
       <div class="km-shell-drawer-spacer"></div>
-      <div class="km-shell-drawer-footer"><span class="km-shell-version" aria-label="Geladen testversie ${SHELL_VERSION}"><span class="km-shell-version-label">TEST</span><span class="km-shell-version-number">${SHELL_VERSION}</span></span><button id="kmShellSettingsButton" class="km-shell-settings-button" type="button" aria-label="Instellingen">⚙︎</button></div>`;
+      <div class="km-shell-drawer-bottom">
+        <button id="kmShellSettingsButton" class="km-shell-nav-button km-shell-settings-button" type="button" aria-label="Instellingen"><span class="icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3A1.7 1.7 0 0 0 10 3v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg></span><span>Instellingen</span></button>
+        <div class="km-shell-drawer-footer"><span class="km-shell-version" aria-label="Geladen testversie ${SHELL_VERSION}"><span class="km-shell-version-label">TEST</span><span class="km-shell-version-number">${SHELL_VERSION}</span></span></div>
+      </div>`;
 
     drawer.addEventListener('click', event => {
       const button = event.target.closest('[data-shell-section]');
@@ -797,7 +799,7 @@
     renderNavigation();
   }
 
-  function openDrawer(mode = 'full') {
+  function openDrawer(mode = 'peek') {
     if ($('#kmShellSettings')?.classList.contains('open')) return;
     drawerOpen = true;
     drawerPeek = mode === 'peek';
@@ -2229,11 +2231,11 @@
     settings.classList.remove('open');
     document.body.classList.remove('km-shell-settings-open');
     document.body.style.overflow = '';
-    // Het zijpaneel blijft bewust open staan achter de sheet.
+    // Het zijpaneel blijft bewust halfopen staan achter de sheet.
     drawerOpen = true;
-    drawerPeek = false;
-    document.body.classList.remove('km-shell-drawer-peek');
-    document.body.classList.add('km-shell-drawer-open');
+    drawerPeek = true;
+    document.body.classList.add('km-shell-drawer-peek');
+    document.body.classList.remove('km-shell-drawer-open');
     $('#kmShellMenuButton')?.setAttribute('aria-expanded', 'true');
     $('#kmShellDrawer')?.classList.add('open');
     $('#kmShellBackdrop')?.classList.add('open');

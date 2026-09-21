@@ -34,8 +34,8 @@ Bij iedere nieuwe ontwikkeling of wijziging:
 |---|---|---|---|---|
 | NAV-001 | Modulepositie instelbaar | Testen | Per module bepalen of deze zichtbaar is in de onderbalk, het zijmenu, beide of verborgen. | Schakelaars staan rechtstreeks in beide sorteerlijsten; opslag blijft achterwaarts compatibel. Release 0.31.10-test.85. |
 | NAV-002 | Volgorde modules instelbaar | Testen | Volgorde van modules in onderbalk en zijmenu vanuit de moduleconfiguratie bepalen. | Beide lijsten behouden een eigen sleepvolgorde, ook voor uitgeschakelde modules. Release 0.31.10-test.85. |
-| NAV-003 | Zijmenu half openen | Gepland | Naast volledig geopend ook een gedeeltelijk geopend zijpaneel ondersteunen. | Hoofdmodule mag deels zichtbaar blijven. |
-| NAV-004 | Swipe tussen hoofdmodule en zijmenu | Gepland | Van links naar rechts/rechts naar links kunnen vegen tussen hoofdmodule en zijpaneel. | Geen onnodige 44px-startzone als gebaren niet conflicteren. |
+| NAV-003 | Zijmenu half openen | Testen | Naast volledig geopend ook een gedeeltelijk geopend zijpaneel ondersteunen. | Menu opent in één stap half; Instellingen staat als vaste menurij boven het versienummer. Release 0.31.10-test.86. |
+| NAV-004 | Swipe tussen hoofdmodule en zijmenu | Testen | Van links naar rechts/rechts naar links kunnen vegen tussen hoofdmodule en zijpaneel. | Gebaar wisselt rechtstreeks tussen gesloten en halfopen; de tweede veeg naar volledig open is vervallen. Release 0.31.10-test.86. |
 | NAV-005 | Scroll blokkeren achter geopend menu | Gepland | Bij geopend zijpaneel mag de hoofdmodule op de achtergrond niet scrollen. | Ook controleren als PWA op iPhone. |
 | NAV-006 | Onderbalk geheel verbergen | Testen | De volledige onderbalk kunnen uitschakelen zonder modulekeuzes of volgorde te wissen. | Aparte hoofdschakelaar; minimaal één module blijft via een actieve navigatieroute bereikbaar. Release 0.31.10-test.85. |
 | UI-001 | Zoeken als vergrootglas | Gepland | Grote zoekweergave vervangen door een zoekicoon; zoekveld pas openen na aantikken. | Generiek gedrag in shell waar mogelijk. |
@@ -66,6 +66,7 @@ Bij iedere nieuwe ontwikkeling of wijziging:
 
 | Datum | Wijziging |
 |---|---|
+| 2026-09-21 | NAV-003 en NAV-004 vereenvoudigd voor testrelease 0.31.10-test.86: direct halfopen en Instellingen als zichtbare menurij. |
 | 2026-09-21 | NAV-001, NAV-002 en NAV-006 gebouwd voor testrelease 0.31.10-test.85; gerichte controle en testomgeving volgen. |
 | 2026-09-21 | Werkwijze aangescherpt: alleen relevante informatie, bestanden en controles doorlopen en risicogestuurd testen in plaats van standaard de volledige app. |
 | 2026-09-21 | Backlog aangemaakt en huidige navigatie-, UI-, locatie-, filter-, quick-action- en barcodewensen opgenomen. |

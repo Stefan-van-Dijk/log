@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const BUILD='0.31.10-test.85';
+  const BUILD='0.31.10-test.86';
   const HORIZONTAL_RATIO=1.25;
   const SNAP_PROGRESS=0.28;
   const FLING_VELOCITY=0.45;
@@ -19,10 +19,6 @@
 
   function drawerOpen(){
     return (document.body.classList.contains('km-shell-drawer-open')||document.body.classList.contains('km-shell-drawer-peek'))&&$('#kmShellDrawer')?.classList.contains('open');
-  }
-
-  function drawerPeek(){
-    return document.body.classList.contains('km-shell-drawer-peek')&&$('#kmShellDrawer')?.classList.contains('open');
   }
 
   function blockedByOverlay(){
@@ -133,7 +129,7 @@
   }
 
   function drawerShift(){
-    return Math.min(window.innerWidth*0.9,360);
+    return Math.min(window.innerWidth*0.46,180);
   }
 
   function captureStyle(element,properties){
@@ -198,8 +194,8 @@
 
     if(shell){
       shell.style.setProperty('transform',`translate3d(${x}px,0,0)`,'important');
-      shell.style.setProperty('border-radius',`${22*progress}px 0 0 ${22*progress}px`,'important');
-      shell.style.setProperty('box-shadow',`-${Math.round(14*progress)}px 0 ${Math.round(38*progress)}px rgba(0,0,0,${(0.24*progress).toFixed(3)})`,'important');
+      shell.style.setProperty('border-radius',`${18*progress}px 0 0 ${18*progress}px`,'important');
+      shell.style.setProperty('box-shadow',`-${Math.round(10*progress)}px 0 ${Math.round(28*progress)}px rgba(0,0,0,${(0.2*progress).toFixed(3)})`,'important');
     }
     if(menu)menu.style.setProperty('transform',`translate3d(${x}px,0,0)`,'important');
     if(drawer)drawer.style.setProperty('opacity',String(clamp(progress*2)),'important');
@@ -250,9 +246,8 @@
   function settleGesture(target){
     const mode=gesture?.mode;
     animateGestureTo(target,()=>{
-      if(target===0&&(mode==='close'||mode==='peek'))requestCloseDrawer();
-      else if(target===0.5&&mode==='open')requestOpenDrawer();
-      else if(target===1&&mode==='peek')$('#kmShellMenuButton')?.click();
+      if(target===0&&mode==='close')requestCloseDrawer();
+      else if(target===1&&mode==='open')requestOpenDrawer();
       requestAnimationFrame(()=>{
         cleanupVisualGesture();
         gesture=null;
@@ -266,7 +261,6 @@
     const point=touchPoint(event);
     if(!point)return;
     const open=drawerOpen();
-    const peek=drawerPeek();
     if(!open&&blockedByOverlay())return;
     if(!open&&(isInteractiveTarget(event.target)||hasOwnGesture(event.target)))return;
     gesture={
@@ -274,10 +268,10 @@
       startY:point.clientY,
       dx:0,
       dy:0,
-      mode:peek?'peek':open?'close':'open',
+      mode:open?'close':'open',
       horizontal:false,
       visualActive:false,
-      progress:peek?0.5:open?1:0,
+      progress:open?1:0,
       velocityX:0,
       lastX:point.clientX,
       lastTime:performance.now()
@@ -313,9 +307,7 @@
       const shift=gesture.shift||drawerShift();
       const progress=gesture.mode==='open'
         ? clamp(gesture.dx/shift)
-        : gesture.mode==='peek'
-          ? clamp(0.5+gesture.dx/shift)
-          : clamp(1+gesture.dx/shift);
+        : clamp(1+gesture.dx/shift);
       applyGestureProgress(progress);
     }
   }
@@ -324,22 +316,16 @@
     if(!gesture||animating)return;
     if(!gesture.horizontal||!gesture.visualActive){gesture=null;return;}
     const current=gesture;
-    if(current.mode==='peek'){
-      if(current.progress>=0.68||current.velocityX>=FLING_VELOCITY)settleGesture(1);
-      else if(current.progress<=0.32||current.velocityX<=-FLING_VELOCITY)settleGesture(0);
-      else settleGesture(0.5);
-      return;
-    }
     const forward=current.mode==='open'
       ? current.progress>=SNAP_PROGRESS||current.velocityX>=FLING_VELOCITY
       : current.progress<=1-SNAP_PROGRESS||current.velocityX<=-FLING_VELOCITY;
-    settleGesture(current.mode==='open'?(forward?0.5:0):(forward?0:1));
+    settleGesture(current.mode==='open'?(forward?1:0):(forward?0:1));
   }
 
   function cancelGesture(){
     if(!gesture||animating)return;
     if(!gesture.visualActive){gesture=null;return;}
-    settleGesture(gesture.mode==='open'?0:gesture.mode==='peek'?0.5:1);
+    settleGesture(gesture.mode==='open'?0:1);
   }
 
   function bindGestureDocument(doc){
