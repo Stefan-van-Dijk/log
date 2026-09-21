@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const BUILD = '0.31.10-test.82';
+  const BUILD = '0.31.10-test.83';
   const SHELL_VERSION = (() => {
     try {
       const script = document.currentScript || [...document.scripts].find(item => item.src.includes('shell-ui.js'));
@@ -94,7 +94,6 @@
   let locationSwipe = null;
   let themeSwipe = null;
   let pendingParentForNew = null;
-  let pendingParentSave = null;
   let kmSettingsMounted = false;
   let timeSettingsMounted = false;
   let kmAppPlaceholder = null;
@@ -388,7 +387,7 @@
       .km-shell-tab-button.active::after{content:"";position:absolute;bottom:4px;width:5px;height:5px;border-radius:50%;background:currentColor;box-shadow:0 0 8px currentColor}
       .km-shell-tab-button.active svg{transform:translateY(-2px) scale(1.08);stroke-width:2.25}
       .km-shell-tab-button:active{transform:scale(.94)}
-      .km-shell-module-settings{display:grid;gap:16px}.km-shell-module-position-list,.km-shell-module-order-list{overflow:hidden;border:.5px solid var(--line);border-radius:14px;background:var(--card)}.km-shell-module-position-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px;min-height:64px;padding:9px 11px}.km-shell-module-position-row+.km-shell-module-position-row{border-top:.5px solid var(--line)}.km-shell-module-placement select{min-width:112px;height:36px;padding:0 28px 0 10px;border:.5px solid var(--line);border-radius:10px;background:var(--card2);color:var(--text);font-size:12px;font-weight:700}.km-shell-module-order-group>strong,.km-shell-module-order-group>small{display:block}.km-shell-module-order-group>strong{font-size:13px}.km-shell-module-order-group>small{margin:3px 0 7px;color:var(--muted);font-size:10px;line-height:1.35}.km-shell-module-row{display:grid;grid-template-columns:44px minmax(0,1fr);align-items:center;gap:8px;min-height:58px;padding:8px 10px;border:0;background:var(--card);transition:background .16s ease,box-shadow .16s ease,transform .16s ease}.km-shell-module-row+.km-shell-module-row{border-top:.5px solid var(--line)}.km-shell-module-handle{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;padding:0;border:0;border-radius:10px;background:transparent;color:var(--muted);touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}.km-shell-module-handle:active,.km-shell-module-row.is-dragging .km-shell-module-handle{cursor:grabbing;background:var(--card2);color:var(--accent)}.km-shell-module-handle svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}.km-shell-module-row.is-dragging{position:fixed;z-index:140;border:.5px solid var(--line);border-radius:12px;background:color-mix(in srgb,var(--accent) 12%,var(--card));box-shadow:0 16px 38px rgba(0,0,0,.28);transform:scale(1.015);pointer-events:none}.km-shell-module-placeholder{min-height:58px;border:1px dashed color-mix(in srgb,var(--accent) 55%,var(--line));border-radius:12px;background:color-mix(in srgb,var(--accent) 8%,transparent)}.km-shell-module-copy strong,.km-shell-module-copy small{display:block}.km-shell-module-copy strong{font-size:13px}.km-shell-module-copy small{margin-top:3px;color:var(--muted);font-size:10px}.km-shell-module-order-empty{padding:14px;color:var(--muted);font-size:11px}
+      .km-shell-module-settings{display:grid;gap:16px}.km-shell-module-position-list,.km-shell-module-order-list{overflow:hidden;border:.5px solid var(--line);border-radius:14px;background:var(--card)}.km-shell-module-position-row{display:grid;gap:9px;min-height:64px;padding:11px}.km-shell-module-position-row+.km-shell-module-position-row{border-top:.5px solid var(--line)}.km-shell-module-placement{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;padding:4px;border:.5px solid var(--line);border-radius:11px;background:color-mix(in srgb,var(--muted) 8%,transparent)}.km-shell-module-placement button{min-width:0;min-height:34px;padding:6px 4px;border:0;border-radius:8px;background:transparent;color:var(--muted);font-size:10px;font-weight:750}.km-shell-module-placement button.active{background:var(--card2);color:var(--accent);box-shadow:0 1px 3px color-mix(in srgb,#000 12%,transparent)}.km-shell-module-order-group>strong,.km-shell-module-order-group>small{display:block}.km-shell-module-order-group>strong{font-size:13px}.km-shell-module-order-group>small{margin:3px 0 7px;color:var(--muted);font-size:10px;line-height:1.35}.km-shell-module-row{display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;gap:8px;min-height:58px;padding:8px 8px 8px 10px;border:0;background:var(--card);transition:background .16s ease,box-shadow .16s ease,transform .16s ease}.km-shell-module-row+.km-shell-module-row{border-top:.5px solid var(--line)}.km-shell-module-handle{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;padding:0;border:0;border-radius:10px;background:transparent;color:var(--muted);touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}.km-shell-module-handle:active,.km-shell-module-row.is-dragging .km-shell-module-handle{cursor:grabbing;background:var(--card2);color:var(--accent)}.km-shell-module-handle svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}.km-shell-module-order-actions{display:flex;gap:2px}.km-shell-module-order-actions button{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;padding:0;border:0;border-radius:9px;background:transparent;color:var(--accent);font-size:18px;font-weight:800}.km-shell-module-order-actions button:disabled{color:var(--muted);opacity:.28}.km-shell-module-row.is-dragging{position:fixed;z-index:140;border:.5px solid var(--line);border-radius:12px;background:color-mix(in srgb,var(--accent) 12%,var(--card));box-shadow:0 16px 38px rgba(0,0,0,.28);transform:scale(1.015);pointer-events:none}.km-shell-module-placeholder{min-height:58px;border:1px dashed color-mix(in srgb,var(--accent) 55%,var(--line));border-radius:12px;background:color-mix(in srgb,var(--accent) 8%,transparent)}.km-shell-module-copy strong,.km-shell-module-copy small{display:block}.km-shell-module-copy strong{font-size:13px}.km-shell-module-copy small{margin-top:3px;color:var(--muted);font-size:10px}.km-shell-module-order-empty{padding:14px;color:var(--muted);font-size:11px}
       .km-shell-placeholder{padding:4px 0 28px}.km-shell-placeholder-hero{padding:22px 18px;border:.5px solid color-mix(in srgb,var(--accent) 24%,var(--line));border-radius:20px;background:linear-gradient(145deg,color-mix(in srgb,var(--accent) 12%,var(--card)),var(--card));box-shadow:0 10px 28px rgba(0,0,0,.08)}.km-shell-placeholder-hero svg{width:34px;height:34px;color:var(--accent);fill:none;stroke:currentColor;stroke-width:1.7}.km-shell-placeholder-hero h2{margin:14px 0 6px;font-size:25px}.km-shell-placeholder-hero p{margin:0;color:var(--muted);font-size:13px;line-height:1.5}.km-shell-placeholder-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.km-shell-placeholder-card{min-height:92px;padding:14px;border:.5px solid var(--line);border-radius:16px;background:var(--card)}.km-shell-placeholder-card strong,.km-shell-placeholder-card small{display:block}.km-shell-placeholder-card small{margin-top:6px;color:var(--muted);font-size:11px;line-height:1.4}.km-shell-placeholder-mode #app,.km-shell-placeholder-mode #timeModuleRoot,.km-shell-placeholder-mode .km-shell-locations{display:none!important}.km-shell-placeholder-mode .km-shell-search{display:none!important}
       .km-shell-themes{padding:2px 0 28px}.km-shell-theme-create{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:8px;margin:4px 0 16px;padding:16px;border:.5px solid var(--line);border-radius:16px;background:var(--card)}.km-shell-theme-create .field,.km-shell-subtheme-create .field{margin:0}.km-shell-theme-create button,.km-shell-subtheme-create button{min-height:42px;background:var(--accent);border-color:var(--accent);color:#fff;font-weight:780}.km-shell-theme-list{overflow:hidden;border:.5px solid var(--line);border-radius:16px;background:var(--card)}.km-shell-theme-node+.km-shell-theme-node{border-top:.5px solid var(--line)}.km-shell-theme-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:6px;min-height:62px;padding:10px 9px 10px 14px;cursor:pointer}.km-shell-theme-row-copy{min-width:0}.km-shell-theme-row-copy strong,.km-shell-theme-row-copy small,.km-shell-subtheme-copy strong,.km-shell-subtheme-copy small{display:block}.km-shell-theme-row-copy strong,.km-shell-subtheme-copy strong{font-size:15px;font-weight:620}.km-shell-theme-row-copy small{margin-top:3px;color:var(--muted);font-size:11px}.km-shell-theme-action{min-height:34px;padding:7px 9px;border:0;border-radius:9px;background:transparent;color:var(--muted);font:inherit;font-size:11px;font-weight:800}.km-shell-theme-action:active{background:var(--card2)}.km-shell-theme-toggle{width:34px;padding:0;font-size:20px}.km-shell-theme-details{padding:0 14px 13px;background:color-mix(in srgb,var(--card2) 42%,var(--card))}.km-shell-subtheme-list{margin-left:10px;border-top:.5px solid var(--line)}.km-shell-subtheme-item{position:relative}.km-shell-subtheme-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;min-height:50px;padding:7px 0}.km-shell-subtheme-row+.km-shell-subtheme-row{border-top:.5px solid var(--line)}.km-shell-subtheme-copy strong{display:flex;align-items:center;gap:6px}.km-shell-subtheme-branch{flex:0 0 auto;color:#8a6500;font-size:17px;font-weight:500;line-height:1}.km-shell-subtheme-copy small{margin-top:2px;padding-left:23px;color:var(--muted);font-size:11px}.km-shell-subtheme-create{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:8px;padding:12px 0 0 10px}.km-shell-theme-archive{margin-top:14px;overflow:hidden;border:.5px solid var(--line);border-radius:16px;background:var(--card)}.km-shell-theme-archive>summary{display:flex;align-items:center;justify-content:space-between;min-height:54px;padding:11px 14px;list-style:none;cursor:pointer}.km-shell-theme-archive>summary::-webkit-details-marker{display:none}.km-shell-theme-archive-copy strong,.km-shell-theme-archive-copy small,.km-shell-theme-archive-row strong,.km-shell-theme-archive-row small{display:block}.km-shell-theme-archive-copy small,.km-shell-theme-archive-row small{margin-top:2px;color:var(--muted);font-size:10px}.km-shell-theme-archive-body{border-top:.5px solid var(--line)}.km-shell-theme-archive-row{display:flex;align-items:center;gap:10px;min-height:52px;padding:9px 13px}.km-shell-theme-archive-row+.km-shell-theme-archive-row{border-top:.5px solid var(--line)}.km-shell-theme-archive-row>div{flex:1;min-width:0}.km-shell-theme-archive-row button{min-height:34px;padding:6px 10px;border:0;border-radius:10px;background:var(--card2);color:var(--accent);font:inherit;font-size:11px;font-weight:800}
       .km-shell-theme-swipe-row{position:relative;overflow:hidden;background:var(--card)}.km-shell-theme-swipe-actions{position:absolute;z-index:0;inset:0 0 0 auto;display:flex;justify-content:flex-end}.km-shell-theme-swipe-action{width:84px;padding:0;border:0;border-radius:0;color:#fff!important;font:inherit;font-size:11px;font-weight:800;opacity:.62;transition:opacity .12s ease,filter .12s ease}.km-shell-theme-swipe-edit{background:var(--accent)}.km-shell-theme-swipe-delete{background:var(--bad,#d70015)}.km-shell-theme-swipe-archive{background:#8a6500}.km-shell-theme-swipe-row.swipe-edit-armed .km-shell-theme-swipe-edit,.km-shell-theme-swipe-row.delete-armed .km-shell-theme-swipe-delete,.km-shell-theme-swipe-row.delete-armed .km-shell-theme-swipe-archive{opacity:1;filter:brightness(1.12)}.km-shell-theme-swipe-surface{position:relative;z-index:1;background:var(--card);touch-action:pan-y;transition:transform .18s cubic-bezier(.2,.8,.2,1);user-select:none;-webkit-user-select:none}.km-shell-subtheme-item+.km-shell-subtheme-item{border-top:.5px solid var(--line)}.km-shell-subtheme-item .km-shell-subtheme-row{border:0}.km-shell-theme-editor{position:fixed;z-index:150;inset:0;display:flex;align-items:flex-end;justify-content:center;padding:18px;background:rgba(0,0,0,.42)}.km-shell-theme-editor-panel{width:min(100%,520px);padding:17px;border:1px solid var(--line);border-radius:20px;background:var(--bg);box-shadow:0 18px 54px rgba(0,0,0,.36)}.km-shell-theme-editor-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}.km-shell-theme-editor-head h2{margin:0;font-size:20px}.km-shell-theme-editor-close{width:38px;height:38px;border:0;border-radius:50%;background:var(--card2);color:var(--text);font-size:24px}.km-shell-theme-editor-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
@@ -577,7 +576,7 @@
       .km-shell-settings-accordion summary:focus-visible,.km-shell-nav-button:focus-visible,.km-shell-tab-button:focus-visible,.km-shell-menu-button:focus-visible,.km-shell-settings-close:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
       .km-shell-settings-panel-host>#app details.accordion>summary{min-height:58px}
       .km-shell-module-settings{gap:16px}
-      .km-shell-module-row{grid-template-columns:44px minmax(0,1fr);min-height:60px;padding:8px 10px 8px 7px;border-radius:0;background:transparent}
+      .km-shell-module-row{grid-template-columns:44px minmax(0,1fr) auto;min-height:60px;padding:8px 8px 8px 7px;border-radius:0;background:transparent}
       .km-shell-module-row.is-dragging{border-radius:12px;border-bottom-color:transparent}
       .km-shell-module-handle{display:inline-flex}
       .km-shell-module-copy strong{font-size:15px;font-weight:620}
@@ -1310,8 +1309,8 @@
 
   function filterTripLocationSelects() {
     const snapshot = readData();
-    const childToParent = new Map(snapshot.locations.filter(location => location.parentId).map(location => [String(location.id), String(location.parentId)]));
-    if (!childToParent.size) return;
+    const byId = new Map(snapshot.locations.map(location => [String(location.id), location]));
+    if (![...byId.values()].some(location => location.parentId)) return;
     const selectors = [
       '#startDestination',
       '#arrivalDestination',
@@ -1322,19 +1321,11 @@
     ];
     for (const select of $$(selectors.join(','))) {
       const isArrival = select.id === 'arrivalDestination';
-      const isEditor = Boolean(select.closest('#tripEditForm'));
-      const selectedBefore = select.value;
-      const selectedId = isArrival && selectedBefore.startsWith('known:') ? selectedBefore.slice(6) : selectedBefore;
-      const parentId = childToParent.get(selectedId);
-      if (parentId && !isEditor) {
-        const parentValue = isArrival ? `known:${parentId}` : parentId;
-        if ([...select.options].some(option => option.value === parentValue)) select.value = parentValue;
-      }
       for (const option of [...select.options]) {
         const optionId = isArrival && option.value.startsWith('known:') ? option.value.slice(6) : option.value;
-        if (!childToParent.has(optionId)) continue;
-        if (isEditor && option.value === selectedBefore) continue;
-        option.remove();
+        const location = byId.get(optionId);
+        const parent = location?.parentId ? byId.get(String(location.parentId)) : null;
+        if (location && parent) option.textContent = `${parent.name || 'Hoofdlocatie'} › ${location.name || 'Sublocatie'}`;
       }
     }
   }
@@ -1667,7 +1658,7 @@
     const sectionEl = document.createElement('section');
     sectionEl.id = 'kmShellLocationParentSection';
     sectionEl.className = 'edit-section km-shell-parent-section';
-    sectionEl.innerHTML = `<div class="edit-section-head"><strong>Onder locatie</strong><small>Hoofdlocatie of sublocatie</small></div><div class="form-group"><label>Onder locatie</label><select id="kmShellParentId">${parentOptions(id, selectedParent, snapshot)}</select><div id="kmShellParentHint" class="km-shell-parent-hint"></div></div>`;
+    sectionEl.innerHTML = `<div class="edit-section-head"><strong>Onder locatie</strong><small>Hoofdlocatie of sublocatie</small></div><div class="form-group"><label>Onder locatie</label><select id="kmShellParentId" name="parentId">${parentOptions(id, selectedParent, snapshot)}</select><div id="kmShellParentHint" class="km-shell-parent-hint"></div></div>`;
     if (basisSection?.nextSibling) form.insertBefore(sectionEl, basisSection.nextSibling);
     else form.prepend(sectionEl);
 
@@ -1693,45 +1684,6 @@
     });
   }
 
-  function installStorageHierarchyPatch() {
-    if (Storage.prototype.__kmShellParentPatch) return;
-    const nativeSetItem = Storage.prototype.setItem;
-    Object.defineProperty(Storage.prototype, '__kmShellParentPatch', { value: true, configurable: false });
-    Storage.prototype.setItem = function (key, value) {
-      if (this === localStorage && key === DATA_KEY && pendingParentSave) {
-        try {
-          const payload = JSON.parse(String(value));
-          if (Array.isArray(payload.locations)) {
-            let target = pendingParentSave.id ? payload.locations.find(location => location.id === pendingParentSave.id) : null;
-            if (!target) target = payload.locations.find(location => location.id && !pendingParentSave.beforeIds.has(location.id));
-            if (target) {
-              if (pendingParentSave.parentId) target.parentId = pendingParentSave.parentId;
-              else delete target.parentId;
-              value = JSON.stringify(payload);
-            }
-          }
-        } catch (error) {
-          console.warn('Sublocatie kon niet in opslag worden aangevuld.', error);
-        }
-      }
-      return nativeSetItem.call(this, key, value);
-    };
-  }
-
-  function captureParentBeforeSave() {
-    const form = $('#locationForm');
-    const select = $('#kmShellParentId', form);
-    if (!form || !select) return;
-    const snapshot = readData();
-    const id = form.elements.id?.value || '';
-    const stored = id ? locationById(id, snapshot) : null;
-    pendingParentSave = {
-      id,
-      parentId: select.value || '',
-      beforeIds: new Set(snapshot.locations.map(location => location.id))
-    };
-    setTimeout(() => { pendingParentSave = null; }, 2500);
-  }
 
   function generalBackupStatus() {
     const last = readData().settings.lastBackupAt;
@@ -1922,16 +1874,18 @@
     const placementRows = config.map(item => {
       const module = moduleById(item.id);
       const label = module?.label || item.id;
-      return `<div class="km-shell-module-position-row" data-module-id="${esc(item.id)}"><div class="km-shell-module-copy"><strong>${esc(label)}</strong><small>${esc(module?.subtitle || '')}${module?.placeholder ? ' · in voorbereiding' : ''}</small></div><label class="km-shell-module-placement"><span class="km-shell-legacy">Positie</span><select data-module-placement="${esc(item.id)}" aria-label="Positie van ${esc(label)}"><option value="both" ${item.placement === 'both' ? 'selected' : ''}>Beide</option><option value="bottom" ${item.placement === 'bottom' ? 'selected' : ''}>Onderbalk</option><option value="menu" ${item.placement === 'menu' ? 'selected' : ''}>Menu</option><option value="hidden" ${item.placement === 'hidden' ? 'selected' : ''}>Verborgen</option></select></label></div>`;
+      const choices = [['bottom', 'Onderbalk'], ['menu', 'Menu'], ['both', 'Beide'], ['hidden', 'Verborgen']]
+        .map(([value, text]) => `<button type="button" class="${item.placement === value ? 'active' : ''}" data-module-placement-choice="${esc(item.id)}" data-placement="${value}" aria-pressed="${item.placement === value}">${text}</button>`).join('');
+      return `<div class="km-shell-module-position-row" data-module-id="${esc(item.id)}"><div class="km-shell-module-copy"><strong>${esc(label)}</strong><small>${esc(module?.subtitle || '')}${module?.placeholder ? ' · in voorbereiding' : ''}</small></div><div class="km-shell-module-placement" role="group" aria-label="Positie van ${esc(label)}">${choices}</div></div>`;
     }).join('');
     const orderList = surface => config
       .filter(item => item.placement === 'both' || item.placement === surface)
       .sort((a, b) => a[surface === 'bottom' ? 'bottomOrder' : 'menuOrder'] - b[surface === 'bottom' ? 'bottomOrder' : 'menuOrder'])
-      .map(item => {
+      .map((item, index, items) => {
         const label = moduleById(item.id)?.label || item.id;
-        return `<div class="km-shell-module-row" data-module-id="${esc(item.id)}" aria-grabbed="false"><button class="km-shell-module-handle" type="button" data-module-drag-handle aria-label="${esc(label)} verplaatsen" title="Sleep om te verplaatsen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h14"/></svg></button><div class="km-shell-module-copy"><strong>${esc(label)}</strong><small>${surface === 'bottom' ? 'Onderbalk' : 'Zijmenu'}</small></div></div>`;
+        return `<div class="km-shell-module-row" data-module-id="${esc(item.id)}" aria-grabbed="false"><button class="km-shell-module-handle" type="button" data-module-drag-handle aria-label="${esc(label)} verslepen" title="Sleep om te verplaatsen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h14"/></svg></button><div class="km-shell-module-copy"><strong>${esc(label)}</strong><small>${surface === 'bottom' ? 'Onderbalk' : 'Zijmenu'}</small></div><div class="km-shell-module-order-actions"><button type="button" data-module-move="up" aria-label="${esc(label)} omhoog" ${index === 0 ? 'disabled' : ''}>↑</button><button type="button" data-module-move="down" aria-label="${esc(label)} omlaag" ${index === items.length - 1 ? 'disabled' : ''}>↓</button></div></div>`;
       }).join('') || '<div class="km-shell-module-order-empty">Geen modules gekozen.</div>';
-    host.innerHTML = `<div class="km-shell-module-position-list">${placementRows}</div><div class="km-shell-module-order-group"><strong>Volgorde onderbalk</strong><small>Sleep de onderdelen naar de gewenste plaats.</small><div class="km-shell-module-order-list" data-module-surface="bottom">${orderList('bottom')}</div></div><div class="km-shell-module-order-group"><strong>Volgorde menu</strong><small>Deze volgorde staat los van de onderbalk.</small><div class="km-shell-module-order-list" data-module-surface="menu">${orderList('menu')}</div></div>`;
+    host.innerHTML = `<div class="km-shell-module-position-list">${placementRows}</div><div class="km-shell-module-order-group"><strong>Volgorde onderbalk</strong><small>Gebruik de pijlen of sleep een onderdeel.</small><div class="km-shell-module-order-list" data-module-surface="bottom">${orderList('bottom')}</div></div><div class="km-shell-module-order-group"><strong>Volgorde menu</strong><small>Gebruik de pijlen of sleep; deze volgorde staat los van de onderbalk.</small><div class="km-shell-module-order-list" data-module-surface="menu">${orderList('menu')}</div></div>`;
     $$('.km-shell-module-order-list', host).forEach(bindModuleReordering);
   }
 
@@ -1975,17 +1929,29 @@
       </section>`;
 
     renderModuleSettings();
-    content.querySelector('#kmShellModuleSettings')?.addEventListener('change', event => {
-      const placement = event.target.closest('[data-module-placement]');
+    content.querySelector('#kmShellModuleSettings')?.addEventListener('click', event => {
+      const target = event.target instanceof Element ? event.target : null;
+      const placement = target?.closest('[data-module-placement-choice]');
+      const move = target?.closest('[data-module-move]');
+      if (move) {
+        const row = move.closest('.km-shell-module-row[data-module-id]');
+        const host = row?.closest('.km-shell-module-order-list');
+        if (!row || !host) return;
+        const neighbor = move.dataset.moduleMove === 'up' ? row.previousElementSibling : row.nextElementSibling;
+        if (!neighbor?.matches('.km-shell-module-row[data-module-id]')) return;
+        if (move.dataset.moduleMove === 'up') host.insertBefore(row, neighbor);
+        else host.insertBefore(neighbor, row);
+        saveModuleConfiguration(moduleConfigurationFromHost(host), row.dataset.moduleId);
+        return;
+      }
       if (!placement) return;
       const config = moduleConfiguration();
-      const item = config.find(entry => entry.id === placement.dataset.modulePlacement);
+      const item = config.find(entry => entry.id === placement.dataset.modulePlacementChoice);
       if (!item) return;
       const previous = item.placement;
-      item.placement = placement.value;
+      item.placement = placement.dataset.placement;
       if (!config.some(entry => entry.placement !== 'hidden')) {
         item.placement = previous;
-        placement.value = previous;
         return;
       }
       saveModuleConfiguration(config, item.id);
@@ -2289,7 +2255,6 @@
         renderLocations();
         return;
       }
-      if (target.closest('[data-action="save-location"]')) captureParentBeforeSave();
       if (target.closest('[data-action="location-sort"]') && section === 'locations') setTimeout(renderLocations, 0);
     }, false);
 
@@ -2328,7 +2293,6 @@
 
   function init() {
     injectStyles();
-    installStorageHierarchyPatch();
     migrateThemesNavigation();
     installChrome();
     installShellElements();

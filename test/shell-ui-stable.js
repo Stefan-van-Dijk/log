@@ -4,8 +4,8 @@
   const BUILD=(()=>{
     try{
       const script=document.currentScript||[...document.scripts].find(item=>item.src.includes('shell-ui-stable.js'));
-      return new URL(script?.src||location.href).searchParams.get('v')||'0.31.10-test.82';
-    }catch(_){return'0.31.10-test.82';}
+      return new URL(script?.src||location.href).searchParams.get('v')||'0.31.10-test.83';
+    }catch(_){return'0.31.10-test.83';}
   })();
   const DATA_KEY='kmreg-test-v4-data';
   const SECTION_KEY='kmreg-test-shell-section-v1';
@@ -30,10 +30,10 @@
   }
 
   function enabledModuleIds(){
-    const navIds=$$('#kmShellDrawerNav [data-shell-section]').map(button=>button.dataset.shellSection).filter(Boolean);
-    if(navIds.length)return new Set(navIds);
     const configured=readData().settings.navigationModules;
-    if(Array.isArray(configured)&&configured.length)return new Set(configured.filter(item=>item&&item.enabled!==false).map(item=>String(item.id||'')).filter(Boolean));
+    if(Array.isArray(configured)&&configured.length)return new Set(configured.filter(item=>item&&(item.placement?item.placement!=='hidden':item.enabled!==false)).map(item=>String(item.id||'')).filter(Boolean));
+    const navIds=$$('#kmShellDrawerNav [data-shell-section],#kmShellTabBar [data-shell-tab]').map(button=>button.dataset.shellSection||button.dataset.shellTab).filter(Boolean);
+    if(navIds.length)return new Set(navIds);
     return new Set(['rides','time','locations','themes']);
   }
 
@@ -103,9 +103,11 @@
       .km-current-status.good{padding:10px 12px;border:1px solid color-mix(in srgb,var(--good) 34%,var(--line));border-radius:12px;background:color-mix(in srgb,var(--good) 10%,transparent);color:var(--good);font-weight:750}
       .km-current-status.good::before{content:'✓';display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;margin-right:7px;border-radius:50%;background:var(--good);color:var(--bg);font-size:11px;font-weight:900}
       .km-current-status.warn{color:var(--warn)}
-      .km-shell-location-node.km-current-location>.km-shell-location-row{background:color-mix(in srgb,var(--accent) 8%,transparent)}
-      .km-shell-location-node.km-current-location>.km-shell-location-row .km-shell-location-icon{border-color:color-mix(in srgb,var(--accent) 55%,var(--line));color:var(--accent)}
-      .km-shell-location-node.km-current-location>.km-shell-location-row .km-shell-location-copy strong::after{content:' · hier';color:var(--accent);font-size:10px;font-weight:800}
+      .km-shell-location-node.km-current-location>.km-shell-location-swipe-row .km-shell-location-row{background:color-mix(in srgb,var(--accent) 8%,transparent)}
+      .km-shell-location-node.km-current-location-parent>.km-shell-location-swipe-row .km-shell-location-row{background:color-mix(in srgb,var(--accent) 5%,transparent)}
+      .km-shell-location-node.km-current-location>.km-shell-location-swipe-row .km-shell-location-icon,.km-shell-location-node.km-current-location-parent>.km-shell-location-swipe-row .km-shell-location-icon{border-color:color-mix(in srgb,var(--accent) 55%,var(--line));color:var(--accent)}
+      .km-shell-location-node.km-current-location>.km-shell-location-swipe-row .km-shell-location-copy strong::after{content:' · hier';color:var(--accent);font-size:10px;font-weight:800}
+      .km-shell-location-node.km-current-location-parent>.km-shell-location-swipe-row .km-shell-location-copy strong::after{content:' · hoofdlocatie';color:var(--accent);font-size:10px;font-weight:800}
       .km-shell-settings-panel-host>#app details.accordion.km-shell-settings-single>summary{display:none!important}
       @media(prefers-color-scheme:light){.km-shell-menu-button{background:rgba(255,255,255,.76)!important;box-shadow:0 6px 20px rgba(30,45,65,.12)}}
     `;
@@ -184,8 +186,8 @@
     const candidates=snapshot.locations.map(location=>{
       const coords=coordsFor(location,snapshot);
       if(!coords)return null;
-      return {location,root:rootFor(location,snapshot),distance:distance(point,coords)};
-    }).filter(Boolean).sort((a,b)=>a.distance-b.distance);
+      return {location,root:rootFor(location,snapshot),distance:distance(point,coords),own:Number.isFinite(Number(location.lat))&&Number.isFinite(Number(location.lng))};
+    }).filter(Boolean).sort((a,b)=>a.distance-b.distance||Number(b.own)-Number(a.own)||Number(Boolean(b.location.parentId))-Number(Boolean(a.location.parentId)));
     const nearest=candidates[0]||null;
     const matched=nearest&&nearest.distance<=radius(snapshot)?nearest:null;
     gps={
@@ -262,7 +264,7 @@
       status.className='km-current-status';
       $('.km-shell-location-actions',view)?.insertAdjacentElement('afterend',status);
     }
-    $$('.km-shell-location-node',view).forEach(node=>node.classList.remove('km-current-location'));
+    $$('.km-shell-location-node',view).forEach(node=>node.classList.remove('km-current-location','km-current-location-parent'));
     status.className='km-current-status';
     if(gps.status==='loading'||gps.status==='idle')status.textContent='Huidige locatie wordt bepaald…';
     else if(gps.status==='error'){status.classList.add('warn');status.textContent=gps.error;}
@@ -271,9 +273,15 @@
       const nearest=gps.nearestId?byId(gps.nearestId,snapshot):null;
       if(matched){
         status.classList.add('good');
-        status.textContent=`Huidige locatie: ${matched.name} · ${formatDistance(gps.distance)}${gps.accuracy?` · GPS ±${Math.round(gps.accuracy)} m`:''}`;
+        const parent=matched.parentId?byId(matched.parentId,snapshot):null;
+        const children=!parent?snapshot.locations.filter(location=>String(location.parentId||'')===String(matched.id)):[];
+        const locationLabel=parent?`${parent.name} › ${matched.name}`:matched.name;
+        const childLabel=children.length?` · sublocaties: ${children.map(location=>location.name).join(', ')}`:'';
+        status.textContent=`Huidige locatie: ${locationLabel}${childLabel} · ${formatDistance(gps.distance)}${gps.accuracy?` · GPS ±${Math.round(gps.accuracy)} m`:''}`;
+        const matchedNode=view.querySelector(`[data-shell-location-node="${CSS.escape(String(gps.matchedId))}"]`);
         const rootNode=view.querySelector(`[data-shell-location-node="${CSS.escape(String(gps.matchedRootId))}"]`);
-        rootNode?.classList.add('km-current-location');
+        matchedNode?.classList.add('km-current-location');
+        if(rootNode&&rootNode!==matchedNode)rootNode.classList.add('km-current-location-parent');
       }else if(nearest){
         status.textContent=`Geen locatie binnen ${formatDistance(radius(snapshot))}. Dichtstbij: ${nearest.name} · ${formatDistance(gps.nearestDistance)}.`;
       }else status.textContent='Geen opgeslagen locatie met GPS-coördinaten.';
