@@ -45,6 +45,7 @@ Bij iedere nieuwe ontwikkeling of wijziging:
 | UI-005 | Uren leesbaar in periodeoverzicht | Testen | Totalen rustig en compact tonen zonder informatieverlies. | Tijd staat als `3u 30m`; minuten worden alleen getoond als ze aanwezig zijn. Release 0.31.10-test.90. |
 | LOC-001 | Hoofd- en sublocaties | Gepland | Sublocaties onder hoofdlocaties kunnen hangen. | Relatie moet ook bruikbaar zijn voor herkenning. |
 | LOC-002 | Locatieherkenning hoofd + sub | Gepland | Bij locatieherkenning zowel hoofdlocatie als relevante sublocatie kunnen tonen. | Voorkom dubbelzinnige weergave. |
+| LOC-003 | Locaties sorteren en ordenen | Testen | Locaties logisch, alfabetisch of in een eigen volgorde kunnen tonen zonder dat herkenningsstatus of volgorde verspringt bij openklappen. | Logisch gebruikt recent gebruik; Eigen toont sleephandvatten voor hoofdlocaties en verplaatst sublocaties als groep. Release 0.31.10-test.94. |
 | FILTER-001 | Filter op thema's | Gepland | Taken/tijdregistratie kunnen filteren op thema en subthema naast zoeken. | Filtergedrag consistent met module-opbouw. |
 | TIME-001 | Collega-inzet achteraf wijzigen | Testen | Bij een bestaande tijdregistratie personen en minuten per persoon kunnen aanpassen. | Persoonsverdeling, gebruiksteller en totale inzet worden opnieuw berekend zonder opslagmigratie. Release 0.31.10-test.88. |
 | TIME-002 | Thema’s selectief meetellen | Testen | Per thema bepalen of registraties meetellen in de tijdtotalen. | Klokstatus in Thema’s, standaard aan; uitgesloten tijden worden door de laatste stijllaag zichtbaar grijs, lichter en niet-vet. Release 0.31.10-test.93. |
@@ -71,6 +72,7 @@ Bij iedere nieuwe ontwikkeling of wijziging:
 
 | Datum | Wijziging |
 |---|---|
+| 2026-09-21 | LOC-003 gebouwd voor testrelease 0.31.10-test.94: locaties hebben Logisch, A–Z en Eigen volgorde; openklappen behoudt de GPS-status en sorteervolgorde, hoofd- en sublocaties blijven bij slepen één groep. Getest met het aangeleverde bestand met 24 locaties en 138 ritten. |
 | 2026-09-21 | TIME-002 gecorrigeerd voor testrelease 0.31.10-test.93: de gedeelde accentkleur overschrijft de dimstatus niet meer; uitgesloten tijdwaarden zijn nu daadwerkelijk grijs en niet-vet. |
 | 2026-09-21 | TIME-002 en THEME-002 uitgebreid voor testrelease 0.31.10-test.92: uitgesloten tijden volledig grijs/niet-vet en thema’s sorteerbaar als Logisch, A–Z of Eigen volgorde met slepen. |
 | 2026-09-21 | TIME-002 verfijnd voor testrelease 0.31.10-test.91: uitgesloten tijden worden gedimd en de overbodige melding selectie actief is verwijderd. |

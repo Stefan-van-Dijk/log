@@ -4,8 +4,8 @@
   const BUILD=(()=>{
     try{
       const script=document.currentScript||[...document.scripts].find(item=>item.src.includes('shell-ui-stable.js'));
-      return new URL(script?.src||location.href).searchParams.get('v')||'0.31.10-test.93';
-    }catch(_){return'0.31.10-test.93';}
+      return new URL(script?.src||location.href).searchParams.get('v')||'0.31.10-test.94';
+    }catch(_){return'0.31.10-test.94';}
   })();
   const DATA_KEY='kmreg-test-v4-data';
   const SECTION_KEY='kmreg-test-shell-section-v1';
@@ -221,45 +221,6 @@
     );
   }
 
-  function tripCount(location,snapshot){
-    const ids=new Set();
-    for(const trip of snapshot.trips){if(trip.origin?.id===location.id||trip.destination?.id===location.id)ids.add(trip.id);}
-    for(const event of snapshot.events){if(event.tripId&&event.location?.id===location.id)ids.add(event.tripId);}
-    return ids.size;
-  }
-
-  function rootDistance(location,snapshot){
-    if(!Number.isFinite(gps.lat)||!Number.isFinite(gps.lng))return Infinity;
-    const coords=coordsFor(location,snapshot);
-    return coords?distance(gps,coords):Infinity;
-  }
-
-  function reorderRoots(snapshot){
-    const smart=$('.km-shell-location-sort button[data-mode="smart"]')?.classList.contains('active');
-    const tree=$('.km-shell-location-tree');
-    if(!smart||!tree)return;
-    const nodes=[...tree.children].filter(el=>el.matches?.('.km-shell-location-node'));
-    if(!nodes.length)return;
-    const groups=[];
-    let group=null;
-    for(const node of nodes){
-      if(node.dataset.depth==='0'||!group){group={id:node.dataset.shellLocationNode,nodes:[node]};groups.push(group);}else group.nodes.push(node);
-    }
-    groups.sort((a,b)=>{
-      const al=byId(a.id,snapshot),bl=byId(b.id,snapshot);
-      if(!al||!bl)return 0;
-      const ac=String(a.id)===String(gps.matchedRootId),bc=String(b.id)===String(gps.matchedRootId);
-      if(ac!==bc)return ac?-1:1;
-      const ad=rootDistance(al,snapshot),bd=rootDistance(bl,snapshot),near=Math.max(2000,radius(snapshot)*4),an=ad<=near,bn=bd<=near;
-      if(an!==bn)return an?-1:1;
-      if(an&&bn&&Math.abs(ad-bd)>25)return ad-bd;
-      return tripCount(bl,snapshot)-tripCount(al,snapshot)||String(al.name||'').localeCompare(String(bl.name||''),'nl',{sensitivity:'base'});
-    });
-    const frag=document.createDocumentFragment();
-    for(const g of groups)for(const node of g.nodes)frag.appendChild(node);
-    tree.appendChild(frag);
-  }
-
   function decorateLocations(){
     if(section()!=='locations')return;
     const view=$('#kmShellLocationsView');
@@ -294,7 +255,6 @@
         status.textContent=`Geen locatie binnen ${formatDistance(radius(snapshot))}. Dichtstbij: ${nearest.name} · ${formatDistance(gps.nearestDistance)}.`;
       }else status.textContent='Geen opgeslagen locatie met GPS-coördinaten.';
     }
-    reorderRoots(snapshot);
   }
 
   function init(){
@@ -317,6 +277,9 @@
 
     document.addEventListener('input',()=>setTimeout(syncSettingsSummaries,0),{passive:true});
     window.addEventListener('log-navigation-modules-change',()=>setTimeout(()=>{ensureEnabledSection();syncModuleDependentSettings();syncSettingsSummaries();},0));
+    window.addEventListener('log-shell-view-refresh',()=>{
+      if(section()==='locations')setTimeout(()=>{requestGps(false);decorateLocations();},0);
+    });
     window.addEventListener('storage',event=>{
       if(event.key===DATA_KEY){decorateLocations();ensureEnabledSection();syncModuleDependentSettings();syncSettingsSummaries();}
     });

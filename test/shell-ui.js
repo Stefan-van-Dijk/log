@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const BUILD = '0.31.10-test.93';
+  const BUILD = '0.31.10-test.94';
   const SHELL_VERSION = (() => {
     try {
       const script = document.currentScript || [...document.scripts].find(item => item.src.includes('shell-ui.js'));
@@ -446,7 +446,7 @@
       @media(max-width:480px){.km-shell-general-actions{grid-template-columns:1fr}}
       .shell>#timeModuleRoot{position:relative;z-index:0}.km-shell-drawer-open .shell>#timeModuleRoot,.km-shell-drawer-peek .shell>#timeModuleRoot{pointer-events:none!important}.editor-view>.km-shell-menu-button,.editor-view>.km-shell-search-toggle{display:none!important}
       .km-shell-locations{padding:2px 0 28px}.km-shell-locations-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding:8px 1px 10px}.km-shell-locations-head h2{margin:2px 0 0;font-size:28px;letter-spacing:-.035em}.km-shell-location-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:5px 0 16px}.km-shell-location-actions button{min-height:44px}
-      .km-shell-location-sort{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:4px;margin-bottom:8px;border:1px solid var(--line);border-radius:12px;background:var(--card)}.km-shell-location-sort button{min-height:34px;border:0;border-radius:8px;background:transparent;color:var(--muted);font-size:11px;font-weight:800}.km-shell-location-sort button.active{background:var(--card2);color:var(--text)}
+      .km-shell-location-sort{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;padding:4px;margin-bottom:8px;border:1px solid var(--line);border-radius:12px;background:var(--card)}.km-shell-location-sort button{min-height:34px;padding:5px;border:0;border-radius:8px;background:transparent;color:var(--muted);font-size:11px;font-weight:800}.km-shell-location-sort button.active{background:var(--card2);color:var(--text)}
       .km-shell-location-tree{border-top:1px solid var(--line)}.km-shell-location-node{--depth:0;margin-left:calc(var(--depth) * 20px)}.km-shell-location-swipe-row{position:relative;overflow:hidden;background:var(--card)}.km-shell-location-swipe-actions{position:absolute;z-index:0;inset:0 0 0 auto;display:flex;justify-content:flex-end}.km-shell-location-swipe-action{width:84px;padding:0;border:0;border-radius:0;color:#fff;font-size:11px;font-weight:800;opacity:.62;transition:opacity .12s ease,filter .12s ease}.km-shell-location-swipe-delete{background:#9b3037}.km-shell-location-swipe-edit{background:#2869b6}.km-shell-location-swipe-row.swipe-edit-armed .km-shell-location-swipe-edit,.km-shell-location-swipe-row.delete-armed .km-shell-location-swipe-delete{opacity:1;filter:brightness(1.12)}.km-shell-location-swipe-surface{position:relative;z-index:1;background:var(--card);touch-action:pan-y;transition:transform .18s cubic-bezier(.2,.8,.2,1);user-select:none;-webkit-user-select:none;cursor:pointer}.km-shell-location-row{display:grid;grid-template-columns:28px minmax(0,1fr) auto;align-items:center;gap:9px;min-height:58px;padding:10px 2px;border-bottom:1px solid var(--line)}.km-shell-location-node[data-depth="1"] .km-shell-location-row{position:relative}.km-shell-location-node[data-depth="1"] .km-shell-location-row::before{content:"";position:absolute;left:-12px;top:0;bottom:50%;width:9px;border-left:1px solid var(--line);border-bottom:1px solid var(--line);border-radius:0 0 0 6px}.km-shell-location-icon{display:flex;align-items:center;justify-content:center;width:27px;height:27px;border:1px solid var(--line);border-radius:9px;color:var(--muted);font-size:15px}.km-shell-location-copy{min-width:0}.km-shell-location-copy strong,.km-shell-location-copy small{display:block}.km-shell-location-copy strong{font-size:14px}.km-shell-location-copy small{margin-top:3px;color:var(--muted);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.km-shell-location-buttons{display:flex;align-items:center;gap:3px}.km-shell-location-buttons button{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;padding:0;border:0;border-radius:9px;background:transparent;color:var(--muted);font-size:19px}.km-shell-location-buttons button:active{background:var(--card2);color:var(--text)}.km-shell-location-chevron{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;color:var(--muted);font-size:19px}.km-shell-location-details{padding:10px 2px 12px 37px;border-bottom:1px solid var(--line);color:var(--muted);font-size:11px;line-height:1.5}.km-shell-location-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.km-shell-location-detail{padding:8px 0}.km-shell-location-detail span,.km-shell-location-detail strong{display:block}.km-shell-location-detail span{font-size:9px;text-transform:uppercase;letter-spacing:.06em}.km-shell-location-detail strong{margin-top:2px;color:var(--text);font-size:11px}.km-shell-child-add{margin-top:7px;padding:4px 0;border:0;background:transparent;color:var(--accent);font-size:11px;font-weight:800}.km-shell-empty{padding:24px 2px;color:var(--muted);font-size:13px}
       .km-shell-parent-section select{width:100%;min-height:38px;padding:6px 0 7px;border:0;border-bottom:1px solid var(--line);border-radius:0;background:transparent;color:var(--text);font-size:15px;outline:none}.km-shell-parent-hint{margin-top:6px;color:var(--muted);font-size:10px;line-height:1.4}
       body.km-shell-locations-mode #app,body.km-shell-locations-mode #timeModuleRoot,body.km-shell-locations-mode #kmShellThemesView{display:none!important}body.km-shell-locations-mode #kmShellLocationsView{display:block!important}
@@ -626,6 +626,7 @@
       .km-shell-theme-row{grid-template-columns:minmax(0,1fr) auto auto!important;gap:6px!important;padding-left:10px!important;border-left:3px solid var(--theme-color,var(--accent))!important}.km-shell-theme-node>.km-shell-theme-swipe-row .km-shell-theme-row-copy small{color:var(--theme-color,var(--accent))!important}
       .km-shell-theme-count-tools{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:-4px 2px 12px;color:var(--muted);font-size:11px}.km-shell-theme-count-all{padding:7px 0;border:0;background:transparent;color:var(--accent);font:inherit;font-weight:800}.km-shell-theme-count-toggle{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;padding:0;border:0;border-radius:50%;background:transparent;color:var(--muted)}.km-shell-theme-count-toggle svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.km-shell-theme-count-toggle[aria-pressed="true"]{background:color-mix(in srgb,var(--theme-color) 14%,transparent);color:var(--theme-color)}.km-shell-theme-count-toggle[aria-pressed="false"]{opacity:.52}
       .km-shell-theme-sort{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;padding:4px;margin-bottom:12px;border:.5px solid var(--line);border-radius:9px;background:color-mix(in srgb,var(--muted) 13%,transparent)}.km-shell-theme-sort button{min-height:34px;padding:5px;border:0;border-radius:7px;background:transparent;color:var(--muted);font-size:11px;font-weight:800}.km-shell-theme-sort button.active{background:var(--card);color:var(--text)}.km-shell-theme-row.km-shell-theme-custom-row{grid-template-columns:auto minmax(0,1fr) auto auto!important}.km-shell-theme-drag-handle{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;padding:0;border:0;border-radius:9px;background:transparent;color:var(--muted);touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}.km-shell-theme-drag-handle svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}.km-shell-theme-node.is-dragging{position:fixed;z-index:160;overflow:hidden;border:.5px solid var(--line);border-radius:13px;background:var(--card);box-shadow:0 16px 38px rgba(0,0,0,.28);pointer-events:none}.km-shell-theme-placeholder{border:1px dashed color-mix(in srgb,var(--accent) 55%,var(--line));border-radius:13px;background:color-mix(in srgb,var(--accent) 8%,transparent)}
+      .km-shell-location-row.km-shell-location-custom-row{grid-template-columns:auto 28px minmax(0,1fr) auto}.km-shell-location-drag-handle{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;padding:0;border:0;border-radius:9px;background:transparent;color:var(--muted);touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}.km-shell-location-drag-handle svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}.km-shell-location-group.is-dragging{position:fixed;z-index:160;overflow:hidden;border:.5px solid var(--line);border-radius:13px;background:var(--card);box-shadow:0 16px 38px rgba(0,0,0,.28);pointer-events:none}.km-shell-location-placeholder{border:1px dashed color-mix(in srgb,var(--accent) 55%,var(--line));border-radius:13px;background:color-mix(in srgb,var(--accent) 8%,transparent)}
       .km-shell-location-icon svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.km-shell-location-icon:has(svg[data-location-type="home"]){color:var(--home,#ff9f0a)!important}.km-shell-location-icon:has(svg[data-location-type="work"]){color:var(--commute,#4da3ff)!important}.km-shell-location-icon:has(svg[data-location-type="business"]){color:var(--business,#a875ff)!important}.km-shell-location-icon:has(svg[data-location-type="private"]){color:var(--private,#49d17d)!important}.km-shell-location-icon:has(svg[data-location-type="other"]){color:var(--other,#8e8e93)!important}
       .km-shell-search select{flex:0 1 126px;max-width:126px;height:32px;padding:0 24px 0 8px;border:.5px solid var(--line);border-radius:9px;background:var(--card);color:var(--text);font-size:11px;font-weight:650}.km-shell-search select[hidden]{display:none}
       .km-shell-search{margin-bottom:0!important}body.km-shell-search-open .km-shell-search{margin-bottom:12px!important}
@@ -1520,12 +1521,65 @@
     return seen.size;
   }
 
+  function locationFamilyIds(location, snapshot) {
+    const ids = new Set([String(location.id)]);
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const candidate of snapshot.locations) {
+        if (candidate.parentId && ids.has(String(candidate.parentId)) && !ids.has(String(candidate.id))) {
+          ids.add(String(candidate.id));
+          changed = true;
+        }
+      }
+    }
+    return ids;
+  }
+
+  function locationLastUsedAt(location, snapshot) {
+    const ids = locationFamilyIds(location, snapshot);
+    let latest = 0;
+    const record = value => {
+      const stamp = Date.parse(value || '');
+      if (Number.isFinite(stamp)) latest = Math.max(latest, stamp);
+    };
+    for (const trip of snapshot.trips) {
+      if (ids.has(String(trip.origin?.id || '')) || ids.has(String(trip.destination?.id || ''))) {
+        record(trip.arrivalTime);
+        record(trip.departureTime);
+        record(trip.updatedAt);
+      }
+    }
+    for (const event of snapshot.events) {
+      if (ids.has(String(event.location?.id || ''))) {
+        record(event.time);
+        record(event.updatedAt);
+      }
+    }
+    return latest;
+  }
+
+  function locationSortMode(snapshot) {
+    return ['smart', 'alpha', 'custom'].includes(snapshot.settings.locationSortMode) ? snapshot.settings.locationSortMode : 'smart';
+  }
+
+  function normalizedLocationOrder(snapshot, roots) {
+    const ids = roots.map(location => String(location.id));
+    const saved = Array.isArray(snapshot.settings.locationOrder) ? snapshot.settings.locationOrder.map(String) : [];
+    return [...saved.filter((id, index) => ids.includes(id) && saved.indexOf(id) === index), ...ids.filter(id => !saved.includes(id))];
+  }
+
   function orderedRoots(snapshot) {
     const roots = snapshot.locations.filter(location => !location.parentId || !snapshot.locations.some(candidate => candidate.id === location.parentId));
-    const smart = snapshot.settings.locationSortMode !== 'alpha';
-    return roots.sort((a, b) => smart
-      ? locationTripCount(b, snapshot) - locationTripCount(a, snapshot) || String(a.name).localeCompare(String(b.name), 'nl', { sensitivity: 'base' })
-      : String(a.name).localeCompare(String(b.name), 'nl', { sensitivity: 'base' }));
+    const mode = locationSortMode(snapshot);
+    if (mode === 'custom') {
+      const order = new Map(normalizedLocationOrder(snapshot, roots).map((id, index) => [id, index]));
+      return roots.sort((a, b) => (order.get(String(a.id)) ?? Number.MAX_SAFE_INTEGER) - (order.get(String(b.id)) ?? Number.MAX_SAFE_INTEGER));
+    }
+    if (mode === 'alpha') return roots.sort((a, b) => String(a.name).localeCompare(String(b.name), 'nl', { sensitivity: 'base' }));
+    return roots.sort((a, b) => locationLastUsedAt(b, snapshot) - locationLastUsedAt(a, snapshot)
+      || locationTripCount(b, snapshot) - locationTripCount(a, snapshot)
+      || String(a.name).localeCompare(String(b.name), 'nl', { sensitivity: 'base' }));
   }
 
   function locationNodeHtml(location, depth, snapshot) {
@@ -1541,6 +1595,8 @@
     const inherited = depth && (!location.address || location.lat == null || location.lng == null) && effective.parent;
     const count = locationTripCount(location, snapshot);
     const canDelete = snapshot.settings.swipeDeleteEnabled !== false && snapshot.settings.locationDeleteEnabled !== false;
+    const custom = depth === 0 && locationSortMode(snapshot) === 'custom';
+    const dragHandle = custom ? `<button type="button" class="km-shell-location-drag-handle" data-location-drag-handle aria-label="${esc(location.name || 'Locatie')} verslepen" title="Sleep om te verplaatsen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h14"></path></svg></button>` : '';
     return `
       <div class="km-shell-location-node" data-shell-location-node="${esc(location.id)}" data-depth="${depth}" style="--depth:${depth}">
         <div class="km-shell-location-swipe-row" data-shell-location-swipe="${esc(location.id)}">
@@ -1548,7 +1604,8 @@
             ${canDelete ? `<button type="button" class="km-shell-location-swipe-action km-shell-location-swipe-delete" data-shell-location-swipe-action="delete" data-location-id="${esc(location.id)}">Verwijder</button>` : ''}
             <button type="button" class="km-shell-location-swipe-action km-shell-location-swipe-edit" data-shell-location-swipe-action="edit" data-location-id="${esc(location.id)}">Bewerk</button>
           </div>
-          <div class="km-shell-location-row km-shell-location-swipe-surface" data-shell-location-toggle="${esc(location.id)}" role="button" tabindex="0" aria-expanded="${expanded}">
+          <div class="km-shell-location-row km-shell-location-swipe-surface${custom ? ' km-shell-location-custom-row' : ''}" data-shell-location-toggle="${esc(location.id)}" role="button" tabindex="0" aria-expanded="${expanded}">
+            ${dragHandle}
             <span class="km-shell-location-icon">${locationGlyph(location.type)}</span>
             <div class="km-shell-location-copy"><strong>${esc(location.name || 'Locatie')}</strong><small>${esc(subtitle)}</small></div>
             <div class="km-shell-location-buttons">
@@ -1557,7 +1614,7 @@
             </div>
           </div>
         </div>
-        ${expanded ? `<div class="km-shell-location-details"><div class="km-shell-location-detail-grid"><div class="km-shell-location-detail"><span>Type</span><strong>${esc(typeLabel(location.type))}</strong></div><div class="km-shell-location-detail"><span>Ritten</span><strong>${count}</strong></div><div class="km-shell-location-detail"><span>GPS</span><strong>${esc(gps)}${inherited ? ' · geërfd' : ''}</strong></div><div class="km-shell-location-detail"><span>Niveau</span><strong>${depth ? 'Sublocatie' : 'Hoofdlocatie'}</strong></div></div>${depth === 0 ? `<button type="button" class="km-shell-child-add" data-shell-add-child="${esc(location.id)}">+ Sublocatie toevoegen</button>` : ''}</div>` : ''}
+        <div class="km-shell-location-details" data-shell-location-details="${esc(location.id)}"${expanded ? '' : ' hidden'}><div class="km-shell-location-detail-grid"><div class="km-shell-location-detail"><span>Type</span><strong>${esc(typeLabel(location.type))}</strong></div><div class="km-shell-location-detail"><span>Ritten</span><strong>${count}</strong></div><div class="km-shell-location-detail"><span>GPS</span><strong>${esc(gps)}${inherited ? ' · geërfd' : ''}</strong></div><div class="km-shell-location-detail"><span>Niveau</span><strong>${depth ? 'Sublocatie' : 'Hoofdlocatie'}</strong></div></div>${depth === 0 ? `<button type="button" class="km-shell-child-add" data-shell-add-child="${esc(location.id)}">+ Sublocatie toevoegen</button>` : ''}</div>
       </div>
       ${children.map(child => locationNodeHtml(child, Math.min(depth + 1, 1), snapshot)).join('')}`;
   }
@@ -1608,10 +1665,147 @@
     setTimeout(finish, 0);
   }
 
+  function setExpandedLocation(root, id) {
+    expandedLocationId = String(expandedLocationId || '') === String(id) ? null : String(id);
+    $$('.km-shell-location-node[data-shell-location-node]', root).forEach(node => {
+      const open = String(node.dataset.shellLocationNode) === String(expandedLocationId || '');
+      const toggle = $('[data-shell-location-toggle]', node);
+      const details = $('[data-shell-location-details]', node);
+      const chevron = $('.km-shell-location-chevron', node);
+      if (toggle) toggle.setAttribute('aria-expanded', String(open));
+      if (details) details.hidden = !open;
+      if (chevron) chevron.textContent = open ? '⌄' : '›';
+    });
+  }
+
+  function saveLocationOrdering(mode, order = null) {
+    const snapshot = readData();
+    const roots = snapshot.locations.filter(location => !location.parentId || !snapshot.locations.some(candidate => String(candidate.id) === String(location.parentId)));
+    let raw = {};
+    try { raw = JSON.parse(localStorage.getItem(DATA_KEY) || '{}'); } catch (_) {}
+    if (!raw || typeof raw !== 'object') raw = {};
+    if (!raw.settings || typeof raw.settings !== 'object') raw.settings = {};
+    raw.settings.locationSortMode = ['smart', 'alpha', 'custom'].includes(mode) ? mode : 'smart';
+    if (raw.settings.locationSortMode === 'custom' || Array.isArray(order)) {
+      const source = Array.isArray(order) ? order.map(String) : normalizedLocationOrder(snapshot, roots);
+      const ids = roots.map(location => String(location.id));
+      raw.settings.locationOrder = [...source.filter((id, index) => ids.includes(id) && source.indexOf(id) === index), ...ids.filter(id => !source.includes(id))];
+    }
+    localStorage.setItem(DATA_KEY, JSON.stringify(raw));
+    window.dispatchEvent(new CustomEvent(KM_STATE_EVENT, { detail: { key: DATA_KEY, reason: 'location-sort', source: 'shell-ui' } }));
+  }
+
+  function locationGroupIds(host) {
+    return $$('.km-shell-location-group[data-shell-location-group]', host).map(group => group.dataset.shellLocationGroup);
+  }
+
+  function bindLocationReordering(host, root) {
+    if (!host || host.dataset.locationReorderBound === '1') return;
+    host.dataset.locationReorderBound = '1';
+    let drag = null;
+    const removeListeners = () => {
+      document.removeEventListener('pointermove', pointerMove, true);
+      document.removeEventListener('pointerup', pointerUp, true);
+      document.removeEventListener('pointercancel', pointerCancel, true);
+    };
+    const finish = commit => {
+      if (!drag) return;
+      const active = drag;
+      drag = null;
+      removeListeners();
+      if (active.placeholder.parentNode === host) host.insertBefore(active.group, active.placeholder);
+      else host.appendChild(active.group);
+      active.placeholder.remove();
+      active.group.classList.remove('is-dragging');
+      active.group.setAttribute('aria-grabbed', 'false');
+      if (active.originalStyle === null) active.group.removeAttribute('style');
+      else active.group.setAttribute('style', active.originalStyle);
+      if (!commit) return renderLocations();
+      saveLocationOrdering('custom', locationGroupIds(host));
+      const id = active.id;
+      renderLocations();
+      requestAnimationFrame(() => $(`[data-shell-location-group="${CSS.escape(id)}"] [data-location-drag-handle]`, root)?.focus({ preventScroll: true }));
+    };
+    const update = (clientY, event) => {
+      if (!drag) return;
+      event.preventDefault();
+      drag.group.style.top = Math.round(clientY - drag.offsetY) + 'px';
+      const edge = Math.min(74, innerHeight * .16);
+      if (clientY < edge) window.scrollBy(0, -14);
+      else if (clientY > innerHeight - edge) window.scrollBy(0, 14);
+      const before = $$('.km-shell-location-group[data-shell-location-group]', host).find(group => {
+        const rect = group.getBoundingClientRect();
+        return clientY < rect.top + rect.height / 2;
+      });
+      if (before) host.insertBefore(drag.placeholder, before);
+      else host.appendChild(drag.placeholder);
+    };
+    function pointerMove(event) {
+      if (!drag || event.pointerId !== drag.pointerId) return;
+      update(event.clientY, event);
+    }
+    function pointerUp(event) {
+      if (!drag || event.pointerId !== drag.pointerId) return;
+      event.preventDefault();
+      finish(true);
+    }
+    function pointerCancel(event) {
+      if (!drag || event.pointerId !== drag.pointerId) return;
+      finish(false);
+    }
+    host.addEventListener('pointerdown', event => {
+      const target = event.target instanceof Element ? event.target : event.target?.parentElement;
+      const handle = target?.closest('[data-location-drag-handle]');
+      if (!handle || event.button !== 0 || event.isPrimary === false || drag) return;
+      const group = handle.closest('.km-shell-location-group[data-shell-location-group]');
+      if (!group) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const rect = group.getBoundingClientRect();
+      const placeholder = document.createElement('div');
+      placeholder.className = 'km-shell-location-placeholder';
+      placeholder.style.height = Math.round(rect.height) + 'px';
+      placeholder.setAttribute('aria-hidden', 'true');
+      host.insertBefore(placeholder, group.nextElementSibling);
+      drag = { pointerId: event.pointerId, id: group.dataset.shellLocationGroup, group, placeholder, offsetY: event.clientY - rect.top, originalStyle: group.getAttribute('style') };
+      group.classList.add('is-dragging');
+      group.setAttribute('aria-grabbed', 'true');
+      Object.assign(group.style, { position: 'fixed', left: Math.round(rect.left) + 'px', top: Math.round(rect.top) + 'px', width: Math.round(rect.width) + 'px', height: Math.round(rect.height) + 'px', margin: '0', transition: 'none', boxSizing: 'border-box' });
+      document.body.appendChild(group);
+      document.addEventListener('pointermove', pointerMove, { capture: true, passive: false });
+      document.addEventListener('pointerup', pointerUp, { capture: true, passive: false });
+      document.addEventListener('pointercancel', pointerCancel, { capture: true, passive: true });
+    });
+    host.addEventListener('keydown', event => {
+      if (!['ArrowUp', 'ArrowDown'].includes(event.key)) return;
+      const target = event.target instanceof Element ? event.target : event.target?.parentElement;
+      const handle = target?.closest('[data-location-drag-handle]');
+      const group = handle?.closest('.km-shell-location-group[data-shell-location-group]');
+      if (!group) return;
+      const neighbor = event.key === 'ArrowUp' ? group.previousElementSibling : group.nextElementSibling;
+      if (!neighbor?.matches('.km-shell-location-group[data-shell-location-group]')) return;
+      event.preventDefault();
+      if (event.key === 'ArrowUp') host.insertBefore(group, neighbor);
+      else host.insertBefore(group, neighbor.nextElementSibling);
+      const id = group.dataset.shellLocationGroup;
+      saveLocationOrdering('custom', locationGroupIds(host));
+      renderLocations();
+      requestAnimationFrame(() => $(`[data-shell-location-group="${CSS.escape(id)}"] [data-location-drag-handle]`, root)?.focus({ preventScroll: true }));
+    });
+  }
+
   function bindLocationInteractions(root) {
     root.onclick = event => {
       const target = event.target instanceof Element ? event.target : event.target?.parentElement;
       if (!target) return;
+      const sort = target.closest('.km-shell-location-sort [data-mode]');
+      if (sort) {
+        event.preventDefault();
+        event.stopPropagation();
+        saveLocationOrdering(sort.dataset.mode);
+        renderLocations();
+        return;
+      }
       const swipeAction = target.closest('[data-shell-location-swipe-action]');
       if (swipeAction) {
         event.preventDefault();
@@ -1669,8 +1863,7 @@
       if (toggle && !target.closest('button')) {
         event.preventDefault();
         event.stopPropagation();
-        expandedLocationId = expandedLocationId === toggle.dataset.shellLocationToggle ? null : toggle.dataset.shellLocationToggle;
-        renderLocations();
+        setExpandedLocation(root, toggle.dataset.shellLocationToggle);
       }
     };
 
@@ -1680,8 +1873,7 @@
       const toggle = target?.closest('[data-shell-location-toggle]');
       if (!toggle || target.closest('button')) return;
       event.preventDefault();
-      expandedLocationId = expandedLocationId === toggle.dataset.shellLocationToggle ? null : toggle.dataset.shellLocationToggle;
-      renderLocations();
+      setExpandedLocation(root, toggle.dataset.shellLocationToggle);
     };
 
     root.onpointerdown = event => {
@@ -1767,13 +1959,14 @@
     const root = $('#kmShellLocationsView');
     if (!root || section !== 'locations' || document.body.classList.contains('editor-view')) return;
     const snapshot = readData();
-    const sortMode = snapshot.settings.locationSortMode === 'alpha' ? 'alpha' : 'smart';
+    const sortMode = locationSortMode(snapshot);
     const roots = orderedRoots(snapshot);
     root.innerHTML = `
       <div class="km-shell-location-actions"><button type="button" class="btn secondary" data-shell-current-location>Huidige locatie</button><button type="button" class="btn" data-shell-add-location>Nieuwe locatie</button></div>
-      <div class="km-shell-location-sort" aria-label="Locaties sorteren"><button type="button" class="${sortMode === 'smart' ? 'active' : ''}" data-action="location-sort" data-mode="smart">◎ Logisch</button><button type="button" class="${sortMode === 'alpha' ? 'active' : ''}" data-action="location-sort" data-mode="alpha">A–Z Naam</button></div>
-      ${roots.length ? `<div class="km-shell-location-tree">${roots.map(location => locationNodeHtml(location, 0, snapshot)).join('')}</div>` : '<div class="km-shell-empty">Nog geen locaties opgeslagen.</div>'}`;
+      <div class="km-shell-location-sort" aria-label="Locaties sorteren"><button type="button" class="${sortMode === 'smart' ? 'active' : ''}" data-action="location-sort" data-mode="smart">◎ Logisch</button><button type="button" class="${sortMode === 'alpha' ? 'active' : ''}" data-action="location-sort" data-mode="alpha">A–Z Naam</button><button type="button" class="${sortMode === 'custom' ? 'active' : ''}" data-action="location-sort" data-mode="custom">☰ Eigen</button></div>
+      ${roots.length ? `<div class="km-shell-location-tree">${roots.map(location => `<section class="km-shell-location-group" data-shell-location-group="${esc(location.id)}">${locationNodeHtml(location, 0, snapshot)}</section>`).join('')}</div>` : '<div class="km-shell-empty">Nog geen locaties opgeslagen.</div>'}`;
     bindLocationInteractions(root);
+    if (sortMode === 'custom') bindLocationReordering($('.km-shell-location-tree', root), root);
   }
 
   function dispatchOriginalAction(action, extra = {}) {
