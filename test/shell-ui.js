@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const BUILD = '0.31.10-test.91';
+  const BUILD = '0.31.10-test.92';
   const SHELL_VERSION = (() => {
     try {
       const script = document.currentScript || [...document.scripts].find(item => item.src.includes('shell-ui.js'));
@@ -625,6 +625,7 @@
       @media(max-width:390px){.km-shell-tab-button{font-size:9px}.km-shell-tab-button svg{width:21px;height:21px}.km-shell-title{font-size:29px!important}}
       .km-shell-theme-row{grid-template-columns:minmax(0,1fr) auto auto!important;gap:6px!important;padding-left:10px!important;border-left:3px solid var(--theme-color,var(--accent))!important}.km-shell-theme-node>.km-shell-theme-swipe-row .km-shell-theme-row-copy small{color:var(--theme-color,var(--accent))!important}
       .km-shell-theme-count-tools{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:-4px 2px 12px;color:var(--muted);font-size:11px}.km-shell-theme-count-all{padding:7px 0;border:0;background:transparent;color:var(--accent);font:inherit;font-weight:800}.km-shell-theme-count-toggle{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;padding:0;border:0;border-radius:50%;background:transparent;color:var(--muted)}.km-shell-theme-count-toggle svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.km-shell-theme-count-toggle[aria-pressed="true"]{background:color-mix(in srgb,var(--theme-color) 14%,transparent);color:var(--theme-color)}.km-shell-theme-count-toggle[aria-pressed="false"]{opacity:.52}
+      .km-shell-theme-sort{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;padding:4px;margin-bottom:12px;border:.5px solid var(--line);border-radius:9px;background:color-mix(in srgb,var(--muted) 13%,transparent)}.km-shell-theme-sort button{min-height:34px;padding:5px;border:0;border-radius:7px;background:transparent;color:var(--muted);font-size:11px;font-weight:800}.km-shell-theme-sort button.active{background:var(--card);color:var(--text)}.km-shell-theme-row.km-shell-theme-custom-row{grid-template-columns:auto minmax(0,1fr) auto auto!important}.km-shell-theme-drag-handle{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;padding:0;border:0;border-radius:9px;background:transparent;color:var(--muted);touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}.km-shell-theme-drag-handle svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}.km-shell-theme-node.is-dragging{position:fixed;z-index:160;overflow:hidden;border:.5px solid var(--line);border-radius:13px;background:var(--card);box-shadow:0 16px 38px rgba(0,0,0,.28);pointer-events:none}.km-shell-theme-placeholder{border:1px dashed color-mix(in srgb,var(--accent) 55%,var(--line));border-radius:13px;background:color-mix(in srgb,var(--accent) 8%,transparent)}
       .km-shell-location-icon svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.km-shell-location-icon:has(svg[data-location-type="home"]){color:var(--home,#ff9f0a)!important}.km-shell-location-icon:has(svg[data-location-type="work"]){color:var(--commute,#4da3ff)!important}.km-shell-location-icon:has(svg[data-location-type="business"]){color:var(--business,#a875ff)!important}.km-shell-location-icon:has(svg[data-location-type="private"]){color:var(--private,#49d17d)!important}.km-shell-location-icon:has(svg[data-location-type="other"]){color:var(--other,#8e8e93)!important}
       .km-shell-search select{flex:0 1 126px;max-width:126px;height:32px;padding:0 24px 0 8px;border:.5px solid var(--line);border-radius:9px;background:var(--card);color:var(--text);font-size:11px;font-weight:650}.km-shell-search select[hidden]{display:none}
       .km-shell-search{margin-bottom:0!important}body.km-shell-search-open .km-shell-search{margin-bottom:12px!important}
@@ -1185,11 +1186,118 @@
     };
   }
 
+  function themeNodeIds(host) {
+    return $$('.km-shell-theme-node[data-theme-node]', host).map(node => node.dataset.themeNode);
+  }
+
+  function bindThemeReordering(host) {
+    if (!host || host.dataset.themeReorderBound === '1') return;
+    host.dataset.themeReorderBound = '1';
+    let drag = null;
+
+    const removeListeners = () => {
+      document.removeEventListener('pointermove', pointerMove, true);
+      document.removeEventListener('pointerup', pointerUp, true);
+      document.removeEventListener('pointercancel', pointerCancel, true);
+    };
+    const finish = commit => {
+      if (!drag) return;
+      const active = drag;
+      drag = null;
+      removeListeners();
+      if (active.placeholder.parentNode === host) host.insertBefore(active.node, active.placeholder);
+      else host.appendChild(active.node);
+      active.placeholder.remove();
+      active.node.classList.remove('is-dragging');
+      active.node.setAttribute('aria-grabbed', 'false');
+      if (active.originalStyle === null) active.node.removeAttribute('style');
+      else active.node.setAttribute('style', active.originalStyle);
+      if (!commit) return renderThemes();
+      window.LogTimeModule?.setThemeOrder?.(themeNodeIds(host));
+      const id = active.id;
+      renderThemes();
+      requestAnimationFrame(() => $(`[data-theme-node="${CSS.escape(id)}"] [data-theme-drag-handle]`, root)?.focus({ preventScroll: true }));
+    };
+    const update = (clientY, event) => {
+      if (!drag) return;
+      event.preventDefault();
+      drag.node.style.top = Math.round(clientY - drag.offsetY) + 'px';
+      const edge = Math.min(74, innerHeight * .16);
+      if (clientY < edge) window.scrollBy(0, -14);
+      else if (clientY > innerHeight - edge) window.scrollBy(0, 14);
+      const before = $$('.km-shell-theme-node[data-theme-node]', host).find(node => {
+        const rect = node.getBoundingClientRect();
+        return clientY < rect.top + rect.height / 2;
+      });
+      if (before) host.insertBefore(drag.placeholder, before);
+      else host.appendChild(drag.placeholder);
+    };
+    function pointerMove(event) {
+      if (!drag || event.pointerId !== drag.pointerId) return;
+      update(event.clientY, event);
+    }
+    function pointerUp(event) {
+      if (!drag || event.pointerId !== drag.pointerId) return;
+      event.preventDefault();
+      finish(true);
+    }
+    function pointerCancel(event) {
+      if (!drag || event.pointerId !== drag.pointerId) return;
+      finish(false);
+    }
+
+    host.addEventListener('pointerdown', event => {
+      const target = event.target instanceof Element ? event.target : event.target?.parentElement;
+      const handle = target?.closest('[data-theme-drag-handle]');
+      if (!handle || event.button !== 0 || event.isPrimary === false || drag) return;
+      const node = handle.closest('.km-shell-theme-node[data-theme-node]');
+      if (!node) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const rect = node.getBoundingClientRect();
+      const placeholder = document.createElement('div');
+      placeholder.className = 'km-shell-theme-placeholder';
+      placeholder.style.height = Math.round(rect.height) + 'px';
+      placeholder.setAttribute('aria-hidden', 'true');
+      host.insertBefore(placeholder, node.nextElementSibling);
+      drag = { pointerId: event.pointerId, id: node.dataset.themeNode, node, placeholder, offsetY: event.clientY - rect.top, originalStyle: node.getAttribute('style') };
+      node.classList.add('is-dragging');
+      node.setAttribute('aria-grabbed', 'true');
+      Object.assign(node.style, { position: 'fixed', left: Math.round(rect.left) + 'px', top: Math.round(rect.top) + 'px', width: Math.round(rect.width) + 'px', height: Math.round(rect.height) + 'px', margin: '0', transition: 'none', boxSizing: 'border-box' });
+      document.body.appendChild(node);
+      document.addEventListener('pointermove', pointerMove, { capture: true, passive: false });
+      document.addEventListener('pointerup', pointerUp, { capture: true, passive: false });
+      document.addEventListener('pointercancel', pointerCancel, { capture: true, passive: true });
+    });
+
+    host.addEventListener('keydown', event => {
+      if (!['ArrowUp', 'ArrowDown'].includes(event.key)) return;
+      const target = event.target instanceof Element ? event.target : event.target?.parentElement;
+      const handle = target?.closest('[data-theme-drag-handle]');
+      const node = handle?.closest('.km-shell-theme-node[data-theme-node]');
+      if (!node) return;
+      const neighbor = event.key === 'ArrowUp' ? node.previousElementSibling : node.nextElementSibling;
+      if (!neighbor?.matches('.km-shell-theme-node[data-theme-node]')) return;
+      event.preventDefault();
+      if (event.key === 'ArrowUp') host.insertBefore(node, neighbor);
+      else host.insertBefore(node, neighbor.nextElementSibling);
+      window.LogTimeModule?.setThemeOrder?.(themeNodeIds(host));
+      renderThemes();
+      requestAnimationFrame(() => $(`[data-theme-node="${CSS.escape(node.dataset.themeNode)}"] [data-theme-drag-handle]`, root)?.focus({ preventScroll: true }));
+    });
+  }
+
   function renderThemes() {
     const root = $('#kmShellThemesView');
     if (!root || section !== 'themes' || document.body.classList.contains('editor-view')) return;
-    const catalog = window.LogTimeModule?.getThemeCatalog?.() || { themes: [], subthemes: [] };
-    const themes = [...catalog.themes].sort((a, b) => (Number(b.usageCount) || 0) - (Number(a.usageCount) || 0) || String(a.name).localeCompare(String(b.name), 'nl', { sensitivity: 'base' }));
+    const catalog = window.LogTimeModule?.getThemeCatalog?.() || { themes: [], subthemes: [], sortMode: 'smart', themeOrder: [] };
+    const sortMode = ['smart', 'alpha', 'custom'].includes(catalog.sortMode) ? catalog.sortMode : 'smart';
+    const orderIndex = new Map((catalog.themeOrder || []).map((id, index) => [String(id), index]));
+    const themes = [...catalog.themes].sort((a, b) => {
+      if (sortMode === 'custom') return (orderIndex.get(String(a.id)) ?? Number.MAX_SAFE_INTEGER) - (orderIndex.get(String(b.id)) ?? Number.MAX_SAFE_INTEGER);
+      if (sortMode === 'alpha') return String(a.name).localeCompare(String(b.name), 'nl', { sensitivity: 'base' });
+      return (Number(b.lastUsedAt) || 0) - (Number(a.lastUsedAt) || 0) || (Number(b.usageCount) || 0) - (Number(a.usageCount) || 0) || String(a.name).localeCompare(String(b.name), 'nl', { sensitivity: 'base' });
+    });
     const excludedCount = themes.filter(theme => theme.includeInTotals === false).length;
     if (expandedThemeId && !themes.some(theme => String(theme.id) === String(expandedThemeId))) expandedThemeId = null;
     const nodes = themes.map(theme => {
@@ -1199,12 +1307,14 @@
       const expanded = String(expandedThemeId) === String(theme.id);
       const details = expanded ? `<div class="km-shell-theme-details"><div class="km-shell-subtheme-list">${subthemes.length ? subthemes.map(subtheme => `<div class="km-shell-subtheme-item"><div class="km-shell-theme-swipe-row" data-shell-theme-swipe="${esc(subtheme.id)}" data-shell-theme-type="subtheme">${themeSwipeActions(subtheme.id, 'subtheme')}<div class="km-shell-subtheme-row km-shell-theme-swipe-surface"><div class="km-shell-subtheme-copy"><strong><span class="km-shell-subtheme-branch" aria-hidden="true">↳</span>${esc(subtheme.name)}</strong><small>${Number(subtheme.usageCount) || 0}× gebruikt</small></div><span class="km-shell-location-chevron" aria-hidden="true">›</span></div></div></div>`).join('') : '<div class="km-shell-empty">Nog geen subthema’s.</div>'}</div><div class="km-shell-subtheme-create"><div class="field"><label for="kmShellNewSubtheme-${esc(theme.id)}">Nieuw subthema</label><input id="kmShellNewSubtheme-${esc(theme.id)}" data-new-subtheme="${esc(theme.id)}" autocomplete="off" placeholder="Naam"></div><button type="button" class="btn" data-add-subtheme="${esc(theme.id)}">Toevoegen</button></div></div>` : '';
       const included = theme.includeInTotals !== false;
-      return `<section class="km-shell-theme-node" data-theme-node="${esc(theme.id)}" style="--theme-color:${themeColor(theme)}"><span class="km-shell-legacy">${esc(subthemes.map(subtheme => subtheme.name).join(' '))}</span><div class="km-shell-theme-swipe-row" data-shell-theme-swipe="${esc(theme.id)}" data-shell-theme-type="theme">${themeSwipeActions(theme.id, 'theme')}<div class="km-shell-theme-row km-shell-theme-swipe-surface" data-theme-toggle="${esc(theme.id)}"><div class="km-shell-theme-row-copy"><strong>${esc(theme.name)}</strong><small>${subthemes.length} ${subthemes.length === 1 ? 'subthema' : 'subthema’s'} · ${Number(theme.usageCount) || 0}× gebruikt</small></div><button type="button" class="km-shell-theme-count-toggle" data-theme-count-toggle="${esc(theme.id)}" aria-pressed="${included}" aria-label="${included ? 'Niet meetellen in tijdtotalen' : 'Meetellen in tijdtotalen'}" title="${included ? 'Telt mee in tijdtotalen' : 'Telt niet mee in tijdtotalen'}"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7.5v5l3.2 1.9"></path></svg></button><button type="button" class="km-shell-theme-action km-shell-theme-toggle" data-theme-expand="${esc(theme.id)}" aria-expanded="${expanded}" aria-label="${expanded ? 'Subthema’s sluiten' : 'Subthema’s tonen'}">${expanded ? '⌄' : '›'}</button></div></div>${details}</section>`;
+      const dragHandle = sortMode === 'custom' ? `<button type="button" class="km-shell-theme-drag-handle" data-theme-drag-handle aria-label="${esc(theme.name)} verslepen" title="Sleep om te verplaatsen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h14"></path></svg></button>` : '';
+      return `<section class="km-shell-theme-node" data-theme-node="${esc(theme.id)}" style="--theme-color:${themeColor(theme)}"><span class="km-shell-legacy">${esc(subthemes.map(subtheme => subtheme.name).join(' '))}</span><div class="km-shell-theme-swipe-row" data-shell-theme-swipe="${esc(theme.id)}" data-shell-theme-type="theme">${themeSwipeActions(theme.id, 'theme')}<div class="km-shell-theme-row km-shell-theme-swipe-surface${sortMode === 'custom' ? ' km-shell-theme-custom-row' : ''}" data-theme-toggle="${esc(theme.id)}">${dragHandle}<div class="km-shell-theme-row-copy"><strong>${esc(theme.name)}</strong><small>${subthemes.length} ${subthemes.length === 1 ? 'subthema' : 'subthema’s'} · ${Number(theme.usageCount) || 0}× gebruikt</small></div><button type="button" class="km-shell-theme-count-toggle" data-theme-count-toggle="${esc(theme.id)}" aria-pressed="${included}" aria-label="${included ? 'Niet meetellen in tijdtotalen' : 'Meetellen in tijdtotalen'}" title="${included ? 'Telt mee in tijdtotalen' : 'Telt niet mee in tijdtotalen'}"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7.5v5l3.2 1.9"></path></svg></button><button type="button" class="km-shell-theme-action km-shell-theme-toggle" data-theme-expand="${esc(theme.id)}" aria-expanded="${expanded}" aria-label="${expanded ? 'Subthema’s sluiten' : 'Subthema’s tonen'}">${expanded ? '⌄' : '›'}</button></div></div>${details}</section>`;
     }).join('');
     const archiveRecords = window.LogTimeRemovalPolicy?.themeArchiveRecords?.() || [];
     const archive = archiveRecords.length ? `<details class="km-shell-theme-archive"><summary><span class="km-shell-theme-archive-copy"><strong>Archief</strong><small>${archiveRecords.length} ${archiveRecords.length === 1 ? 'item' : 'items'} · tik om te herstellen</small></span><span aria-hidden="true">›</span></summary><div class="km-shell-theme-archive-body">${archiveRecords.map(record => `<div class="km-shell-theme-archive-row"><div><strong>${esc(window.LogTimeRemovalPolicy?.archiveRecordName?.(record) || 'Thema')}</strong><small>${record.entityType === 'theme' ? 'Thema' : 'Subthema'}</small></div><button type="button" data-log-time-restore="${esc(record.batchId)}">Herstel</button></div>`).join('')}</div></details>` : '';
     const countTools = excludedCount ? `<div class="km-shell-theme-count-tools"><span>${excludedCount} ${excludedCount === 1 ? 'thema telt' : 'thema’s tellen'} niet mee</span><button type="button" class="km-shell-theme-count-all" data-theme-count-all>Alles meetellen</button></div>` : '';
-    root.innerHTML = `<div class="km-shell-theme-create"><div class="field"><label for="kmShellNewTheme">Nieuw thema</label><input id="kmShellNewTheme" autocomplete="off" placeholder="Naam"></div><button type="button" class="btn primary" data-add-theme>Toevoegen</button></div>${countTools}${themes.length ? `<div class="km-shell-theme-list">${nodes}</div>` : '<div class="km-shell-empty">Nog geen thema’s opgeslagen.</div>'}${archive}`;
+    const sortControls = `<div class="km-shell-theme-sort" aria-label="Thema’s sorteren"><button type="button" class="${sortMode === 'smart' ? 'active' : ''}" data-theme-sort="smart">◎ Logisch</button><button type="button" class="${sortMode === 'alpha' ? 'active' : ''}" data-theme-sort="alpha">A–Z Naam</button><button type="button" class="${sortMode === 'custom' ? 'active' : ''}" data-theme-sort="custom">☰ Eigen</button></div>`;
+    root.innerHTML = `<div class="km-shell-theme-create"><div class="field"><label for="kmShellNewTheme">Nieuw thema</label><input id="kmShellNewTheme" autocomplete="off" placeholder="Naam"></div><button type="button" class="btn primary" data-add-theme>Toevoegen</button></div>${sortControls}${countTools}${themes.length ? `<div class="km-shell-theme-list">${nodes}</div>` : '<div class="km-shell-empty">Nog geen thema’s opgeslagen.</div>'}${archive}`;
 
     const addTheme = () => {
       const input = $('#kmShellNewTheme', root);
@@ -1217,6 +1327,10 @@
     };
     $('[data-add-theme]', root)?.addEventListener('click', addTheme);
     $('#kmShellNewTheme', root)?.addEventListener('keydown', event => { if (event.key === 'Enter') addTheme(); });
+    $$('[data-theme-sort]', root).forEach(button => button.addEventListener('click', () => {
+      window.LogTimeModule?.setThemeSortMode?.(button.dataset.themeSort, themes.map(theme => theme.id));
+      renderThemes();
+    }));
     $$('[data-theme-count-toggle]', root).forEach(button => button.addEventListener('click', event => {
       event.preventDefault();
       event.stopPropagation();
@@ -1255,6 +1369,7 @@
       $(`[data-new-subtheme="${CSS.escape(button.dataset.addSubtheme)}"]`, root)?.addEventListener('keydown', event => { if (event.key === 'Enter') add(); });
     });
     bindThemeSwipeInteractions(root);
+    if (sortMode === 'custom') bindThemeReordering($('.km-shell-theme-list', root));
   }
 
   function refreshThemesFromStorage() {

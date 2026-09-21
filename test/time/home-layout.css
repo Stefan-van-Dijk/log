@@ -113,7 +113,9 @@
 .entry-value-stack strong,.entry-value-stack small{display:block}
 .entry-value-stack strong{font-size:15px;color:var(--item-accent,var(--accent))}
 .entry-value-stack small{margin-top:3px;font-size:9px;color:var(--muted)}
-.entry.excluded-from-totals .entry-value-stack{opacity:.38}
+.entry.excluded-from-totals .entry-value-stack{opacity:.68}
+.entry.excluded-from-totals .entry-value-stack strong{color:var(--muted)!important;font-weight:500}
+.entry.excluded-from-totals .entry-value-stack small{color:var(--muted);font-weight:500}
 .activity-swipe-surface.entry.interruption .entry-main strong::before{content:'↳ ';color:var(--warn)}
 .section .empty{padding:18px 2px;border:0;border-top:1px solid var(--line);border-radius:0;text-align:left}
 .undo-completion{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 2px;border-bottom:1px solid var(--line)}

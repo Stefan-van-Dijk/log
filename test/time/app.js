@@ -29,7 +29,9 @@ const defaultState = () => ({
     interruptionUnitMinutes: 15,
     interruptionDeductAfterMinutes: 30,
     employerMode: 'single',
-    swipeDeleteEnabled: true
+    swipeDeleteEnabled: true,
+    themeSortMode: 'smart',
+    themeOrder: []
   },
   ui: {
     periodMode: 'week',
@@ -161,6 +163,29 @@ function cleanName(value) {
 
 function sortedByUsage(items) {
   return [...items].sort((a, b) => (b.usageCount || 0) - (a.usageCount || 0) || a.name.localeCompare(b.name, 'nl', { sensitivity: 'base' }));
+}
+
+function themeLastUsedAt(theme) {
+  const entryLatest = state.entries.reduce((latest, entry) => {
+    const matches = String(entry.themeId || '') === String(theme.id || '') || (!entry.themeId && entry.themeName === theme.name);
+    if (!matches) return latest;
+    const time = new Date(entry.endISO || entry.dateISO || entry.startISO || entry.createdAt || 0).getTime();
+    return Number.isFinite(time) ? Math.max(latest, time) : latest;
+  }, 0);
+  const timerMatches = String(state.timer?.themeId || '') === String(theme.id || '') || (!state.timer?.themeId && state.timer?.themeName === theme.name);
+  const timerTime = timerMatches ? new Date(state.timer?.startISO || 0).getTime() : 0;
+  return Number.isFinite(timerTime) ? Math.max(entryLatest, timerTime) : entryLatest;
+}
+
+function themeSortMode() {
+  return ['smart', 'alpha', 'custom'].includes(state.settings.themeSortMode) ? state.settings.themeSortMode : 'smart';
+}
+
+function normalizedThemeOrder(order = state.settings.themeOrder) {
+  const available = new Set(state.themes.map(theme => String(theme.id)));
+  const result = [...new Set((Array.isArray(order) ? order : []).map(String))].filter(id => available.has(id));
+  state.themes.forEach(theme => { if (!result.includes(String(theme.id))) result.push(String(theme.id)); });
+  return result;
 }
 
 function dateInputValue(date = new Date()) {
@@ -581,7 +606,11 @@ function addTheme(rawName) {
   const name = cleanName(rawName); if (!name) return null;
   const existing = state.themes.find(t => t.name.localeCompare(name, 'nl', { sensitivity: 'base' }) === 0); if (existing) return existing;
   const id = uid();
-  const item = { id, name, color: fallbackThemeColor(id), includeInTotals: true, usageCount: 0, createdAt: new Date().toISOString() }; state.themes.push(item); saveState(); return item;
+  const item = { id, name, color: fallbackThemeColor(id), includeInTotals: true, usageCount: 0, createdAt: new Date().toISOString() };
+  state.themes.push(item);
+  state.settings.themeOrder = normalizedThemeOrder([...(state.settings.themeOrder || []), id]);
+  saveState();
+  return item;
 }
 
 function addSubtheme(themeId, rawName) {
@@ -629,6 +658,23 @@ function includeAllThemesInTotals() {
   saveState();
   render();
   return true;
+}
+
+function setThemeSortMode(mode, visibleOrder = []) {
+  const next = ['smart', 'alpha', 'custom'].includes(mode) ? mode : 'smart';
+  if (next === 'custom' && !Array.isArray(state.settings.themeOrder)) state.settings.themeOrder = normalizedThemeOrder(visibleOrder);
+  if (next === 'custom' && !state.settings.themeOrder.length) state.settings.themeOrder = normalizedThemeOrder(visibleOrder);
+  state.settings.themeSortMode = next;
+  state.settings.themeOrder = normalizedThemeOrder(state.settings.themeOrder);
+  saveState();
+  return next;
+}
+
+function setThemeOrder(themeIds) {
+  state.settings.themeOrder = normalizedThemeOrder(themeIds);
+  state.settings.themeSortMode = 'custom';
+  saveState();
+  return [...state.settings.themeOrder];
 }
 
 function renameSubtheme(subthemeId, rawName) {
@@ -893,7 +939,12 @@ function init() {
 
 window.LogTimeModule = Object.freeze({
   getState: () => state,
-  getThemeCatalog: () => ({ themes: state.themes.map(item => ({ ...item })), subthemes: state.subthemes.map(item => ({ ...item })) }),
+  getThemeCatalog: () => ({
+    themes: state.themes.map(item => ({ ...item, lastUsedAt: themeLastUsedAt(item) })),
+    subthemes: state.subthemes.map(item => ({ ...item })),
+    sortMode: themeSortMode(),
+    themeOrder: normalizedThemeOrder()
+  }),
   createTheme: rawName => addTheme(rawName),
   createSubtheme: (themeId, rawName) => addSubtheme(themeId, rawName),
   renameTheme,
@@ -901,6 +952,8 @@ window.LogTimeModule = Object.freeze({
   setThemeColor,
   setThemeIncludedInTotals,
   includeAllThemesInTotals,
+  setThemeSortMode,
+  setThemeOrder,
   getView: () => currentView,
   showHome: options => closeSettings(options),
   showSettings: options => openSettings(options),
