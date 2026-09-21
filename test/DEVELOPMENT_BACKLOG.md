@@ -11,10 +11,12 @@ Bij iedere nieuwe ontwikkeling of wijziging:
 3. Werk uitsluitend binnen `test/**` zolang de testfase actief is.
 4. Behoud bestaande gebruikersgegevens en opslagstructuren; migraties moeten veilig en achterwaarts compatibel zijn.
 5. Werk bij voorkeur één klein backlog-item tegelijk af.
-6. Werk na iedere wijziging dit document bij met status, korte toelichting en waar mogelijk commit/PR.
-7. Een item krijgt pas de status **Geïmplementeerd** wanneer de code is toegevoegd én functioneel is gecontroleerd.
-8. Problemen of regressies worden als apart item toegevoegd in plaats van stilzwijgend meegenomen.
-9. Nieuwe ideeën worden eerst als **Nieuw** toegevoegd en pas daarna ingepland.
+6. Lees en controleer alleen de bestanden, functies, configuratie en afhankelijkheden die relevant zijn voor de wijziging. Doorloop de volledige app niet onnodig.
+7. Test gericht: controleer de gewijzigde functionaliteit plus directe raakvlakken en regressierisico's. Breid de testscope alleen uit wanneer de wijziging gedeelde shell-functionaliteit, navigatie over meerdere modules, opslag/migraties of andere centrale afhankelijkheden raakt.
+8. Werk na iedere wijziging dit document bij met status, korte toelichting en waar mogelijk commit/PR.
+9. Een item krijgt pas de status **Geïmplementeerd** wanneer de code is toegevoegd én binnen de relevante testscope functioneel is gecontroleerd.
+10. Problemen of regressies worden als apart item toegevoegd in plaats van stilzwijgend meegenomen.
+11. Nieuwe ideeën worden eerst als **Nieuw** toegevoegd en pas daarna ingepland.
 
 ## Statussen
 
@@ -57,9 +59,11 @@ Bij iedere nieuwe ontwikkeling of wijziging:
 - Nieuwe functies moeten waar mogelijk generiek in de shell/moduleconfiguratie worden opgelost in plaats van per pagina hard gecodeerd.
 - Bestaande gebruikersdata mag niet verloren gaan.
 - Kleine, afzonderlijk testbare wijzigingen hebben voorkeur boven grote gecombineerde wijzigingen.
+- Gebruik bij iedere wijziging een minimale, risicogestuurde testscope: gewijzigde functionaliteit + directe afhankelijkheden, niet standaard de gehele app.
 
 ## Wijzigingslog
 
 | Datum | Wijziging |
 |---|---|
+| 2026-09-21 | Werkwijze aangescherpt: alleen relevante informatie, bestanden en controles doorlopen en risicogestuurd testen in plaats van standaard de volledige app. |
 | 2026-09-21 | Backlog aangemaakt en huidige navigatie-, UI-, locatie-, filter-, quick-action- en barcodewensen opgenomen. |
