@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const BUILD = '0.31.10-test.95';
+  const BUILD = '0.31.10-test.96';
   const SHELL_VERSION = (() => {
     try {
       const script = document.currentScript || [...document.scripts].find(item => item.src.includes('shell-ui.js'));
@@ -916,13 +916,25 @@
       }
       return sum + (Number(entry.ownMinutes) || 0);
     }, 0);
-    themes.sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'nl', { sensitivity: 'base' }));
+    const timedThemes = themes.map(theme => ({ theme, minutes: minutesFor(theme) })).filter(item => item.minutes > 0);
+    timedThemes.sort((a, b) => String(a.theme.name || '').localeCompare(String(b.theme.name || ''), 'nl', { sensitivity: 'base' }));
     const allMinutes = periodEntries.reduce((sum, entry) => sum + (Number(entry.ownMinutes) || 0), 0);
-    const optionsHtml = `<option value="all">Alle thema’s · ${compactFilterTime(allMinutes)}</option>` + themes.map(theme => {
-      const children = subthemes.filter(item => String(item.themeId) === String(theme.id)).sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'nl', { sensitivity: 'base' }));
-      return `<option value="theme:${esc(theme.id)}">${esc(theme.name || 'Thema')} · ${compactFilterTime(minutesFor(theme))}</option>${children.map(subtheme => `<option value="subtheme:${esc(subtheme.id)}">↳ ${esc(subtheme.name || 'Subthema')} · ${compactFilterTime(minutesFor(theme, subtheme))}</option>`).join('')}`;
+    const optionRecords = timedThemes.map(({ theme, minutes }) => {
+      const children = subthemes
+        .filter(item => String(item.themeId) === String(theme.id))
+        .map(subtheme => ({ subtheme, minutes: minutesFor(theme, subtheme) }))
+        .filter(item => item.minutes > 0)
+        .sort((a, b) => String(a.subtheme.name || '').localeCompare(String(b.subtheme.name || ''), 'nl', { sensitivity: 'base' }));
+      return { theme, minutes, children };
+    });
+    const optionsHtml = `<option value="all">Alle thema’s · ${compactFilterTime(allMinutes)}</option>` + optionRecords.map(({ theme, minutes, children }) => {
+      return `<option value="theme:${esc(theme.id)}">${esc(theme.name || 'Thema')} · ${compactFilterTime(minutes)}</option>${children.map(({ subtheme, minutes: childMinutes }) => `<option value="subtheme:${esc(subtheme.id)}">↳ ${esc(subtheme.name || 'Subthema')} · ${compactFilterTime(childMinutes)}</option>`).join('')}`;
     }).join('');
-    if (select.innerHTML !== optionsHtml) select.innerHTML = optionsHtml;
+    const optionsKey = JSON.stringify(['all', allMinutes, ...optionRecords.flatMap(({ theme, minutes, children }) => [`theme:${theme.id}:${theme.name}:${minutes}`, ...children.map(({ subtheme, minutes: childMinutes }) => `subtheme:${subtheme.id}:${subtheme.name}:${childMinutes}`)])]);
+    if (select.dataset.optionsKey !== optionsKey) {
+      select.innerHTML = optionsHtml;
+      select.dataset.optionsKey = optionsKey;
+    }
     select.value = [...select.options].some(option => option.value === previous) ? previous : 'all';
   }
 
@@ -987,9 +999,10 @@
           ? themeFilter.slice(6)
           : timeState.subthemes?.find(item => String(item.id) === themeFilter.slice(9))?.themeId;
         const theme = timeState.themes?.find(item => String(item.id) === String(themeId || ''));
+        const nextText = `${label} · ${compactFilterTime(filteredMinutes)}${theme?.includeInTotals === false ? ' · telt niet mee' : ''}`;
         status.classList.add('total');
         status.hidden = false;
-        status.textContent = `${label} · ${compactFilterTime(filteredMinutes)}${theme?.includeInTotals === false ? ' · telt niet mee' : ''}`;
+        if (status.textContent !== nextText) status.textContent = nextText;
       }
     }
     const status = $('#kmShellSearchStatus');
