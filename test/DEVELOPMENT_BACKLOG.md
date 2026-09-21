@@ -32,11 +32,12 @@ Bij iedere nieuwe ontwikkeling of wijziging:
 
 | ID | Onderwerp | Status | Omschrijving | Implementatie / notitie |
 |---|---|---|---|---|
-| NAV-001 | Modulepositie instelbaar | Gepland | Per module bepalen of deze zichtbaar is in de onderbalk, het zijmenu, beide of verborgen. | Configuratiegestuurd houden. |
-| NAV-002 | Volgorde modules instelbaar | Gepland | Volgorde van modules in onderbalk en zijmenu vanuit de moduleconfiguratie bepalen. | Gebruik drag/sleephandvat waar dit in de UI wordt beheerd. |
+| NAV-001 | Modulepositie instelbaar | Testen | Per module bepalen of deze zichtbaar is in de onderbalk, het zijmenu, beide of verborgen. | Schakelaars staan rechtstreeks in beide sorteerlijsten; opslag blijft achterwaarts compatibel. Release 0.31.10-test.85. |
+| NAV-002 | Volgorde modules instelbaar | Testen | Volgorde van modules in onderbalk en zijmenu vanuit de moduleconfiguratie bepalen. | Beide lijsten behouden een eigen sleepvolgorde, ook voor uitgeschakelde modules. Release 0.31.10-test.85. |
 | NAV-003 | Zijmenu half openen | Gepland | Naast volledig geopend ook een gedeeltelijk geopend zijpaneel ondersteunen. | Hoofdmodule mag deels zichtbaar blijven. |
 | NAV-004 | Swipe tussen hoofdmodule en zijmenu | Gepland | Van links naar rechts/rechts naar links kunnen vegen tussen hoofdmodule en zijpaneel. | Geen onnodige 44px-startzone als gebaren niet conflicteren. |
 | NAV-005 | Scroll blokkeren achter geopend menu | Gepland | Bij geopend zijpaneel mag de hoofdmodule op de achtergrond niet scrollen. | Ook controleren als PWA op iPhone. |
+| NAV-006 | Onderbalk geheel verbergen | Testen | De volledige onderbalk kunnen uitschakelen zonder modulekeuzes of volgorde te wissen. | Aparte hoofdschakelaar; minimaal één module blijft via een actieve navigatieroute bereikbaar. Release 0.31.10-test.85. |
 | UI-001 | Zoeken als vergrootglas | Gepland | Grote zoekweergave vervangen door een zoekicoon; zoekveld pas openen na aantikken. | Generiek gedrag in shell waar mogelijk. |
 | UI-002 | Compacte titel bij scrollen | Gepland | Grote moduletitel bij naar beneden scrollen transformeren naar compacte sticky header en terug vergroten bij terugscrollen. | iOS-achtig, vloeiende overgang. |
 | UI-003 | Kleuren bij items terugbrengen | Gepland | Kleuraccenten opnieuw toepassen bij relevante items en waarden. | Betekenisvol en consequent per type/thema/status. |
@@ -65,5 +66,6 @@ Bij iedere nieuwe ontwikkeling of wijziging:
 
 | Datum | Wijziging |
 |---|---|
+| 2026-09-21 | NAV-001, NAV-002 en NAV-006 gebouwd voor testrelease 0.31.10-test.85; gerichte controle en testomgeving volgen. |
 | 2026-09-21 | Werkwijze aangescherpt: alleen relevante informatie, bestanden en controles doorlopen en risicogestuurd testen in plaats van standaard de volledige app. |
 | 2026-09-21 | Backlog aangemaakt en huidige navigatie-, UI-, locatie-, filter-, quick-action- en barcodewensen opgenomen. |

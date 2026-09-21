@@ -4,8 +4,8 @@
   const BUILD=(()=>{
     try{
       const script=document.currentScript||[...document.scripts].find(item=>item.src.includes('shell-ui-stable.js'));
-      return new URL(script?.src||location.href).searchParams.get('v')||'0.31.10-test.84';
-    }catch(_){return'0.31.10-test.84';}
+      return new URL(script?.src||location.href).searchParams.get('v')||'0.31.10-test.85';
+    }catch(_){return'0.31.10-test.85';}
   })();
   const DATA_KEY='kmreg-test-v4-data';
   const SECTION_KEY='kmreg-test-shell-section-v1';
@@ -30,8 +30,16 @@
   }
 
   function enabledModuleIds(){
-    const configured=readData().settings.navigationModules;
-    if(Array.isArray(configured)&&configured.length)return new Set(configured.filter(item=>item&&(item.placement?item.placement!=='hidden':item.enabled!==false)).map(item=>String(item.id||'')).filter(Boolean));
+    const settings=readData().settings;
+    const configured=settings.navigationModules;
+    const showBottomBar=settings.bottomBarEnabled!==false;
+    if(Array.isArray(configured)&&configured.length)return new Set(configured.filter(item=>{
+      if(!item)return false;
+      if(!item.placement)return item.enabled!==false;
+      const inMenu=item.placement==='menu'||item.placement==='both';
+      const inBottom=item.placement==='bottom'||item.placement==='both';
+      return inMenu||(showBottomBar&&inBottom);
+    }).map(item=>String(item.id||'')).filter(Boolean));
     const navIds=$$('#kmShellDrawerNav [data-shell-section],#kmShellTabBar [data-shell-tab]').map(button=>button.dataset.shellSection||button.dataset.shellTab).filter(Boolean);
     if(navIds.length)return new Set(navIds);
     return new Set(['rides','time','locations','themes']);

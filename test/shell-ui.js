@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const BUILD = '0.31.10-test.84';
+  const BUILD = '0.31.10-test.85';
   const SHELL_VERSION = (() => {
     try {
       const script = document.currentScript || [...document.scripts].find(item => item.src.includes('shell-ui.js'));
@@ -196,8 +196,28 @@
     return config;
   }
 
+  function moduleSurfaceEnabled(item, surface) {
+    return item?.placement === 'both' || item?.placement === surface;
+  }
+
+  function placementForSurfaces(bottomOn, menuOn) {
+    return bottomOn && menuOn ? 'both' : bottomOn ? 'bottom' : menuOn ? 'menu' : 'hidden';
+  }
+
+  function bottomBarEnabled(snapshot = readData()) {
+    return snapshot.settings?.bottomBarEnabled !== false;
+  }
+
+  function hasReachableModule(config, showBottomBar = bottomBarEnabled()) {
+    return config.some(item => moduleSurfaceEnabled(item, 'menu') || (showBottomBar && moduleSurfaceEnabled(item, 'bottom')));
+  }
+
   function enabledModules(snapshot = readData()) {
-    return moduleConfiguration(snapshot).filter(item => item.placement !== 'hidden').map(item => moduleById(item.id)).filter(Boolean);
+    const showBottomBar = bottomBarEnabled(snapshot);
+    return moduleConfiguration(snapshot)
+      .filter(item => moduleSurfaceEnabled(item, 'menu') || (showBottomBar && moduleSurfaceEnabled(item, 'bottom')))
+      .map(item => moduleById(item.id))
+      .filter(Boolean);
   }
 
   function navigationModules(surface, snapshot = readData()) {
@@ -260,17 +280,29 @@
     requestAnimationFrame(() => apply(0));
   }
 
-  function focusModuleHandle(id) {
+  function focusModuleControl(id, surface = '') {
     if (!id) return;
     requestAnimationFrame(() => {
       const host = $('#kmShellModuleSettings');
+      if (!host) return;
+      if (surface === 'global-bottom') {
+        host.querySelector('[data-bottom-bar-toggle]')?.focus({ preventScroll: true });
+        return;
+      }
+      if (surface) {
+        const toggle = $$('.km-shell-module-row[data-module-id]', host)
+          .find(candidate => candidate.dataset.moduleId === id && candidate.closest('[data-module-surface]')?.dataset.moduleSurface === surface)
+          ?.querySelector('[data-module-surface-toggle]');
+        toggle?.focus({ preventScroll: true });
+        return;
+      }
       const row = host ? $$('.km-shell-module-row[data-module-id]', host)
         .find(candidate => candidate.dataset.moduleId === id && candidate.querySelector('[data-module-drag-handle]')) : null;
       row?.querySelector('[data-module-drag-handle]')?.focus({ preventScroll: true });
     });
   }
 
-  function saveModuleConfiguration(config, focusId = '') {
+  function saveModuleConfiguration(config, focusId = '', focusSurface = '', showBottomBar = bottomBarEnabled()) {
     const normalized = config.map(item => ({
       id: item.id,
       placement: ['bottom', 'menu', 'both', 'hidden'].includes(item.placement) ? item.placement : 'both',
@@ -282,10 +314,11 @@
     if (!raw || typeof raw !== 'object') raw = {};
     if (!raw.settings || typeof raw.settings !== 'object') raw.settings = {};
     raw.settings.navigationModules = normalized;
+    raw.settings.bottomBarEnabled = showBottomBar !== false;
     localStorage.setItem(DATA_KEY, JSON.stringify(raw));
-    window.dispatchEvent(new CustomEvent('log-navigation-modules-change', { detail: { modules: normalized } }));
+    window.dispatchEvent(new CustomEvent('log-navigation-modules-change', { detail: { modules: normalized, bottomBarEnabled: showBottomBar !== false } }));
     refreshShellUI();
-    focusModuleHandle(focusId);
+    focusModuleControl(focusId, focusSurface);
   }
 
   function moduleIcon(id) {
@@ -308,8 +341,10 @@
   }
 
   function renderNavigation() {
-    const menuModules = navigationModules('menu');
-    const bottomModules = navigationModules('bottom');
+    const snapshot = readData();
+    const menuModules = navigationModules('menu', snapshot);
+    const bottomModules = navigationModules('bottom', snapshot);
+    const showBottomBar = bottomBarEnabled(snapshot);
     const nav = $('#kmShellDrawerNav');
     if (nav) {
       nav.innerHTML = menuModules.map(module => `<button class="km-shell-nav-button" type="button" data-shell-section="${module.id}"><span class="icon">${moduleIcon(module.id)}</span><span>${esc(module.label)}</span></button>`).join('') || '<div class="km-shell-nav-empty">Geen modules in het menu.</div>';
@@ -323,8 +358,9 @@
         : '';
       tabbar.style.setProperty('--km-tab-count', String(Math.max(1, primary.length + (hasMore ? 1 : 0))));
       tabbar.innerHTML = primary.map(module => `<button class="km-shell-tab-button" type="button" data-shell-tab="${module.id}" aria-label="${esc(module.label)}">${moduleIcon(module.id)}<span>${esc(module.shortLabel)}</span></button>`).join('') + moreButton;
-      tabbar.hidden = bottomModules.length === 0;
+      tabbar.hidden = !showBottomBar || bottomModules.length === 0;
     }
+    document.body.classList.toggle('km-shell-tabbar-disabled', !showBottomBar || bottomModules.length === 0);
     syncDrawerSelection();
   }
 
@@ -379,6 +415,7 @@
       .km-shell-nav{display:grid;gap:4px}.km-shell-nav-button{display:flex;align-items:center;gap:12px;width:100%;min-height:48px;padding:9px 11px;border:0;border-radius:12px;background:transparent;color:var(--text);font-weight:760;text-align:left;cursor:pointer}.km-shell-nav-button .icon{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border:1px solid var(--line);border-radius:9px;color:var(--muted);font-size:15px}.km-shell-nav-button.active{background:var(--card2)}.km-shell-nav-button.active .icon{border-color:rgba(77,163,255,.45);color:var(--accent);background:rgba(77,163,255,.09)}.km-shell-nav-empty{padding:16px 13px;color:var(--muted);font-size:12px;line-height:1.4}
       .km-shell-drawer-spacer{flex:1}.km-shell-drawer-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 4px 2px;border-top:1px solid var(--line)}.km-shell-version{display:inline-flex!important;align-items:center;gap:7px;flex:0 0 auto;min-width:0;padding:6px 9px;border:1px solid color-mix(in srgb,var(--accent) 28%,var(--line));border-radius:10px;background:color-mix(in srgb,var(--accent) 10%,transparent);color:var(--text)!important;font-size:11px;font-weight:750;line-height:1;white-space:nowrap;visibility:visible!important;opacity:1!important}.km-shell-version-label{color:var(--accent);font-size:9px;font-weight:850;letter-spacing:.08em}.km-shell-version-number{overflow:hidden;text-overflow:ellipsis}.km-shell-settings-button{display:inline-flex;align-items:center;justify-content:center;width:46px;height:46px;border:0;border-radius:14px;background:transparent;color:var(--text);font-size:23px;cursor:pointer}.km-shell-settings-button:active{background:var(--card2)}
       .km-shell-tabbar{--km-tab-count:3;position:fixed;z-index:80;left:50%;bottom:calc(9px + env(safe-area-inset-bottom));width:min(520px,calc(100vw - 20px));height:74px;display:grid;grid-template-columns:repeat(var(--km-tab-count),minmax(0,1fr));gap:5px;padding:6px;border:1px solid color-mix(in srgb,#fff 62%,var(--line));border-radius:29px;background:color-mix(in srgb,var(--card) 58%,transparent);box-shadow:0 14px 42px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.72),inset 0 -1px 0 color-mix(in srgb,var(--line) 75%,transparent);-webkit-backdrop-filter:blur(34px) saturate(210%);backdrop-filter:blur(34px) saturate(210%);transform:translateX(-50%);transition:opacity .2s ease,transform .28s cubic-bezier(.22,1,.36,1);isolation:isolate;overflow:hidden}
+      .km-shell-tabbar[hidden]{display:none!important}
       .km-shell-tabbar::before{content:"";position:absolute;z-index:0;inset:0;background:linear-gradient(145deg,rgba(255,255,255,.34),transparent 44%,color-mix(in srgb,var(--accent) 9%,transparent));pointer-events:none}
       .km-shell-tab-button{position:relative;z-index:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:5px 3px;border:1px solid transparent;border-radius:22px;background:transparent;color:color-mix(in srgb,var(--text) 66%,var(--muted));font:inherit;font-size:10px;font-weight:760;line-height:1;letter-spacing:-.015em;cursor:pointer;touch-action:manipulation;transition:color .18s ease,background .24s cubic-bezier(.22,1,.36,1),border-color .2s ease,box-shadow .24s ease,transform .16s ease}
       .km-shell-tab-button svg,.km-shell-nav-button svg{width:23px;height:23px;display:block;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;transition:transform .24s cubic-bezier(.22,1,.36,1)}
@@ -387,12 +424,13 @@
       .km-shell-tab-button.active::after{content:"";position:absolute;bottom:4px;width:5px;height:5px;border-radius:50%;background:currentColor;box-shadow:0 0 8px currentColor}
       .km-shell-tab-button.active svg{transform:translateY(-2px) scale(1.08);stroke-width:2.25}
       .km-shell-tab-button:active{transform:scale(.94)}
-      .km-shell-module-settings{display:grid;gap:16px}.km-shell-module-position-list,.km-shell-module-order-list{overflow:hidden;border:.5px solid var(--line);border-radius:14px;background:var(--card)}.km-shell-module-position-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(146px,auto);align-items:center;gap:10px;min-height:64px;padding:11px}.km-shell-module-position-row+.km-shell-module-position-row{border-top:.5px solid var(--line)}.km-shell-module-placement{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;padding:4px;border:.5px solid var(--line);border-radius:11px;background:color-mix(in srgb,var(--muted) 8%,transparent)}.km-shell-module-placement button{min-width:0;min-height:34px;padding:6px 7px;border:0;border-radius:8px;background:transparent;color:var(--muted);font-size:10px;font-weight:750}.km-shell-module-placement button.active{background:var(--card2);color:var(--accent);box-shadow:0 1px 3px color-mix(in srgb,#000 12%,transparent)}.km-shell-module-order-group>strong,.km-shell-module-order-group>small{display:block}.km-shell-module-order-group>strong{font-size:13px}.km-shell-module-order-group>small{margin:3px 0 7px;color:var(--muted);font-size:10px;line-height:1.35}.km-shell-module-row{display:grid;grid-template-columns:44px minmax(0,1fr);align-items:center;gap:8px;min-height:58px;padding:8px 10px;border:0;background:var(--card);transition:background .16s ease,box-shadow .16s ease,transform .16s ease}.km-shell-module-row+.km-shell-module-row{border-top:.5px solid var(--line)}.km-shell-module-handle{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;padding:0;border:0;border-radius:10px;background:transparent;color:var(--muted);touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}.km-shell-module-handle:active,.km-shell-module-row.is-dragging .km-shell-module-handle{cursor:grabbing;background:var(--card2);color:var(--accent)}.km-shell-module-handle svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}.km-shell-module-row.is-dragging{position:fixed;z-index:140;border:.5px solid var(--line);border-radius:12px;background:color-mix(in srgb,var(--accent) 12%,var(--card));box-shadow:0 16px 38px rgba(0,0,0,.28);transform:scale(1.015);pointer-events:none}.km-shell-module-placeholder{min-height:58px;border:1px dashed color-mix(in srgb,var(--accent) 55%,var(--line));border-radius:12px;background:color-mix(in srgb,var(--accent) 8%,transparent)}.km-shell-module-copy strong,.km-shell-module-copy small{display:block}.km-shell-module-copy strong{font-size:13px}.km-shell-module-copy small{margin-top:3px;color:var(--muted);font-size:10px}.km-shell-module-order-empty{padding:14px;color:var(--muted);font-size:11px}@media(max-width:390px){.km-shell-module-position-row{grid-template-columns:1fr}.km-shell-module-placement{width:100%}}
+      .km-shell-module-settings{display:grid;gap:18px}.km-shell-module-order-list{overflow:hidden;border:.5px solid var(--line);border-radius:14px;background:var(--card)}.km-shell-module-order-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:7px}.km-shell-module-order-copy{min-width:0}.km-shell-module-order-copy>strong,.km-shell-module-order-copy>small{display:block}.km-shell-module-order-copy>strong{font-size:13px}.km-shell-module-order-copy>small{margin-top:3px;color:var(--muted);font-size:10px;line-height:1.35}.km-shell-module-row{display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;gap:8px;min-height:58px;padding:8px 10px;border:0;background:var(--card);transition:background .16s ease,box-shadow .16s ease,transform .16s ease}.km-shell-module-row+.km-shell-module-row{border-top:.5px solid var(--line)}.km-shell-module-row.is-off .km-shell-module-copy{opacity:.56}.km-shell-module-handle{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;padding:0;border:0;border-radius:10px;background:transparent;color:var(--muted);touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}.km-shell-module-handle:active,.km-shell-module-row.is-dragging .km-shell-module-handle{cursor:grabbing;background:var(--card2);color:var(--accent)}.km-shell-module-handle svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}.km-shell-module-toggle{position:relative;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;width:46px;height:30px;cursor:pointer}.km-shell-module-toggle input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}.km-shell-module-toggle span{position:relative;width:42px;height:24px;border-radius:999px;background:color-mix(in srgb,var(--muted) 30%,var(--card2));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--muted) 35%,transparent);transition:background .18s ease,box-shadow .18s ease}.km-shell-module-toggle span::after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.28);transition:transform .2s cubic-bezier(.22,1,.36,1)}.km-shell-module-toggle input:checked+span{background:var(--accent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 80%,#000)}.km-shell-module-toggle input:checked+span::after{transform:translateX(18px)}.km-shell-module-toggle input:focus-visible+span{outline:2px solid var(--accent);outline-offset:3px}.km-shell-module-row.is-dragging{position:fixed;z-index:140;border:.5px solid var(--line);border-radius:12px;background:color-mix(in srgb,var(--accent) 12%,var(--card));box-shadow:0 16px 38px rgba(0,0,0,.28);transform:scale(1.015);pointer-events:none}.km-shell-module-placeholder{min-height:58px;border:1px dashed color-mix(in srgb,var(--accent) 55%,var(--line));border-radius:12px;background:color-mix(in srgb,var(--accent) 8%,transparent)}.km-shell-module-copy strong,.km-shell-module-copy small{display:block}.km-shell-module-copy strong{font-size:13px}.km-shell-module-copy small{margin-top:3px;color:var(--muted);font-size:10px}.km-shell-module-help{display:block;margin-top:-6px;color:var(--muted);font-size:10px;line-height:1.4}
       .km-shell-placeholder{padding:4px 0 28px}.km-shell-placeholder-hero{padding:22px 18px;border:.5px solid color-mix(in srgb,var(--accent) 24%,var(--line));border-radius:20px;background:linear-gradient(145deg,color-mix(in srgb,var(--accent) 12%,var(--card)),var(--card));box-shadow:0 10px 28px rgba(0,0,0,.08)}.km-shell-placeholder-hero svg{width:34px;height:34px;color:var(--accent);fill:none;stroke:currentColor;stroke-width:1.7}.km-shell-placeholder-hero h2{margin:14px 0 6px;font-size:25px}.km-shell-placeholder-hero p{margin:0;color:var(--muted);font-size:13px;line-height:1.5}.km-shell-placeholder-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.km-shell-placeholder-card{min-height:92px;padding:14px;border:.5px solid var(--line);border-radius:16px;background:var(--card)}.km-shell-placeholder-card strong,.km-shell-placeholder-card small{display:block}.km-shell-placeholder-card small{margin-top:6px;color:var(--muted);font-size:11px;line-height:1.4}.km-shell-placeholder-mode #app,.km-shell-placeholder-mode #timeModuleRoot,.km-shell-placeholder-mode .km-shell-locations{display:none!important}.km-shell-placeholder-mode .km-shell-search{display:none!important}
       .km-shell-themes{padding:2px 0 28px}.km-shell-theme-create{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:8px;margin:4px 0 16px;padding:16px;border:.5px solid var(--line);border-radius:16px;background:var(--card)}.km-shell-theme-create .field,.km-shell-subtheme-create .field{margin:0}.km-shell-theme-create button,.km-shell-subtheme-create button{min-height:42px;background:var(--accent);border-color:var(--accent);color:#fff;font-weight:780}.km-shell-theme-list{overflow:hidden;border:.5px solid var(--line);border-radius:16px;background:var(--card)}.km-shell-theme-node+.km-shell-theme-node{border-top:.5px solid var(--line)}.km-shell-theme-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:6px;min-height:62px;padding:10px 9px 10px 14px;cursor:pointer}.km-shell-theme-row-copy{min-width:0}.km-shell-theme-row-copy strong,.km-shell-theme-row-copy small,.km-shell-subtheme-copy strong,.km-shell-subtheme-copy small{display:block}.km-shell-theme-row-copy strong,.km-shell-subtheme-copy strong{font-size:15px;font-weight:620}.km-shell-theme-row-copy small{margin-top:3px;color:var(--muted);font-size:11px}.km-shell-theme-action{min-height:34px;padding:7px 9px;border:0;border-radius:9px;background:transparent;color:var(--muted);font:inherit;font-size:11px;font-weight:800}.km-shell-theme-action:active{background:var(--card2)}.km-shell-theme-toggle{width:34px;padding:0;font-size:20px}.km-shell-theme-details{padding:0 14px 13px;background:color-mix(in srgb,var(--card2) 42%,var(--card))}.km-shell-subtheme-list{margin-left:10px;border-top:.5px solid var(--line)}.km-shell-subtheme-item{position:relative}.km-shell-subtheme-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;min-height:50px;padding:7px 0}.km-shell-subtheme-row+.km-shell-subtheme-row{border-top:.5px solid var(--line)}.km-shell-subtheme-copy strong{display:flex;align-items:center;gap:6px}.km-shell-subtheme-branch{flex:0 0 auto;color:#8a6500;font-size:17px;font-weight:500;line-height:1}.km-shell-subtheme-copy small{margin-top:2px;padding-left:23px;color:var(--muted);font-size:11px}.km-shell-subtheme-create{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:8px;padding:12px 0 0 10px}.km-shell-theme-archive{margin-top:14px;overflow:hidden;border:.5px solid var(--line);border-radius:16px;background:var(--card)}.km-shell-theme-archive>summary{display:flex;align-items:center;justify-content:space-between;min-height:54px;padding:11px 14px;list-style:none;cursor:pointer}.km-shell-theme-archive>summary::-webkit-details-marker{display:none}.km-shell-theme-archive-copy strong,.km-shell-theme-archive-copy small,.km-shell-theme-archive-row strong,.km-shell-theme-archive-row small{display:block}.km-shell-theme-archive-copy small,.km-shell-theme-archive-row small{margin-top:2px;color:var(--muted);font-size:10px}.km-shell-theme-archive-body{border-top:.5px solid var(--line)}.km-shell-theme-archive-row{display:flex;align-items:center;gap:10px;min-height:52px;padding:9px 13px}.km-shell-theme-archive-row+.km-shell-theme-archive-row{border-top:.5px solid var(--line)}.km-shell-theme-archive-row>div{flex:1;min-width:0}.km-shell-theme-archive-row button{min-height:34px;padding:6px 10px;border:0;border-radius:10px;background:var(--card2);color:var(--accent);font:inherit;font-size:11px;font-weight:800}
       .km-shell-theme-swipe-row{position:relative;overflow:hidden;background:var(--card)}.km-shell-theme-swipe-actions{position:absolute;z-index:0;inset:0 0 0 auto;display:flex;justify-content:flex-end}.km-shell-theme-swipe-action{width:84px;padding:0;border:0;border-radius:0;color:#fff!important;font:inherit;font-size:11px;font-weight:800;opacity:.62;transition:opacity .12s ease,filter .12s ease}.km-shell-theme-swipe-edit{background:var(--accent)}.km-shell-theme-swipe-delete{background:var(--bad,#d70015)}.km-shell-theme-swipe-archive{background:#8a6500}.km-shell-theme-swipe-row.swipe-edit-armed .km-shell-theme-swipe-edit,.km-shell-theme-swipe-row.delete-armed .km-shell-theme-swipe-delete,.km-shell-theme-swipe-row.delete-armed .km-shell-theme-swipe-archive{opacity:1;filter:brightness(1.12)}.km-shell-theme-swipe-surface{position:relative;z-index:1;background:var(--card);touch-action:pan-y;transition:transform .18s cubic-bezier(.2,.8,.2,1);user-select:none;-webkit-user-select:none}.km-shell-subtheme-item+.km-shell-subtheme-item{border-top:.5px solid var(--line)}.km-shell-subtheme-item .km-shell-subtheme-row{border:0}.km-shell-theme-editor{position:fixed;z-index:150;inset:0;display:flex;align-items:flex-end;justify-content:center;padding:18px;background:rgba(0,0,0,.42)}.km-shell-theme-editor-panel{width:min(100%,520px);padding:17px;border:1px solid var(--line);border-radius:20px;background:var(--bg);box-shadow:0 18px 54px rgba(0,0,0,.36)}.km-shell-theme-editor-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}.km-shell-theme-editor-head h2{margin:0;font-size:20px}.km-shell-theme-editor-close{width:38px;height:38px;border:0;border-radius:50%;background:var(--card2);color:var(--text);font-size:24px}.km-shell-theme-editor-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
       body.km-shell-drawer-open .km-shell-tabbar,body.km-shell-drawer-peek .km-shell-tabbar,body.km-shell-settings-open .km-shell-tabbar,body.editor-view .km-shell-tabbar{opacity:0;transform:translate(-50%,18px) scale(.98);pointer-events:none}
       .shell{padding-bottom:calc(108px + env(safe-area-inset-bottom))!important}
+      body.km-shell-tabbar-disabled .shell{padding-bottom:calc(28px + env(safe-area-inset-bottom))!important}
       @keyframes kmTabPageIn{from{opacity:.72;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
       body.km-shell-tab-transition .shell{animation:kmTabPageIn .22s cubic-bezier(.22,1,.36,1) both}
       .km-shell-settings{position:fixed;z-index:120;inset:0;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.38);opacity:0;pointer-events:none;transition:opacity .22s ease}.km-shell-settings.open{opacity:1;pointer-events:auto}
@@ -576,7 +614,7 @@
       .km-shell-settings-accordion summary:focus-visible,.km-shell-nav-button:focus-visible,.km-shell-tab-button:focus-visible,.km-shell-menu-button:focus-visible,.km-shell-settings-close:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
       .km-shell-settings-panel-host>#app details.accordion>summary{min-height:58px}
       .km-shell-module-settings{gap:16px}
-      .km-shell-module-row{grid-template-columns:44px minmax(0,1fr);min-height:60px;padding:8px 10px 8px 7px;border-radius:0;background:transparent}
+      .km-shell-module-row{grid-template-columns:44px minmax(0,1fr) auto;min-height:60px;padding:8px 10px 8px 7px;border-radius:0;background:transparent}
       .km-shell-module-row.is-dragging{border-radius:12px;border-bottom-color:transparent}
       .km-shell-module-handle{display:inline-flex}
       .km-shell-module-copy strong{font-size:15px;font-weight:620}
@@ -1871,23 +1909,18 @@
     const host = $('#kmShellModuleSettings');
     if (!host) return;
     const config = moduleConfiguration();
-    const placementRows = config.map(item => {
-      const module = moduleById(item.id);
-      const label = module?.label || item.id;
-      const bottomOn = item.placement === 'bottom' || item.placement === 'both';
-      const menuOn = item.placement === 'menu' || item.placement === 'both';
-      const choices = [['bottom', 'Onderbalk', bottomOn], ['menu', 'Menu', menuOn]]
-        .map(([surface, text, active]) => `<button type="button" class="${active ? 'active' : ''}" data-module-surface-toggle="${esc(item.id)}" data-surface="${surface}" aria-pressed="${active}">${text}</button>`).join('');
-      return `<div class="km-shell-module-position-row" data-module-id="${esc(item.id)}"><div class="km-shell-module-copy"><strong>${esc(label)}</strong><small>${esc(module?.subtitle || '')}${module?.placeholder ? ' · in voorbereiding' : ''}</small></div><div class="km-shell-module-placement" role="group" aria-label="Positie van ${esc(label)}">${choices}</div></div>`;
-    }).join('');
     const orderList = surface => config
-      .filter(item => item.placement === 'both' || item.placement === surface)
+      .slice()
       .sort((a, b) => a[surface === 'bottom' ? 'bottomOrder' : 'menuOrder'] - b[surface === 'bottom' ? 'bottomOrder' : 'menuOrder'])
       .map(item => {
-        const label = moduleById(item.id)?.label || item.id;
-        return `<div class="km-shell-module-row" data-module-id="${esc(item.id)}" aria-grabbed="false"><button class="km-shell-module-handle" type="button" data-module-drag-handle aria-label="${esc(label)} verslepen" title="Sleep om te verplaatsen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h14"/></svg></button><div class="km-shell-module-copy"><strong>${esc(label)}</strong><small>${surface === 'bottom' ? 'Onderbalk' : 'Zijmenu'}</small></div></div>`;
-      }).join('') || '<div class="km-shell-module-order-empty">Geen modules gekozen.</div>';
-    host.innerHTML = `<div class="km-shell-module-position-list">${placementRows}</div><div class="km-shell-module-order-group"><strong>Volgorde onderbalk</strong><small>Sleep een onderdeel aan de streepjes.</small><div class="km-shell-module-order-list" data-module-surface="bottom">${orderList('bottom')}</div></div><div class="km-shell-module-order-group"><strong>Volgorde menu</strong><small>Sleep aan de streepjes; deze volgorde staat los van de onderbalk.</small><div class="km-shell-module-order-list" data-module-surface="menu">${orderList('menu')}</div></div>`;
+        const module = moduleById(item.id);
+        const label = module?.label || item.id;
+        const active = moduleSurfaceEnabled(item, surface);
+        const surfaceLabel = surface === 'bottom' ? 'onderbalk' : 'zijmenu';
+        return `<div class="km-shell-module-row${active ? '' : ' is-off'}" data-module-id="${esc(item.id)}" aria-grabbed="false"><button class="km-shell-module-handle" type="button" data-module-drag-handle aria-label="${esc(label)} verslepen" title="Sleep om te verplaatsen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h14"/></svg></button><div class="km-shell-module-copy"><strong>${esc(label)}</strong><small>${surface === 'bottom' ? 'Onderbalk' : 'Zijmenu'}${module?.placeholder ? ' · in voorbereiding' : ''}</small></div><label class="km-shell-module-toggle"><input type="checkbox" data-module-surface-toggle="${esc(item.id)}" data-surface="${surface}" aria-label="${esc(label)} in ${surfaceLabel} tonen" ${active ? 'checked' : ''}><span aria-hidden="true"></span></label></div>`;
+      }).join('');
+    const showBottomBar = bottomBarEnabled();
+    host.innerHTML = `<div class="km-shell-module-order-group" data-module-surface="bottom"><div class="km-shell-module-order-head"><div class="km-shell-module-order-copy"><strong>Volgorde onderbalk</strong><small>${showBottomBar ? 'Sleep een onderdeel aan de streepjes.' : 'Onderbalk verborgen; de keuzes blijven bewaard.'}</small></div><label class="km-shell-module-toggle"><input type="checkbox" data-bottom-bar-toggle aria-label="Onderbalk tonen" ${showBottomBar ? 'checked' : ''}><span aria-hidden="true"></span></label></div><div class="km-shell-module-order-list" data-module-surface="bottom">${orderList('bottom')}</div></div><div class="km-shell-module-order-group" data-module-surface="menu"><div class="km-shell-module-order-head"><div class="km-shell-module-order-copy"><strong>Volgorde menu</strong><small>Sleep aan de streepjes; deze volgorde staat los van de onderbalk.</small></div></div><div class="km-shell-module-order-list" data-module-surface="menu">${orderList('menu')}</div></div><small class="km-shell-module-help">Minimaal één onderdeel blijft bereikbaar via de ingeschakelde onderbalk of het zijmenu.</small>`;
     $$('.km-shell-module-order-list', host).forEach(bindModuleReordering);
   }
 
@@ -1931,24 +1964,35 @@
       </section>`;
 
     renderModuleSettings();
-    content.querySelector('#kmShellModuleSettings')?.addEventListener('click', event => {
-      const target = event.target instanceof Element ? event.target : null;
-      const toggle = target?.closest('[data-module-surface-toggle]');
+    content.querySelector('#kmShellModuleSettings')?.addEventListener('change', event => {
+      const toggle = event.target instanceof HTMLInputElement ? event.target : null;
       if (!toggle) return;
       const config = moduleConfiguration();
+      if (toggle.matches('[data-bottom-bar-toggle]')) {
+        const showBottomBar = toggle.checked;
+        if (!hasReachableModule(config, showBottomBar)) {
+          toggle.checked = true;
+          return;
+        }
+        saveModuleConfiguration(config, 'bottom-bar', 'global-bottom', showBottomBar);
+        return;
+      }
+      if (!toggle.matches('[data-module-surface-toggle]')) return;
       const item = config.find(entry => entry.id === toggle.dataset.moduleSurfaceToggle);
       if (!item) return;
       const previous = item.placement;
-      let bottomOn = item.placement === 'bottom' || item.placement === 'both';
-      let menuOn = item.placement === 'menu' || item.placement === 'both';
-      if (toggle.dataset.surface === 'bottom') bottomOn = !bottomOn;
-      else menuOn = !menuOn;
-      item.placement = bottomOn && menuOn ? 'both' : bottomOn ? 'bottom' : menuOn ? 'menu' : 'hidden';
-      if (!config.some(entry => entry.placement !== 'hidden')) {
+      let bottomOn = moduleSurfaceEnabled(item, 'bottom');
+      let menuOn = moduleSurfaceEnabled(item, 'menu');
+      if (toggle.dataset.surface === 'bottom') bottomOn = toggle.checked;
+      else menuOn = toggle.checked;
+      item.placement = placementForSurfaces(bottomOn, menuOn);
+      const showBottomBar = bottomBarEnabled();
+      if (!hasReachableModule(config, showBottomBar)) {
         item.placement = previous;
+        toggle.checked = !toggle.checked;
         return;
       }
-      saveModuleConfiguration(config, item.id);
+      saveModuleConfiguration(config, item.id, toggle.dataset.surface, showBottomBar);
     });
     content.querySelector('[data-general-action="backup-export"]')?.addEventListener('click', () => {
       const status = $('#kmShellBackupStatus');
