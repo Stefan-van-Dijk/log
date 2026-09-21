@@ -132,6 +132,13 @@ function safeText(value) {
   }[char]));
 }
 
+function themeColor(value) {
+  const palette = ['#0a84ff', '#30a46c', '#af52de', '#ff9f0a', '#ff375f', '#00a7a7', '#6e5ae6', '#8a6500'];
+  let hash = 0;
+  for (const char of String(value || 'theme')) hash = ((hash << 5) - hash + char.charCodeAt(0)) | 0;
+  return palette[Math.abs(hash) % palette.length];
+}
+
 function cleanName(value) {
   return String(value || '').trim().replace(/\s+/g, ' ');
 }
@@ -504,7 +511,7 @@ function entryDayLabel(entry) {
 function entryRow(e, interruption = false) {
   const start = e.startISO ? timeText(e.startISO) : '—';
   const total = Number(e.totalMinutes) !== Number(e.ownMinutes) ? `<small>Totaal ${displayMinutes(e.totalMinutes)}</small>` : '';
-  return `<div class="entry ${interruption ? 'interruption' : ''}" data-entry="${e.id}"><div class="entry-time">${safeText(start)}</div><div class="entry-main"><strong>${safeText(e.themeName || (interruption ? 'Tussenstop' : 'Activiteit'))}</strong>${e.subthemeName ? `<small class="entry-subtheme">${safeText(e.subthemeName)}</small>` : ''}</div><div class="entry-value-stack"><strong>${displayMinutes(e.ownMinutes)}</strong>${total}</div><div class="chev">›</div></div>`;
+  return `<div class="entry ${interruption ? 'interruption' : ''}" data-entry="${e.id}" data-theme-id="${safeText(e.themeId || '')}" data-subtheme-id="${safeText(e.subthemeId || '')}" style="--item-accent:${themeColor(e.themeId || e.themeName)}"><div class="entry-time">${safeText(start)}</div><div class="entry-main"><strong>${safeText(e.themeName || (interruption ? 'Tussenstop' : 'Activiteit'))}</strong>${e.subthemeName ? `<small class="entry-subtheme">${safeText(e.subthemeName)}</small>` : ''}</div><div class="entry-value-stack"><strong>${displayMinutes(e.ownMinutes)}</strong>${total}</div><div class="chev">›</div></div>`;
 }
 
 function wireHome() {

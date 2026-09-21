@@ -553,6 +553,9 @@
       const shell = document.createElement('div');
       shell.className = `activity-entry-shell${entry.activityType === 'interruption' ? ' interruption-shell' : ''}`;
       shell.dataset.id = id;
+      shell.dataset.themeId = entry.themeId || '';
+      shell.dataset.subthemeId = entry.subthemeId || '';
+      shell.style.setProperty('--item-accent', themeColor(entry.themeId || entry.themeName));
       const canDelete = state.settings.swipeDeleteEnabled !== false;
       const canReopen = state.timer.status === 'inactive' && state.lastCompletion?.type === 'task' && state.lastCompletion.entryId === id && entry.activityType !== 'interruption';
       const actionCount = (canDelete ? 1 : 0) + 1;

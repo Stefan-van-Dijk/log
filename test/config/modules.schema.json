@@ -10,7 +10,7 @@
   ],
   "properties": {
     "schemaVersion": {
-      "const": 1
+      "const": 3
     },
     "updatedAt": {
       "type": "string",
@@ -29,8 +29,9 @@
           "subtitle",
           "icon",
           "available",
-          "defaultEnabled",
-          "order",
+          "defaultPlacement",
+          "bottomOrder",
+          "menuOrder",
           "view",
           "settingsTarget"
         ],
@@ -65,10 +66,18 @@
           "available": {
             "type": "boolean"
           },
-          "defaultEnabled": {
-            "type": "boolean"
+          "defaultPlacement": {
+            "enum": [
+              "bottom",
+              "menu",
+              "both",
+              "hidden"
+            ]
           },
-          "order": {
+          "bottomOrder": {
+            "type": "number"
+          },
+          "menuOrder": {
             "type": "number"
           },
           "view": {
@@ -76,6 +85,7 @@
               "rides",
               "time",
               "locations",
+              "themes",
               "placeholder"
             ]
           },

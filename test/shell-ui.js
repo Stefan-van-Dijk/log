@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const BUILD = '0.31.10-test.79';
+  const BUILD = '0.31.10-test.80';
   const SHELL_VERSION = (() => {
     try {
       const script = document.currentScript || [...document.scripts].find(item => item.src.includes('shell-ui.js'));
@@ -16,17 +16,17 @@
   const SECTION_KEY = 'kmreg-test-shell-section-v1';
   const DRAWER_KEY = 'kmreg-test-shell-drawer-v1';
   const MENU_DOCUMENT_URL = './config/modules.json';
-  const MENU_DOCUMENT_CACHE_KEY = 'log-menu-document-v2';
-  const MENU_SCHEMA_VERSION = 2;
+  const MENU_DOCUMENT_CACHE_KEY = 'log-menu-document-v3';
+  const MENU_SCHEMA_VERSION = 3;
   const THEMES_NAVIGATION_MIGRATION_KEY = 'log-native-themes-navigation-v1';
   const FALLBACK_MENU_DOCUMENT = {
     schemaVersion: MENU_SCHEMA_VERSION,
     modules: [
-      { id: 'rides', label: 'Ritten', shortLabel: 'Ritten', subtitle: 'Ritten registreren en terugvinden', icon: 'rides', available: true, defaultEnabled: true, order: 10, view: 'rides', settingsTarget: 'rides' },
-      { id: 'time', label: 'Tijd en taken', shortLabel: 'Tijd/taken', subtitle: 'Tijd en werkzaamheden registreren', icon: 'time', available: true, defaultEnabled: true, order: 20, view: 'time', settingsTarget: 'time' },
-      { id: 'locations', label: 'Locaties', shortLabel: 'Locaties', subtitle: 'Adressen en herkenning beheren', icon: 'locations', available: true, defaultEnabled: true, order: 30, view: 'locations', settingsTarget: 'locations' },
-      { id: 'themes', label: 'Thema’s', shortLabel: 'Thema’s', subtitle: 'Thema’s en subthema’s beheren', icon: 'themes', available: true, defaultEnabled: true, order: 40, view: 'themes', settingsTarget: null },
-      { id: 'barcodes', label: 'Barcodekaarten', shortLabel: 'Kaarten', subtitle: 'Barcodekaarten scannen en beheren', icon: 'barcodes', available: true, defaultEnabled: false, order: 50, view: 'placeholder', settingsTarget: null }
+      { id: 'rides', label: 'Ritten', shortLabel: 'Ritten', subtitle: 'Ritten registreren en terugvinden', icon: 'rides', available: true, defaultPlacement: 'both', bottomOrder: 10, menuOrder: 10, view: 'rides', settingsTarget: 'rides' },
+      { id: 'time', label: 'Tijd en taken', shortLabel: 'Tijd/taken', subtitle: 'Tijd en werkzaamheden registreren', icon: 'time', available: true, defaultPlacement: 'both', bottomOrder: 20, menuOrder: 20, view: 'time', settingsTarget: 'time' },
+      { id: 'locations', label: 'Locaties', shortLabel: 'Locaties', subtitle: 'Adressen en herkenning beheren', icon: 'locations', available: true, defaultPlacement: 'both', bottomOrder: 30, menuOrder: 30, view: 'locations', settingsTarget: 'locations' },
+      { id: 'themes', label: 'Thema’s', shortLabel: 'Thema’s', subtitle: 'Thema’s en subthema’s beheren', icon: 'themes', available: true, defaultPlacement: 'both', bottomOrder: 40, menuOrder: 40, view: 'themes', settingsTarget: null },
+      { id: 'barcodes', label: 'Barcodekaarten', shortLabel: 'Kaarten', subtitle: 'Barcodekaarten scannen en beheren', icon: 'barcodes', available: true, defaultPlacement: 'hidden', bottomOrder: 50, menuOrder: 50, view: 'placeholder', settingsTarget: null }
     ]
   };
   const ROOT_SECTIONS = new Set();
@@ -55,14 +55,15 @@
         shortLabel: shortLabel.slice(0, 16),
         subtitle: subtitle.slice(0, 120),
         icon: icons.has(source.icon) ? source.icon : 'themes',
-        enabled: source.defaultEnabled !== false,
-        order: Number.isFinite(Number(source.order)) ? Number(source.order) : modules.length * 10,
+        defaultPlacement: ['bottom', 'menu', 'both', 'hidden'].includes(source.defaultPlacement) ? source.defaultPlacement : 'both',
+        bottomOrder: Number.isFinite(Number(source.bottomOrder)) ? Number(source.bottomOrder) : modules.length * 10,
+        menuOrder: Number.isFinite(Number(source.menuOrder)) ? Number(source.menuOrder) : modules.length * 10,
         view,
         settingsTarget: settingsTargets.has(source.settingsTarget) ? source.settingsTarget : null,
         placeholder: view === 'placeholder'
       });
     }
-    return modules.length ? modules.sort((a, b) => a.order - b.order || a.label.localeCompare(b.label, 'nl')) : null;
+    return modules.length ? modules.sort((a, b) => Math.min(a.bottomOrder, a.menuOrder) - Math.min(b.bottomOrder, b.menuOrder) || a.label.localeCompare(b.label, 'nl')) : null;
   }
 
   function applyModuleCatalog(modules) {
@@ -87,6 +88,7 @@
   let section = localStorage.getItem(SECTION_KEY);
   if (!ROOT_SECTIONS.has(section)) section = localStorage.getItem(MODE_KEY) === 'time' ? 'time' : 'rides';
   let drawerOpen = false;
+  let drawerPeek = false;
   let expandedLocationId = null;
   let expandedThemeId = null;
   let locationSwipe = null;
@@ -159,8 +161,10 @@
       const navigation = raw?.settings?.navigationModules;
       if (Array.isArray(navigation)) {
         const stored = navigation.find(item => item?.id === 'themes');
-        if (stored) stored.enabled = true;
-        else navigation.push({ id: 'themes', enabled: true, order: navigation.length });
+        if (stored) {
+          if (stored.enabled === false) stored.placement = 'both';
+          stored.enabled = true;
+        } else navigation.push({ id: 'themes', placement: 'both', bottomOrder: navigation.length, menuOrder: navigation.length });
         localStorage.setItem(DATA_KEY, JSON.stringify(raw));
       }
       localStorage.setItem(THEMES_NAVIGATION_MIGRATION_KEY, '1');
@@ -176,21 +180,34 @@
   function moduleConfiguration(snapshot = readData()) {
     const saved = Array.isArray(snapshot.settings?.navigationModules) ? snapshot.settings.navigationModules : [];
     const savedById = new Map(saved.filter(item => item && ROOT_SECTIONS.has(item.id)).map(item => [item.id, item]));
-    const orderedIds = saved.map(item => item?.id).filter(id => ROOT_SECTIONS.has(id));
-    MODULE_CATALOG.forEach(module => {
-      if (!orderedIds.includes(module.id)) orderedIds.push(module.id);
+    const placements = new Set(['bottom', 'menu', 'both', 'hidden']);
+    const config = MODULE_CATALOG.map((module, index) => {
+      const stored = savedById.get(module.id);
+      const legacyPlacement = stored?.enabled === false ? 'hidden' : module.defaultPlacement;
+      const placement = placements.has(stored?.placement) ? stored.placement : legacyPlacement;
+      const legacyOrder = Number.isFinite(Number(stored?.order)) ? Number(stored.order) : index;
+      return {
+        id: module.id,
+        placement,
+        bottomOrder: Number.isFinite(Number(stored?.bottomOrder)) ? Number(stored.bottomOrder) : (stored ? legacyOrder : module.bottomOrder),
+        menuOrder: Number.isFinite(Number(stored?.menuOrder)) ? Number(stored.menuOrder) : (stored ? legacyOrder : module.menuOrder)
+      };
     });
-    const config = orderedIds.map((id, order) => {
-      const module = moduleById(id);
-      const stored = savedById.get(id);
-      return { id, enabled: stored ? stored.enabled !== false : module.enabled, order };
-    });
-    if (!config.some(item => item.enabled) && config[0]) config[0].enabled = true;
+    if (!config.some(item => item.placement !== 'hidden') && config[0]) config[0].placement = 'both';
     return config;
   }
 
   function enabledModules(snapshot = readData()) {
-    return moduleConfiguration(snapshot).filter(item => item.enabled).map(item => moduleById(item.id)).filter(Boolean);
+    return moduleConfiguration(snapshot).filter(item => item.placement !== 'hidden').map(item => moduleById(item.id)).filter(Boolean);
+  }
+
+  function navigationModules(surface, snapshot = readData()) {
+    const orderKey = surface === 'bottom' ? 'bottomOrder' : 'menuOrder';
+    return moduleConfiguration(snapshot)
+      .filter(item => item.placement === 'both' || item.placement === surface)
+      .sort((a, b) => a[orderKey] - b[orderKey] || a.id.localeCompare(b.id, 'nl'))
+      .map(item => moduleById(item.id))
+      .filter(Boolean);
   }
 
   function notifyActiveViewRefresh() {
@@ -249,13 +266,18 @@
     requestAnimationFrame(() => {
       const host = $('#kmShellModuleSettings');
       const row = host ? $$('.km-shell-module-row[data-module-id]', host)
-        .find(candidate => candidate.dataset.moduleId === id) : null;
+        .find(candidate => candidate.dataset.moduleId === id && candidate.querySelector('[data-module-drag-handle]')) : null;
       row?.querySelector('[data-module-drag-handle]')?.focus({ preventScroll: true });
     });
   }
 
   function saveModuleConfiguration(config, focusId = '') {
-    const normalized = config.map((item, order) => ({ id: item.id, enabled: item.enabled !== false, order }));
+    const normalized = config.map(item => ({
+      id: item.id,
+      placement: ['bottom', 'menu', 'both', 'hidden'].includes(item.placement) ? item.placement : 'both',
+      bottomOrder: Number(item.bottomOrder) || 0,
+      menuOrder: Number(item.menuOrder) || 0
+    }));
     let raw = {};
     try { raw = JSON.parse(localStorage.getItem(DATA_KEY) || '{}'); } catch (_) {}
     if (!raw || typeof raw !== 'object') raw = {};
@@ -279,22 +301,30 @@
     return icons[icon] || icons.themes;
   }
 
+  function themeColor(value) {
+    const palette = ['#0a84ff', '#30a46c', '#af52de', '#ff9f0a', '#ff375f', '#00a7a7', '#6e5ae6', '#8a6500'];
+    let hash = 0;
+    for (const char of String(value || 'theme')) hash = ((hash << 5) - hash + char.charCodeAt(0)) | 0;
+    return palette[Math.abs(hash) % palette.length];
+  }
+
   function renderNavigation() {
-    const modules = enabledModules();
+    const menuModules = navigationModules('menu');
+    const bottomModules = navigationModules('bottom');
     const nav = $('#kmShellDrawerNav');
     if (nav) {
-      nav.innerHTML = modules.map(module => `<button class="km-shell-nav-button" type="button" data-shell-section="${module.id}"><span class="icon">${moduleIcon(module.id)}</span><span>${esc(module.label)}</span></button>`).join('');
+      nav.innerHTML = menuModules.map(module => `<button class="km-shell-nav-button" type="button" data-shell-section="${module.id}"><span class="icon">${moduleIcon(module.id)}</span><span>${esc(module.label)}</span></button>`).join('') || '<div class="km-shell-nav-empty">Geen modules in het menu.</div>';
     }
     const tabbar = $('#kmShellTabBar');
     if (tabbar) {
-      const hasMore = modules.length > 5;
-      const primary = hasMore ? modules.slice(0, 4) : modules;
+      const hasMore = bottomModules.length > 5;
+      const primary = hasMore ? bottomModules.slice(0, 4) : bottomModules;
       const moreButton = hasMore
         ? '<button class="km-shell-tab-button km-shell-tab-more" type="button" data-shell-more aria-label="Meer onderdelen"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg><span>Meer</span></button>'
         : '';
       tabbar.style.setProperty('--km-tab-count', String(Math.max(1, primary.length + (hasMore ? 1 : 0))));
       tabbar.innerHTML = primary.map(module => `<button class="km-shell-tab-button" type="button" data-shell-tab="${module.id}" aria-label="${esc(module.label)}">${moduleIcon(module.id)}<span>${esc(module.shortLabel)}</span></button>`).join('') + moreButton;
-      tabbar.hidden = modules.length === 0;
+      tabbar.hidden = bottomModules.length === 0;
     }
     syncDrawerSelection();
   }
@@ -308,7 +338,15 @@
   }
 
   function locationGlyph(type) {
-    return ({ home: '⌂', work: '▣', business: '▦', private: '●', other: '⌖' })[type] || '⌖';
+    const paths = {
+      home: '<path d="M4 11.5 12 5l8 6.5V20h-5v-5H9v5H4z"/>',
+      work: '<path d="M4 8h16v11H4z"/><path d="M9 8V5h6v3M4 12h16M10 12v2h4v-2"/>',
+      business: '<path d="M6 20V5h12v15M9 8h2m2 0h2M9 12h2m2 0h2M9 16h2m2 0h2"/>',
+      private: '<circle cx="12" cy="8" r="3"/><path d="M5.5 20c.8-4 3-6 6.5-6s5.7 2 6.5 6"/>',
+      other: '<path d="M12 21s6-6.2 6-12a6 6 0 1 0-12 0c0 5.8 6 12 6 12z"/><circle cx="12" cy="9" r="2"/>'
+    };
+    const key = Object.hasOwn(paths, type) ? type : 'other';
+    return `<svg viewBox="0 0 24 24" aria-hidden="true" data-location-type="${key}">${paths[key]}</svg>`;
   }
 
   function effectiveLocation(location, snapshot = readData()) {
@@ -330,14 +368,16 @@
       .km-shell-menu-button,.km-shell-top-spacer{width:40px;height:40px}
       .km-shell-menu-button{position:fixed;z-index:92;top:calc(env(safe-area-inset-top) + 10px);left:max(12px,calc((100vw - 760px)/2 + 12px));display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:12px;background:transparent;color:var(--text);font-size:24px;line-height:1;cursor:pointer;touch-action:manipulation}
       .km-shell-menu-button:active{background:var(--card2)}
+      .km-shell-search-toggle{position:fixed;z-index:42;top:calc(env(safe-area-inset-top) + 15px);right:max(12px,calc((100vw - 760px)/2 + 12px));display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;padding:0;border:0;border-radius:50%;background:color-mix(in srgb,var(--accent) 11%,transparent);color:var(--accent);cursor:pointer;transition:opacity .15s ease,transform .15s ease}.km-shell-search-toggle:active{opacity:.58;transform:scale(.94)}.km-shell-search-toggle svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
       .km-shell-top-copy{text-align:center;overflow:hidden}.km-shell-top-copy .eyebrow{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.km-shell-title{margin-top:3px;font-size:20px;font-weight:850;letter-spacing:-.025em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.km-shell-meta{margin-top:3px;color:var(--muted);font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
       .km-shell-legacy{position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;clip-path:inset(50%)!important;white-space:nowrap!important}
       .km-shell-backdrop{position:fixed;z-index:95;inset:0;background:rgba(0,0,0,.42);opacity:0;pointer-events:none;transition:opacity .22s ease}
       .km-shell-backdrop.open{opacity:1;pointer-events:auto}
       .km-shell-drawer{position:fixed;z-index:100;inset:0 auto 0 0;width:min(82vw,330px);display:flex;flex-direction:column;padding:calc(18px + env(safe-area-inset-top)) 14px calc(12px + env(safe-area-inset-bottom));border-right:1px solid var(--line);background:rgba(17,21,26,.97);box-shadow:18px 0 52px rgba(0,0,0,.34);transform:translateX(-102%);transition:transform .24s cubic-bezier(.2,.8,.2,1);-webkit-backdrop-filter:blur(26px) saturate(165%);backdrop-filter:blur(26px) saturate(165%)}
       .km-shell-drawer.open{transform:translateX(0)}
+      body.km-shell-drawer-peek .km-shell-drawer.open{transform:translateX(calc(-100% + min(46vw,180px)))}
       .km-shell-drawer-head{padding:4px 8px 17px}.km-shell-drawer-head strong{display:block;font-size:19px;letter-spacing:-.02em}.km-shell-drawer-head small{display:block;margin-top:4px;color:var(--muted);font-size:11px}
-      .km-shell-nav{display:grid;gap:4px}.km-shell-nav-button{display:flex;align-items:center;gap:12px;width:100%;min-height:48px;padding:9px 11px;border:0;border-radius:12px;background:transparent;color:var(--text);font-weight:760;text-align:left;cursor:pointer}.km-shell-nav-button .icon{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border:1px solid var(--line);border-radius:9px;color:var(--muted);font-size:15px}.km-shell-nav-button.active{background:var(--card2)}.km-shell-nav-button.active .icon{border-color:rgba(77,163,255,.45);color:var(--accent);background:rgba(77,163,255,.09)}
+      .km-shell-nav{display:grid;gap:4px}.km-shell-nav-button{display:flex;align-items:center;gap:12px;width:100%;min-height:48px;padding:9px 11px;border:0;border-radius:12px;background:transparent;color:var(--text);font-weight:760;text-align:left;cursor:pointer}.km-shell-nav-button .icon{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border:1px solid var(--line);border-radius:9px;color:var(--muted);font-size:15px}.km-shell-nav-button.active{background:var(--card2)}.km-shell-nav-button.active .icon{border-color:rgba(77,163,255,.45);color:var(--accent);background:rgba(77,163,255,.09)}.km-shell-nav-empty{padding:16px 13px;color:var(--muted);font-size:12px;line-height:1.4}
       .km-shell-drawer-spacer{flex:1}.km-shell-drawer-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 4px 2px;border-top:1px solid var(--line)}.km-shell-version{display:inline-flex!important;align-items:center;gap:7px;flex:0 0 auto;min-width:0;padding:6px 9px;border:1px solid color-mix(in srgb,var(--accent) 28%,var(--line));border-radius:10px;background:color-mix(in srgb,var(--accent) 10%,transparent);color:var(--text)!important;font-size:11px;font-weight:750;line-height:1;white-space:nowrap;visibility:visible!important;opacity:1!important}.km-shell-version-label{color:var(--accent);font-size:9px;font-weight:850;letter-spacing:.08em}.km-shell-version-number{overflow:hidden;text-overflow:ellipsis}.km-shell-settings-button{display:inline-flex;align-items:center;justify-content:center;width:46px;height:46px;border:0;border-radius:14px;background:transparent;color:var(--text);font-size:23px;cursor:pointer}.km-shell-settings-button:active{background:var(--card2)}
       .km-shell-tabbar{--km-tab-count:3;position:fixed;z-index:80;left:50%;bottom:calc(9px + env(safe-area-inset-bottom));width:min(520px,calc(100vw - 20px));height:74px;display:grid;grid-template-columns:repeat(var(--km-tab-count),minmax(0,1fr));gap:5px;padding:6px;border:1px solid color-mix(in srgb,#fff 62%,var(--line));border-radius:29px;background:color-mix(in srgb,var(--card) 58%,transparent);box-shadow:0 14px 42px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.72),inset 0 -1px 0 color-mix(in srgb,var(--line) 75%,transparent);-webkit-backdrop-filter:blur(34px) saturate(210%);backdrop-filter:blur(34px) saturate(210%);transform:translateX(-50%);transition:opacity .2s ease,transform .28s cubic-bezier(.22,1,.36,1);isolation:isolate;overflow:hidden}
       .km-shell-tabbar::before{content:"";position:absolute;z-index:0;inset:0;background:linear-gradient(145deg,rgba(255,255,255,.34),transparent 44%,color-mix(in srgb,var(--accent) 9%,transparent));pointer-events:none}
@@ -348,11 +388,11 @@
       .km-shell-tab-button.active::after{content:"";position:absolute;bottom:4px;width:5px;height:5px;border-radius:50%;background:currentColor;box-shadow:0 0 8px currentColor}
       .km-shell-tab-button.active svg{transform:translateY(-2px) scale(1.08);stroke-width:2.25}
       .km-shell-tab-button:active{transform:scale(.94)}
-      .km-shell-module-settings{display:grid;gap:8px}.km-shell-module-row{display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;gap:8px;min-height:58px;padding:8px 10px;border:.5px solid var(--line);border-radius:14px;background:var(--card);transition:background .16s ease,box-shadow .16s ease,transform .16s ease}.km-shell-module-handle{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;padding:0;border:0;border-radius:10px;background:transparent;color:var(--muted);touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}.km-shell-module-handle:active,.km-shell-module-row.is-dragging .km-shell-module-handle{cursor:grabbing;background:var(--card2);color:var(--accent)}.km-shell-module-handle svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}.km-shell-module-row.is-dragging{position:fixed;z-index:140;background:color-mix(in srgb,var(--accent) 12%,var(--card));box-shadow:0 16px 38px rgba(0,0,0,.28);transform:scale(1.015);pointer-events:none}.km-shell-module-placeholder{min-height:58px;border:1px dashed color-mix(in srgb,var(--accent) 55%,var(--line));border-radius:12px;background:color-mix(in srgb,var(--accent) 8%,transparent)}.km-shell-module-copy strong,.km-shell-module-copy small{display:block}.km-shell-module-copy strong{font-size:13px}.km-shell-module-copy small{margin-top:3px;color:var(--muted);font-size:10px}.km-shell-module-controls{display:flex;align-items:center;gap:5px}.km-shell-module-toggle{display:inline-flex;align-items:center;margin-left:3px}.km-shell-module-toggle input{width:38px;height:22px;accent-color:var(--accent)}
+      .km-shell-module-settings{display:grid;gap:16px}.km-shell-module-position-list,.km-shell-module-order-list{overflow:hidden;border:.5px solid var(--line);border-radius:14px;background:var(--card)}.km-shell-module-position-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px;min-height:64px;padding:9px 11px}.km-shell-module-position-row+.km-shell-module-position-row{border-top:.5px solid var(--line)}.km-shell-module-placement select{min-width:112px;height:36px;padding:0 28px 0 10px;border:.5px solid var(--line);border-radius:10px;background:var(--card2);color:var(--text);font-size:12px;font-weight:700}.km-shell-module-order-group>strong,.km-shell-module-order-group>small{display:block}.km-shell-module-order-group>strong{font-size:13px}.km-shell-module-order-group>small{margin:3px 0 7px;color:var(--muted);font-size:10px;line-height:1.35}.km-shell-module-row{display:grid;grid-template-columns:44px minmax(0,1fr);align-items:center;gap:8px;min-height:58px;padding:8px 10px;border:0;background:var(--card);transition:background .16s ease,box-shadow .16s ease,transform .16s ease}.km-shell-module-row+.km-shell-module-row{border-top:.5px solid var(--line)}.km-shell-module-handle{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;padding:0;border:0;border-radius:10px;background:transparent;color:var(--muted);touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}.km-shell-module-handle:active,.km-shell-module-row.is-dragging .km-shell-module-handle{cursor:grabbing;background:var(--card2);color:var(--accent)}.km-shell-module-handle svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}.km-shell-module-row.is-dragging{position:fixed;z-index:140;border:.5px solid var(--line);border-radius:12px;background:color-mix(in srgb,var(--accent) 12%,var(--card));box-shadow:0 16px 38px rgba(0,0,0,.28);transform:scale(1.015);pointer-events:none}.km-shell-module-placeholder{min-height:58px;border:1px dashed color-mix(in srgb,var(--accent) 55%,var(--line));border-radius:12px;background:color-mix(in srgb,var(--accent) 8%,transparent)}.km-shell-module-copy strong,.km-shell-module-copy small{display:block}.km-shell-module-copy strong{font-size:13px}.km-shell-module-copy small{margin-top:3px;color:var(--muted);font-size:10px}.km-shell-module-order-empty{padding:14px;color:var(--muted);font-size:11px}
       .km-shell-placeholder{padding:4px 0 28px}.km-shell-placeholder-hero{padding:22px 18px;border:.5px solid color-mix(in srgb,var(--accent) 24%,var(--line));border-radius:20px;background:linear-gradient(145deg,color-mix(in srgb,var(--accent) 12%,var(--card)),var(--card));box-shadow:0 10px 28px rgba(0,0,0,.08)}.km-shell-placeholder-hero svg{width:34px;height:34px;color:var(--accent);fill:none;stroke:currentColor;stroke-width:1.7}.km-shell-placeholder-hero h2{margin:14px 0 6px;font-size:25px}.km-shell-placeholder-hero p{margin:0;color:var(--muted);font-size:13px;line-height:1.5}.km-shell-placeholder-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.km-shell-placeholder-card{min-height:92px;padding:14px;border:.5px solid var(--line);border-radius:16px;background:var(--card)}.km-shell-placeholder-card strong,.km-shell-placeholder-card small{display:block}.km-shell-placeholder-card small{margin-top:6px;color:var(--muted);font-size:11px;line-height:1.4}.km-shell-placeholder-mode #app,.km-shell-placeholder-mode #timeModuleRoot,.km-shell-placeholder-mode .km-shell-locations{display:none!important}.km-shell-placeholder-mode .km-shell-search{display:none!important}
       .km-shell-themes{padding:2px 0 28px}.km-shell-theme-create{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:8px;margin:4px 0 16px;padding:16px;border:.5px solid var(--line);border-radius:16px;background:var(--card)}.km-shell-theme-create .field,.km-shell-subtheme-create .field{margin:0}.km-shell-theme-create button,.km-shell-subtheme-create button{min-height:42px;background:var(--accent);border-color:var(--accent);color:#fff;font-weight:780}.km-shell-theme-list{overflow:hidden;border:.5px solid var(--line);border-radius:16px;background:var(--card)}.km-shell-theme-node+.km-shell-theme-node{border-top:.5px solid var(--line)}.km-shell-theme-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:6px;min-height:62px;padding:10px 9px 10px 14px;cursor:pointer}.km-shell-theme-row-copy{min-width:0}.km-shell-theme-row-copy strong,.km-shell-theme-row-copy small,.km-shell-subtheme-copy strong,.km-shell-subtheme-copy small{display:block}.km-shell-theme-row-copy strong,.km-shell-subtheme-copy strong{font-size:15px;font-weight:620}.km-shell-theme-row-copy small{margin-top:3px;color:var(--muted);font-size:11px}.km-shell-theme-action{min-height:34px;padding:7px 9px;border:0;border-radius:9px;background:transparent;color:var(--muted);font:inherit;font-size:11px;font-weight:800}.km-shell-theme-action:active{background:var(--card2)}.km-shell-theme-toggle{width:34px;padding:0;font-size:20px}.km-shell-theme-details{padding:0 14px 13px;background:color-mix(in srgb,var(--card2) 42%,var(--card))}.km-shell-subtheme-list{margin-left:10px;border-top:.5px solid var(--line)}.km-shell-subtheme-item{position:relative}.km-shell-subtheme-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;min-height:50px;padding:7px 0}.km-shell-subtheme-row+.km-shell-subtheme-row{border-top:.5px solid var(--line)}.km-shell-subtheme-copy strong{display:flex;align-items:center;gap:6px}.km-shell-subtheme-branch{flex:0 0 auto;color:#8a6500;font-size:17px;font-weight:500;line-height:1}.km-shell-subtheme-copy small{margin-top:2px;padding-left:23px;color:var(--muted);font-size:11px}.km-shell-subtheme-create{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:8px;padding:12px 0 0 10px}.km-shell-theme-archive{margin-top:14px;overflow:hidden;border:.5px solid var(--line);border-radius:16px;background:var(--card)}.km-shell-theme-archive>summary{display:flex;align-items:center;justify-content:space-between;min-height:54px;padding:11px 14px;list-style:none;cursor:pointer}.km-shell-theme-archive>summary::-webkit-details-marker{display:none}.km-shell-theme-archive-copy strong,.km-shell-theme-archive-copy small,.km-shell-theme-archive-row strong,.km-shell-theme-archive-row small{display:block}.km-shell-theme-archive-copy small,.km-shell-theme-archive-row small{margin-top:2px;color:var(--muted);font-size:10px}.km-shell-theme-archive-body{border-top:.5px solid var(--line)}.km-shell-theme-archive-row{display:flex;align-items:center;gap:10px;min-height:52px;padding:9px 13px}.km-shell-theme-archive-row+.km-shell-theme-archive-row{border-top:.5px solid var(--line)}.km-shell-theme-archive-row>div{flex:1;min-width:0}.km-shell-theme-archive-row button{min-height:34px;padding:6px 10px;border:0;border-radius:10px;background:var(--card2);color:var(--accent);font:inherit;font-size:11px;font-weight:800}
       .km-shell-theme-swipe-row{position:relative;overflow:hidden;background:var(--card)}.km-shell-theme-swipe-actions{position:absolute;z-index:0;inset:0 0 0 auto;display:flex;justify-content:flex-end}.km-shell-theme-swipe-action{width:84px;padding:0;border:0;border-radius:0;color:#fff!important;font:inherit;font-size:11px;font-weight:800;opacity:.62;transition:opacity .12s ease,filter .12s ease}.km-shell-theme-swipe-edit{background:var(--accent)}.km-shell-theme-swipe-delete{background:var(--bad,#d70015)}.km-shell-theme-swipe-archive{background:#8a6500}.km-shell-theme-swipe-row.swipe-edit-armed .km-shell-theme-swipe-edit,.km-shell-theme-swipe-row.delete-armed .km-shell-theme-swipe-delete,.km-shell-theme-swipe-row.delete-armed .km-shell-theme-swipe-archive{opacity:1;filter:brightness(1.12)}.km-shell-theme-swipe-surface{position:relative;z-index:1;background:var(--card);touch-action:pan-y;transition:transform .18s cubic-bezier(.2,.8,.2,1);user-select:none;-webkit-user-select:none}.km-shell-subtheme-item+.km-shell-subtheme-item{border-top:.5px solid var(--line)}.km-shell-subtheme-item .km-shell-subtheme-row{border:0}.km-shell-theme-editor{position:fixed;z-index:150;inset:0;display:flex;align-items:flex-end;justify-content:center;padding:18px;background:rgba(0,0,0,.42)}.km-shell-theme-editor-panel{width:min(100%,520px);padding:17px;border:1px solid var(--line);border-radius:20px;background:var(--bg);box-shadow:0 18px 54px rgba(0,0,0,.36)}.km-shell-theme-editor-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}.km-shell-theme-editor-head h2{margin:0;font-size:20px}.km-shell-theme-editor-close{width:38px;height:38px;border:0;border-radius:50%;background:var(--card2);color:var(--text);font-size:24px}.km-shell-theme-editor-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
-      body.km-shell-drawer-open .km-shell-tabbar,body.km-shell-settings-open .km-shell-tabbar,body.editor-view .km-shell-tabbar{opacity:0;transform:translate(-50%,18px) scale(.98);pointer-events:none}
+      body.km-shell-drawer-open .km-shell-tabbar,body.km-shell-drawer-peek .km-shell-tabbar,body.km-shell-settings-open .km-shell-tabbar,body.editor-view .km-shell-tabbar{opacity:0;transform:translate(-50%,18px) scale(.98);pointer-events:none}
       .shell{padding-bottom:calc(108px + env(safe-area-inset-bottom))!important}
       @keyframes kmTabPageIn{from{opacity:.72;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
       body.km-shell-tab-transition .shell{animation:kmTabPageIn .22s cubic-bezier(.22,1,.36,1) both}
@@ -365,7 +405,7 @@
       @keyframes kmSettingsForwardIn{from{opacity:.35;transform:translateX(24px)}to{opacity:1;transform:translateX(0)}}@keyframes kmSettingsBackIn{from{opacity:.35;transform:translateX(-24px)}to{opacity:1;transform:translateX(0)}}
       .km-shell-settings-content.km-settings-forward-in>*{animation:kmSettingsForwardIn .24s cubic-bezier(.22,1,.36,1) both}.km-shell-settings-content.km-settings-back-in>*{animation:kmSettingsBackIn .24s cubic-bezier(.22,1,.36,1) both}
       @media(max-width:480px){.km-shell-general-actions{grid-template-columns:1fr}}
-      .shell>#timeModuleRoot{position:relative;z-index:0}.km-shell-drawer-open .shell>#timeModuleRoot{pointer-events:none!important}.editor-view>.km-shell-menu-button{display:none!important}
+      .shell>#timeModuleRoot{position:relative;z-index:0}.km-shell-drawer-open .shell>#timeModuleRoot,.km-shell-drawer-peek .shell>#timeModuleRoot{pointer-events:none!important}.editor-view>.km-shell-menu-button,.editor-view>.km-shell-search-toggle{display:none!important}
       .km-shell-locations{padding:2px 0 28px}.km-shell-locations-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding:8px 1px 10px}.km-shell-locations-head h2{margin:2px 0 0;font-size:28px;letter-spacing:-.035em}.km-shell-location-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:5px 0 16px}.km-shell-location-actions button{min-height:44px}
       .km-shell-location-sort{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:4px;margin-bottom:8px;border:1px solid var(--line);border-radius:12px;background:var(--card)}.km-shell-location-sort button{min-height:34px;border:0;border-radius:8px;background:transparent;color:var(--muted);font-size:11px;font-weight:800}.km-shell-location-sort button.active{background:var(--card2);color:var(--text)}
       .km-shell-location-tree{border-top:1px solid var(--line)}.km-shell-location-node{--depth:0;margin-left:calc(var(--depth) * 20px)}.km-shell-location-swipe-row{position:relative;overflow:hidden;background:var(--card)}.km-shell-location-swipe-actions{position:absolute;z-index:0;inset:0 0 0 auto;display:flex;justify-content:flex-end}.km-shell-location-swipe-action{width:84px;padding:0;border:0;border-radius:0;color:#fff;font-size:11px;font-weight:800;opacity:.62;transition:opacity .12s ease,filter .12s ease}.km-shell-location-swipe-delete{background:#9b3037}.km-shell-location-swipe-edit{background:#2869b6}.km-shell-location-swipe-row.swipe-edit-armed .km-shell-location-swipe-edit,.km-shell-location-swipe-row.delete-armed .km-shell-location-swipe-delete{opacity:1;filter:brightness(1.12)}.km-shell-location-swipe-surface{position:relative;z-index:1;background:var(--card);touch-action:pan-y;transition:transform .18s cubic-bezier(.2,.8,.2,1);user-select:none;-webkit-user-select:none;cursor:pointer}.km-shell-location-row{display:grid;grid-template-columns:28px minmax(0,1fr) auto;align-items:center;gap:9px;min-height:58px;padding:10px 2px;border-bottom:1px solid var(--line)}.km-shell-location-node[data-depth="1"] .km-shell-location-row{position:relative}.km-shell-location-node[data-depth="1"] .km-shell-location-row::before{content:"";position:absolute;left:-12px;top:0;bottom:50%;width:9px;border-left:1px solid var(--line);border-bottom:1px solid var(--line);border-radius:0 0 0 6px}.km-shell-location-icon{display:flex;align-items:center;justify-content:center;width:27px;height:27px;border:1px solid var(--line);border-radius:9px;color:var(--muted);font-size:15px}.km-shell-location-copy{min-width:0}.km-shell-location-copy strong,.km-shell-location-copy small{display:block}.km-shell-location-copy strong{font-size:14px}.km-shell-location-copy small{margin-top:3px;color:var(--muted);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.km-shell-location-buttons{display:flex;align-items:center;gap:3px}.km-shell-location-buttons button{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;padding:0;border:0;border-radius:9px;background:transparent;color:var(--muted);font-size:19px}.km-shell-location-buttons button:active{background:var(--card2);color:var(--text)}.km-shell-location-chevron{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;color:var(--muted);font-size:19px}.km-shell-location-details{padding:10px 2px 12px 37px;border-bottom:1px solid var(--line);color:var(--muted);font-size:11px;line-height:1.5}.km-shell-location-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.km-shell-location-detail{padding:8px 0}.km-shell-location-detail span,.km-shell-location-detail strong{display:block}.km-shell-location-detail span{font-size:9px;text-transform:uppercase;letter-spacing:.06em}.km-shell-location-detail strong{margin-top:2px;color:var(--text);font-size:11px}.km-shell-child-add{margin-top:7px;padding:4px 0;border:0;background:transparent;color:var(--accent);font-size:11px;font-weight:800}.km-shell-empty{padding:24px 2px;color:var(--muted);font-size:13px}
@@ -467,20 +507,19 @@
       button,.btn,[role="button"],summary{touch-action:manipulation}
       .swipe-surface,.activity-swipe-surface,.km-shell-location-swipe-surface{touch-action:pan-y}
       /* Zoeken, compacte navigatie en eenduidige invoerschermen. */
-      .km-shell-search{position:sticky;top:calc(59px + env(safe-area-inset-top));z-index:39;display:flex;align-items:center;gap:7px;min-height:38px;margin:0 0 12px;padding:0 11px;border-radius:12px;background:color-mix(in srgb,var(--muted) 14%,var(--bg));color:var(--muted);transform:translateY(0);opacity:1;transition:transform .2s cubic-bezier(.22,1,.36,1),opacity .14s ease,box-shadow .2s ease;-webkit-backdrop-filter:blur(20px) saturate(170%);backdrop-filter:blur(20px) saturate(170%)}
-      body.km-shell-scrolled:not(.km-shell-search-revealed) .km-shell-search{transform:translateY(calc(-100% - 14px));opacity:0;pointer-events:none}
-      body.km-shell-search-revealed .km-shell-search{box-shadow:0 7px 18px color-mix(in srgb,#000 14%,transparent)}
+      .km-shell-search{position:sticky;top:calc(59px + env(safe-area-inset-top));z-index:39;display:flex;align-items:center;gap:7px;min-height:42px;margin:0 0 12px;padding:0 8px 0 11px;border-radius:12px;background:color-mix(in srgb,var(--muted) 14%,var(--bg));color:var(--muted);transform:translateY(-7px);opacity:0;max-height:0;overflow:hidden;pointer-events:none;transition:transform .2s cubic-bezier(.22,1,.36,1),opacity .14s ease,max-height .2s ease,margin .2s ease;-webkit-backdrop-filter:blur(20px) saturate(170%);backdrop-filter:blur(20px) saturate(170%)}
+      body.km-shell-search-open .km-shell-search{max-height:48px;transform:translateY(0);opacity:1;pointer-events:auto;box-shadow:0 7px 18px color-mix(in srgb,#000 10%,transparent)}
       .km-shell-search>span{font-size:20px;line-height:1;transform:rotate(-15deg)}
       .km-shell-search input{flex:1;min-width:0;height:38px;padding:0;border:0;outline:0;background:transparent;color:var(--text);font:inherit;font-size:16px}
       .km-shell-search input::placeholder{color:var(--muted)}
       .km-shell-search input::-webkit-search-cancel-button{display:none}
-      .km-shell-search button{width:25px;height:25px;padding:0;border:0;border-radius:50%;background:color-mix(in srgb,var(--muted) 28%,transparent);color:var(--bg);font-size:18px;line-height:1}
+      .km-shell-search button{flex:0 0 auto;width:28px;height:28px;padding:0;border:0;border-radius:50%;background:color-mix(in srgb,var(--muted) 24%,transparent);color:var(--text);font-size:18px;line-height:1}.km-shell-search button[hidden]{display:none}
       .km-shell-search-status{margin:-3px 0 14px;padding:20px 2px;color:var(--muted);font-size:13px;text-align:center}
       body.km-shell-scrolled .top.km-shell-top{min-height:59px!important;padding-top:calc(9px + env(safe-area-inset-top))!important;padding-bottom:9px!important}
       .top.km-shell-top,.km-shell-title,.km-shell-meta{transition:min-height .22s ease,padding .22s ease,font-size .22s ease,opacity .18s ease,margin .22s ease}
       body.km-shell-scrolled .km-shell-title{font-size:18px!important;letter-spacing:-.015em!important}
       body.km-shell-scrolled .km-shell-meta{height:0;margin:0!important;opacity:0;overflow:hidden}
-      body.editor-view .km-shell-top,body.editor-view .km-shell-search,body.editor-view .km-shell-search-status{display:none!important}
+      body.editor-view .km-shell-top,body.editor-view .km-shell-search,body.editor-view .km-shell-search-status,body.editor-view .km-shell-search-toggle{display:none!important}
       body.editor-view .editor-nav{z-index:40;background:color-mix(in srgb,var(--bg) 88%,transparent)!important;-webkit-backdrop-filter:blur(22px) saturate(170%);backdrop-filter:blur(22px) saturate(170%)}
       body.editor-view .editor-page .edit-section{margin:0 0 11px;padding:14px;border:.5px solid var(--line)!important;border-radius:16px;background:var(--card)}
       body.editor-view .editor-page .edit-section:first-of-type{padding-top:14px!important;border-top:.5px solid var(--line)!important}
@@ -511,6 +550,12 @@
         .km-shell-backdrop{z-index:21!important;inset:0 0 0 min(90vw,360px)!important;background:rgba(0,0,0,.1)!important}
         body.km-shell-drawer-open .shell{transform:translateX(min(90vw,360px));border-radius:22px 0 0 22px;box-shadow:-14px 0 38px rgba(0,0,0,.24)}
         body.km-shell-drawer-open .km-shell-menu-button{transform:translateX(min(90vw,360px))}
+        body.km-shell-drawer-open .km-shell-search-toggle{opacity:0;pointer-events:none}
+        body.km-shell-drawer-peek .km-shell-drawer.open{transform:none!important;opacity:1;pointer-events:auto}
+        body.km-shell-drawer-peek .shell{transform:translateX(min(46vw,180px));border-radius:18px 0 0 18px;box-shadow:-10px 0 28px rgba(0,0,0,.2)}
+        body.km-shell-drawer-peek .km-shell-menu-button{transform:translateX(min(46vw,180px))}
+        body.km-shell-drawer-peek .km-shell-search-toggle{opacity:0;pointer-events:none}
+        body.km-shell-drawer-peek .km-shell-backdrop{left:min(46vw,180px)!important}
         body.km-shell-settings-open .km-shell-drawer{opacity:0!important;pointer-events:none!important;transform:none!important}
       }
       @media(prefers-color-scheme:light){.km-shell-drawer{background:rgba(255,255,255,.97);box-shadow:18px 0 52px rgba(30,45,65,.16)}.km-shell-settings-head{background:rgba(245,245,247,.93)}.km-shell-backdrop{background:rgba(0,0,0,.22)}.km-shell-settings{background:rgba(0,0,0,.22)}}
@@ -531,15 +576,18 @@
       .km-shell-settings-group-head p{margin-top:4px!important;font-size:12px!important}
       .km-shell-settings-accordion summary:focus-visible,.km-shell-nav-button:focus-visible,.km-shell-tab-button:focus-visible,.km-shell-menu-button:focus-visible,.km-shell-settings-close:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
       .km-shell-settings-panel-host>#app details.accordion>summary{min-height:58px}
-      .km-shell-module-settings{gap:0;overflow:hidden;border:.5px solid var(--line);border-radius:14px;background:var(--card)}
-      .km-shell-module-row{grid-template-columns:44px minmax(0,1fr) auto;min-height:64px;padding:9px 10px 9px 7px;border:0;border-radius:0;background:transparent}
-      .km-shell-module-row:not(:last-child){border-bottom:.5px solid var(--line)}
+      .km-shell-module-settings{gap:16px}
+      .km-shell-module-row{grid-template-columns:44px minmax(0,1fr);min-height:60px;padding:8px 10px 8px 7px;border-radius:0;background:transparent}
       .km-shell-module-row.is-dragging{border-radius:12px;border-bottom-color:transparent}
       .km-shell-module-handle{display:inline-flex}
       .km-shell-module-copy strong{font-size:15px;font-weight:620}
       .km-shell-module-copy small{font-size:11px;line-height:1.35}
       .km-shell-module-toggle input{width:42px;height:24px}
       @media(max-width:390px){.km-shell-tab-button{font-size:9px}.km-shell-tab-button svg{width:21px;height:21px}.km-shell-title{font-size:29px!important}}
+      .km-shell-theme-row{grid-template-columns:8px minmax(0,1fr) auto!important;gap:9px!important;padding-left:12px!important}.km-shell-theme-color{width:8px;height:32px;border-radius:5px;background:var(--theme-color,var(--accent))}
+      .km-shell-location-icon svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.km-shell-location-icon:has(svg[data-location-type="home"]){color:#30a46c!important}.km-shell-location-icon:has(svg[data-location-type="work"]){color:#0a84ff!important}.km-shell-location-icon:has(svg[data-location-type="business"]){color:#af52de!important}.km-shell-location-icon:has(svg[data-location-type="private"]){color:#ff9f0a!important}
+      .km-shell-search select{flex:0 1 126px;max-width:126px;height:32px;padding:0 24px 0 8px;border:.5px solid var(--line);border-radius:9px;background:var(--card);color:var(--text);font-size:11px;font-weight:650}.km-shell-search select[hidden]{display:none}
+      .km-shell-search{margin-bottom:0!important}body.km-shell-search-open .km-shell-search{margin-bottom:12px!important}
       @media(prefers-reduced-motion:reduce){.shell,.km-shell-menu-button,.km-shell-drawer,.km-shell-backdrop,.km-shell-settings,.km-shell-settings-surface,.km-shell-tabbar,.km-shell-tab-button{transition:none!important}.km-shell-settings-content>*,body.km-shell-tab-transition .shell{animation:none!important}}
     `;
     document.head.appendChild(style);
@@ -577,8 +625,14 @@
     meta.textContent = moduleById(section)?.subtitle || '';
     copy.appendChild(meta);
 
-    const spacer = document.createElement('span');
-    spacer.className = 'km-shell-top-spacer';
+    const searchToggle = document.createElement('button');
+    searchToggle.id = 'kmShellSearchToggle';
+    searchToggle.className = 'km-shell-search-toggle';
+    searchToggle.type = 'button';
+    searchToggle.setAttribute('aria-label', 'Zoeken openen');
+    searchToggle.setAttribute('aria-controls', 'kmShellSearch');
+    searchToggle.setAttribute('aria-expanded', 'false');
+    searchToggle.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>';
     const legacy = document.createElement('div');
     legacy.className = 'km-shell-legacy';
     if (legacyMode) legacy.appendChild(legacyMode);
@@ -590,13 +644,20 @@
     menuSlot.setAttribute('aria-hidden', 'true');
     top.innerHTML = '';
     top.classList.add('km-shell-top');
-    top.append(menuSlot, copy, spacer, legacy);
+    top.append(menuSlot, copy, searchToggle, legacy);
 
     const search = document.createElement('div');
     search.id = 'kmShellSearch';
     search.className = 'km-shell-search';
-    search.innerHTML = '<span aria-hidden="true">⌕</span><input id="kmShellSearchInput" type="search" autocomplete="off" enterkeyhint="search" aria-label="Zoeken"><button id="kmShellSearchClear" type="button" aria-label="Zoekopdracht wissen" hidden>×</button>';
+    search.innerHTML = '<span aria-hidden="true">⌕</span><input id="kmShellSearchInput" type="search" autocomplete="off" enterkeyhint="search" aria-label="Zoeken"><select id="kmShellThemeFilter" aria-label="Filter op thema" hidden><option value="all">Alle thema’s</option></select><button id="kmShellSearchClear" type="button" aria-label="Zoekopdracht wissen" hidden>×</button><button id="kmShellSearchClose" type="button" aria-label="Zoeken sluiten">×</button>';
     top.insertAdjacentElement('afterend', search);
+    const setSearchOpen = open => {
+      document.body.classList.toggle('km-shell-search-open', open);
+      searchToggle.setAttribute('aria-expanded', String(open));
+      searchToggle.setAttribute('aria-label', open ? 'Zoeken sluiten' : 'Zoeken openen');
+      if (open) requestAnimationFrame(() => $('#kmShellSearchInput', search)?.focus());
+    };
+    searchToggle.addEventListener('click', () => setSearchOpen(!document.body.classList.contains('km-shell-search-open')));
     $('#kmShellSearchInput', search).addEventListener('input', event => {
       $('#kmShellSearchClear', search).hidden = !event.target.value;
       applyShellSearch();
@@ -608,11 +669,22 @@
       $('#kmShellSearchClear', search).hidden = true;
       applyShellSearch();
     });
+    $('#kmShellThemeFilter', search).addEventListener('change', applyShellSearch);
+    $('#kmShellSearchClose', search).addEventListener('click', () => {
+      const input = $('#kmShellSearchInput', search);
+      if (input) input.value = '';
+      const filter = $('#kmShellThemeFilter', search);
+      if (filter) filter.value = 'all';
+      $('#kmShellSearchClear', search).hidden = true;
+      applyShellSearch();
+      setSearchOpen(false);
+    });
 
     document.body.appendChild(menu);
     menu.addEventListener('click', () => {
-      if (drawerOpen) closeDrawer();
-      else openDrawer();
+      if (!drawerOpen) openDrawer('peek');
+      else if (drawerPeek) openDrawer('full');
+      else closeDrawer();
     });
 
     if (today) {
@@ -688,11 +760,13 @@
     renderNavigation();
   }
 
-  function openDrawer() {
+  function openDrawer(mode = 'full') {
     if ($('#kmShellSettings')?.classList.contains('open')) return;
     drawerOpen = true;
+    drawerPeek = mode === 'peek';
     localStorage.setItem(DRAWER_KEY, '1');
-    document.body.classList.add('km-shell-drawer-open');
+    document.body.classList.toggle('km-shell-drawer-peek', drawerPeek);
+    document.body.classList.toggle('km-shell-drawer-open', !drawerPeek);
     $('#kmShellMenuButton')?.setAttribute('aria-expanded', 'true');
     $('#kmShellDrawer')?.classList.add('open');
     $('#kmShellBackdrop')?.classList.add('open');
@@ -701,21 +775,22 @@
 
   function closeDrawer() {
     drawerOpen = false;
+    drawerPeek = false;
     localStorage.removeItem(DRAWER_KEY);
-    document.body.classList.remove('km-shell-drawer-open');
+    document.body.classList.remove('km-shell-drawer-open', 'km-shell-drawer-peek');
     $('#kmShellMenuButton')?.setAttribute('aria-expanded', 'false');
     $('#kmShellDrawer')?.classList.remove('open');
     $('#kmShellBackdrop')?.classList.remove('open');
   }
 
   function syncDrawerSelection() {
-    $('.km-shell-nav-button').forEach(button => {
+    $$('.km-shell-nav-button').forEach(button => {
       const active = button.dataset.shellSection === section;
       button.classList.toggle('active', active);
       if (active) button.setAttribute('aria-current', 'page');
       else button.removeAttribute('aria-current');
     });
-    const directTabs = $('.km-shell-tab-button[data-shell-tab]');
+    const directTabs = $$('.km-shell-tab-button[data-shell-tab]');
     directTabs.forEach(button => {
       const active = button.dataset.shellTab === section;
       button.classList.toggle('active', active);
@@ -765,12 +840,35 @@
     input.placeholder = labels[section] || `Zoek in ${moduleById(section)?.label?.toLocaleLowerCase('nl-NL') || 'onderdelen'}`;
   }
 
+  function updateThemeFilterOptions() {
+    const select = $('#kmShellThemeFilter');
+    if (!select) return;
+    select.hidden = section !== 'time';
+    if (section !== 'time') return;
+    const previous = select.value || 'all';
+    let time = {};
+    try { time = JSON.parse(localStorage.getItem('urenregistratie.test.pwa.v1') || '{}'); } catch (_) {}
+    const themes = Array.isArray(time.themes) ? [...time.themes] : [];
+    const subthemes = Array.isArray(time.subthemes) ? time.subthemes : [];
+    themes.sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'nl', { sensitivity: 'base' }));
+    const optionsHtml = '<option value="all">Alle thema’s</option>' + themes.map(theme => {
+      const children = subthemes.filter(item => String(item.themeId) === String(theme.id)).sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'nl', { sensitivity: 'base' }));
+      return `<option value="theme:${esc(theme.id)}">${esc(theme.name || 'Thema')}</option>${children.map(subtheme => `<option value="subtheme:${esc(subtheme.id)}">↳ ${esc(subtheme.name || 'Subthema')}</option>`).join('')}`;
+    }).join('');
+    if (select.innerHTML !== optionsHtml) select.innerHTML = optionsHtml;
+    select.value = [...select.options].some(option => option.value === previous) ? previous : 'all';
+  }
+
   function resetShellSearch() {
     const input = $('#kmShellSearchInput');
     if (input) input.value = '';
     const clear = $('#kmShellSearchClear');
     if (clear) clear.hidden = true;
+    const filter = $('#kmShellThemeFilter');
+    if (filter) filter.value = 'all';
     document.body.classList.remove('km-shell-searching');
+    document.body.classList.remove('km-shell-search-open');
+    $('#kmShellSearchToggle')?.setAttribute('aria-expanded', 'false');
     applyShellSearch();
   }
 
@@ -786,7 +884,8 @@
 
   function applyShellSearch() {
     const query = currentSearchValue();
-    document.body.classList.toggle('km-shell-searching', Boolean(query));
+    const themeFilter = section === 'time' ? ($('#kmShellThemeFilter')?.value || 'all') : 'all';
+    document.body.classList.toggle('km-shell-searching', Boolean(query) || themeFilter !== 'all');
     let visible = 0;
     if (section === 'rides') {
       const nodes = $$('#app .trip-entry');
@@ -800,12 +899,19 @@
     } else if (section === 'themes') {
       visible = setSearchMatches($$('#kmShellThemesView .km-shell-theme-node'), query);
     } else {
-      visible = setSearchMatches($$('#timeModuleRoot .activity-entry-shell'), query);
+      const nodes = $$('#timeModuleRoot .activity-entry-shell');
+      for (const node of nodes) {
+        const queryMatch = !query || normalizedSearch(node.textContent).includes(query);
+        const filterMatch = themeFilter === 'all' || (themeFilter.startsWith('theme:') && String(node.dataset.themeId) === themeFilter.slice(6)) || (themeFilter.startsWith('subtheme:') && String(node.dataset.subthemeId) === themeFilter.slice(9));
+        node.hidden = !(queryMatch && filterMatch);
+        if (!node.hidden) visible += 1;
+      }
     }
     const status = $('#kmShellSearchStatus');
     if (status) {
-      status.hidden = !query || visible > 0;
-      status.textContent = query && visible === 0 ? 'Geen resultaten gevonden.' : '';
+      const filtering = Boolean(query) || themeFilter !== 'all';
+      status.hidden = !filtering || visible > 0;
+      status.textContent = filtering && visible === 0 ? 'Geen resultaten gevonden.' : '';
     }
   }
 
@@ -1041,7 +1147,7 @@
         .sort((a, b) => (Number(b.usageCount) || 0) - (Number(a.usageCount) || 0) || String(a.name).localeCompare(String(b.name), 'nl', { sensitivity: 'base' }));
       const expanded = String(expandedThemeId) === String(theme.id);
       const details = expanded ? `<div class="km-shell-theme-details"><div class="km-shell-subtheme-list">${subthemes.length ? subthemes.map(subtheme => `<div class="km-shell-subtheme-item"><div class="km-shell-theme-swipe-row" data-shell-theme-swipe="${esc(subtheme.id)}" data-shell-theme-type="subtheme">${themeSwipeActions(subtheme.id, 'subtheme')}<div class="km-shell-subtheme-row km-shell-theme-swipe-surface"><div class="km-shell-subtheme-copy"><strong><span class="km-shell-subtheme-branch" aria-hidden="true">↳</span>${esc(subtheme.name)}</strong><small>${Number(subtheme.usageCount) || 0}× gebruikt</small></div><span class="km-shell-location-chevron" aria-hidden="true">›</span></div></div></div>`).join('') : '<div class="km-shell-empty">Nog geen subthema’s.</div>'}</div><div class="km-shell-subtheme-create"><div class="field"><label for="kmShellNewSubtheme-${esc(theme.id)}">Nieuw subthema</label><input id="kmShellNewSubtheme-${esc(theme.id)}" data-new-subtheme="${esc(theme.id)}" autocomplete="off" placeholder="Naam"></div><button type="button" class="btn" data-add-subtheme="${esc(theme.id)}">Toevoegen</button></div></div>` : '';
-      return `<section class="km-shell-theme-node" data-theme-node="${esc(theme.id)}"><span class="km-shell-legacy">${esc(subthemes.map(subtheme => subtheme.name).join(' '))}</span><div class="km-shell-theme-swipe-row" data-shell-theme-swipe="${esc(theme.id)}" data-shell-theme-type="theme">${themeSwipeActions(theme.id, 'theme')}<div class="km-shell-theme-row km-shell-theme-swipe-surface" data-theme-toggle="${esc(theme.id)}"><div class="km-shell-theme-row-copy"><strong>${esc(theme.name)}</strong><small>${subthemes.length} ${subthemes.length === 1 ? 'subthema' : 'subthema’s'} · ${Number(theme.usageCount) || 0}× gebruikt</small></div><button type="button" class="km-shell-theme-action km-shell-theme-toggle" data-theme-expand="${esc(theme.id)}" aria-expanded="${expanded}" aria-label="${expanded ? 'Subthema’s sluiten' : 'Subthema’s tonen'}">${expanded ? '⌄' : '›'}</button></div></div>${details}</section>`;
+      return `<section class="km-shell-theme-node" data-theme-node="${esc(theme.id)}" style="--theme-color:${themeColor(theme.id || theme.name)}"><span class="km-shell-legacy">${esc(subthemes.map(subtheme => subtheme.name).join(' '))}</span><div class="km-shell-theme-swipe-row" data-shell-theme-swipe="${esc(theme.id)}" data-shell-theme-type="theme">${themeSwipeActions(theme.id, 'theme')}<div class="km-shell-theme-row km-shell-theme-swipe-surface" data-theme-toggle="${esc(theme.id)}"><span class="km-shell-theme-color" aria-hidden="true"></span><div class="km-shell-theme-row-copy"><strong>${esc(theme.name)}</strong><small>${subthemes.length} ${subthemes.length === 1 ? 'subthema' : 'subthema’s'} · ${Number(theme.usageCount) || 0}× gebruikt</small></div><button type="button" class="km-shell-theme-action km-shell-theme-toggle" data-theme-expand="${esc(theme.id)}" aria-expanded="${expanded}" aria-label="${expanded ? 'Subthema’s sluiten' : 'Subthema’s tonen'}">${expanded ? '⌄' : '›'}</button></div></div>${details}</section>`;
     }).join('');
     const archiveRecords = window.LogTimeRemovalPolicy?.themeArchiveRecords?.() || [];
     const archive = archiveRecords.length ? `<details class="km-shell-theme-archive"><summary><span class="km-shell-theme-archive-copy"><strong>Archief</strong><small>${archiveRecords.length} ${archiveRecords.length === 1 ? 'item' : 'items'} · tik om te herstellen</small></span><span aria-hidden="true">›</span></summary><div class="km-shell-theme-archive-body">${archiveRecords.map(record => `<div class="km-shell-theme-archive-row"><div><strong>${esc(window.LogTimeRemovalPolicy?.archiveRecordName?.(record) || 'Thema')}</strong><small>${record.entityType === 'theme' ? 'Thema' : 'Subthema'}</small></div><button type="button" data-log-time-restore="${esc(record.batchId)}">Herstel</button></div>`).join('')}</div></details>` : '';
@@ -1198,6 +1304,7 @@
       if (meta.textContent !== wantedMeta) meta.textContent = wantedMeta;
     }
     updateSearchPlaceholder();
+    updateThemeFilterOptions();
     syncDrawerSelection();
   }
 
@@ -1653,18 +1760,14 @@
 
   function moduleConfigurationFromHost(host) {
     const current = moduleConfiguration();
-    const remaining = new Map(current.map(item => [item.id, item]));
-    const ordered = [];
-    for (const id of moduleRowIds(host)) {
-      const item = remaining.get(id);
-      if (!item) continue;
-      ordered.push({ ...item, order: ordered.length });
-      remaining.delete(id);
-    }
-    for (const item of current) {
-      if (remaining.has(item.id)) ordered.push({ ...item, order: ordered.length });
-    }
-    return ordered;
+    const surface = host.dataset.moduleSurface === 'menu' ? 'menu' : 'bottom';
+    const orderKey = surface === 'menu' ? 'menuOrder' : 'bottomOrder';
+    const byId = new Map(current.map(item => [item.id, { ...item }]));
+    moduleRowIds(host).forEach((id, order) => {
+      const item = byId.get(id);
+      if (item) item[orderKey] = order;
+    });
+    return current.map(item => byId.get(item.id) || item);
   }
 
   function bindModuleReordering(host) {
@@ -1816,12 +1919,20 @@
     const host = $('#kmShellModuleSettings');
     if (!host) return;
     const config = moduleConfiguration();
-    host.innerHTML = config.map(item => {
+    const placementRows = config.map(item => {
       const module = moduleById(item.id);
       const label = module?.label || item.id;
-      return `<div class="km-shell-module-row" data-module-id="${esc(item.id)}" aria-grabbed="false"><button class="km-shell-module-handle" type="button" data-module-drag-handle aria-label="${esc(label)} verplaatsen" title="Sleep om te verplaatsen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h14"/></svg></button><div class="km-shell-module-copy"><strong>${esc(label)}</strong><small>${esc(module?.subtitle || '')}${module?.placeholder ? ' · in voorbereiding' : ''}</small></div><div class="km-shell-module-controls"><label class="km-shell-module-toggle" aria-label="${esc(label)} tonen"><input type="checkbox" data-module-toggle="${esc(item.id)}" ${item.enabled ? 'checked' : ''}></label></div></div>`;
+      return `<div class="km-shell-module-position-row" data-module-id="${esc(item.id)}"><div class="km-shell-module-copy"><strong>${esc(label)}</strong><small>${esc(module?.subtitle || '')}${module?.placeholder ? ' · in voorbereiding' : ''}</small></div><label class="km-shell-module-placement"><span class="km-shell-legacy">Positie</span><select data-module-placement="${esc(item.id)}" aria-label="Positie van ${esc(label)}"><option value="both" ${item.placement === 'both' ? 'selected' : ''}>Beide</option><option value="bottom" ${item.placement === 'bottom' ? 'selected' : ''}>Onderbalk</option><option value="menu" ${item.placement === 'menu' ? 'selected' : ''}>Menu</option><option value="hidden" ${item.placement === 'hidden' ? 'selected' : ''}>Verborgen</option></select></label></div>`;
     }).join('');
-    bindModuleReordering(host);
+    const orderList = surface => config
+      .filter(item => item.placement === 'both' || item.placement === surface)
+      .sort((a, b) => a[surface === 'bottom' ? 'bottomOrder' : 'menuOrder'] - b[surface === 'bottom' ? 'bottomOrder' : 'menuOrder'])
+      .map(item => {
+        const label = moduleById(item.id)?.label || item.id;
+        return `<div class="km-shell-module-row" data-module-id="${esc(item.id)}" aria-grabbed="false"><button class="km-shell-module-handle" type="button" data-module-drag-handle aria-label="${esc(label)} verplaatsen" title="Sleep om te verplaatsen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h14"/></svg></button><div class="km-shell-module-copy"><strong>${esc(label)}</strong><small>${surface === 'bottom' ? 'Onderbalk' : 'Zijmenu'}</small></div></div>`;
+      }).join('') || '<div class="km-shell-module-order-empty">Geen modules gekozen.</div>';
+    host.innerHTML = `<div class="km-shell-module-position-list">${placementRows}</div><div class="km-shell-module-order-group"><strong>Volgorde onderbalk</strong><small>Sleep de onderdelen naar de gewenste plaats.</small><div class="km-shell-module-order-list" data-module-surface="bottom">${orderList('bottom')}</div></div><div class="km-shell-module-order-group"><strong>Volgorde menu</strong><small>Deze volgorde staat los van de onderbalk.</small><div class="km-shell-module-order-list" data-module-surface="menu">${orderList('menu')}</div></div>`;
+    $$('.km-shell-module-order-list', host).forEach(bindModuleReordering);
   }
 
   function renderGeneralSettings() {
@@ -1842,8 +1953,8 @@
           ${generalSettingsAccordion('kmShellLocationSettings', 'Locaties', 'Herkenning en verwijderen', '<div class="km-shell-settings-panel-host"></div>', 'locations')}
         </section>
         <section class="km-shell-settings-group" aria-labelledby="kmShellAppSettingsTitle">
-          <header class="km-shell-settings-group-head"><h2 id="kmShellAppSettingsTitle">App</h2><p>Bepaal welke onderdelen zichtbaar zijn en in welke volgorde.</p></header>
-          ${generalSettingsAccordion('kmShellModuleSettingsAccordion', 'Onderdelen en volgorde', 'Kies wat zichtbaar is en sleep aan het handvat voor de volgorde', '<div id="kmShellModuleSettings" class="km-shell-module-settings"></div>')}
+          <header class="km-shell-settings-group-head"><h2 id="kmShellAppSettingsTitle">App</h2><p>Bepaal per onderdeel waar het staat en in welke volgorde.</p></header>
+          ${generalSettingsAccordion('kmShellModuleSettingsAccordion', 'Onderdelen en volgorde', 'Kies onderbalk, menu, beide of verborgen', '<div id="kmShellModuleSettings" class="km-shell-module-settings"></div>')}
         </section>
         <section class="km-shell-settings-group" aria-labelledby="kmShellDataSettingsTitle">
           <header class="km-shell-settings-group-head"><h2 id="kmShellDataSettingsTitle">Gegevens</h2><p>Back-up en herstel gelden voor de volledige Log-app.</p></header>
@@ -1865,18 +1976,19 @@
 
     renderModuleSettings();
     content.querySelector('#kmShellModuleSettings')?.addEventListener('change', event => {
-      const toggle = event.target.closest('[data-module-toggle]');
-      if (!toggle) return;
+      const placement = event.target.closest('[data-module-placement]');
+      if (!placement) return;
       const config = moduleConfiguration();
-      const item = config.find(entry => entry.id === toggle.dataset.moduleToggle);
+      const item = config.find(entry => entry.id === placement.dataset.modulePlacement);
       if (!item) return;
-      item.enabled = toggle.checked;
-      if (!config.some(entry => entry.enabled)) {
-        item.enabled = true;
-        toggle.checked = true;
+      const previous = item.placement;
+      item.placement = placement.value;
+      if (!config.some(entry => entry.placement !== 'hidden')) {
+        item.placement = previous;
+        placement.value = previous;
         return;
       }
-      saveModuleConfiguration(config);
+      saveModuleConfiguration(config, item.id);
     });
     content.querySelector('[data-general-action="backup-export"]')?.addEventListener('click', () => {
       const status = $('#kmShellBackupStatus');
@@ -2115,6 +2227,8 @@
     document.body.style.overflow = '';
     // Het zijpaneel blijft bewust open staan achter de sheet.
     drawerOpen = true;
+    drawerPeek = false;
+    document.body.classList.remove('km-shell-drawer-peek');
     document.body.classList.add('km-shell-drawer-open');
     $('#kmShellMenuButton')?.setAttribute('aria-expanded', 'true');
     $('#kmShellDrawer')?.classList.add('open');

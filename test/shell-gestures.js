@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const BUILD='0.31.10-test.79';
+  const BUILD='0.31.10-test.80';
   const HORIZONTAL_RATIO=1.25;
   const SNAP_PROGRESS=0.28;
   const FLING_VELOCITY=0.45;
@@ -18,7 +18,11 @@
   const clamp=(value,min=0,max=1)=>Math.min(max,Math.max(min,value));
 
   function drawerOpen(){
-    return document.body.classList.contains('km-shell-drawer-open')&&$('#kmShellDrawer')?.classList.contains('open');
+    return (document.body.classList.contains('km-shell-drawer-open')||document.body.classList.contains('km-shell-drawer-peek'))&&$('#kmShellDrawer')?.classList.contains('open');
+  }
+
+  function drawerPeek(){
+    return document.body.classList.contains('km-shell-drawer-peek')&&$('#kmShellDrawer')?.classList.contains('open');
   }
 
   function blockedByOverlay(){
@@ -46,9 +50,10 @@
     style.textContent=`
       body.km-shell-gesture-active{overscroll-behavior:none}
       body.km-shell-gesture-active .shell>#timeModuleRoot,
-      body.km-shell-drawer-open .shell>#timeModuleRoot{pointer-events:none!important;-webkit-backface-visibility:hidden;backface-visibility:hidden;transform:translateZ(0)!important}
-      body.km-shell-drawer-open #kmShellDrawer{overscroll-behavior:contain}
-      body.km-shell-drawer-open #kmShellBackdrop{touch-action:none}
+      body.km-shell-drawer-open .shell>#timeModuleRoot,
+      body.km-shell-drawer-peek .shell>#timeModuleRoot{pointer-events:none!important;-webkit-backface-visibility:hidden;backface-visibility:hidden;transform:translateZ(0)!important}
+      body.km-shell-drawer-open #kmShellDrawer,body.km-shell-drawer-peek #kmShellDrawer{overscroll-behavior:contain}
+      body.km-shell-drawer-open #kmShellBackdrop,body.km-shell-drawer-peek #kmShellBackdrop{touch-action:none}
     `;
     document.head.appendChild(style);
   }
@@ -197,7 +202,7 @@
       shell.style.setProperty('box-shadow',`-${Math.round(14*progress)}px 0 ${Math.round(38*progress)}px rgba(0,0,0,${(0.24*progress).toFixed(3)})`,'important');
     }
     if(menu)menu.style.setProperty('transform',`translate3d(${x}px,0,0)`,'important');
-    if(drawer)drawer.style.setProperty('opacity',String(progress),'important');
+    if(drawer)drawer.style.setProperty('opacity',String(clamp(progress*2)),'important');
     if(backdrop){
       backdrop.style.setProperty('left',`${x}px`,'important');
       backdrop.style.setProperty('opacity',String(progress),'important');
@@ -245,8 +250,9 @@
   function settleGesture(target){
     const mode=gesture?.mode;
     animateGestureTo(target,()=>{
-      if(target===1&&mode==='open')requestOpenDrawer();
-      else if(target===0&&mode==='close')requestCloseDrawer();
+      if(target===0&&(mode==='close'||mode==='peek'))requestCloseDrawer();
+      else if(target===0.5&&mode==='open')requestOpenDrawer();
+      else if(target===1&&mode==='peek')$('#kmShellMenuButton')?.click();
       requestAnimationFrame(()=>{
         cleanupVisualGesture();
         gesture=null;
@@ -260,6 +266,7 @@
     const point=touchPoint(event);
     if(!point)return;
     const open=drawerOpen();
+    const peek=drawerPeek();
     if(!open&&blockedByOverlay())return;
     if(!open&&(isInteractiveTarget(event.target)||hasOwnGesture(event.target)))return;
     gesture={
@@ -267,10 +274,10 @@
       startY:point.clientY,
       dx:0,
       dy:0,
-      mode:open?'close':'open',
+      mode:peek?'peek':open?'close':'open',
       horizontal:false,
       visualActive:false,
-      progress:open?1:0,
+      progress:peek?0.5:open?1:0,
       velocityX:0,
       lastX:point.clientX,
       lastTime:performance.now()
@@ -297,7 +304,7 @@
     gesture.lastX=point.clientX;
     gesture.lastTime=now;
 
-    const correctDirection=gesture.mode==='open'?gesture.dx>0:gesture.dx<0;
+    const correctDirection=gesture.mode==='open'?gesture.dx>0:gesture.mode==='close'?gesture.dx<0:true;
     if(!correctDirection)return;
     if(event.cancelable)event.preventDefault();
 
@@ -306,7 +313,9 @@
       const shift=gesture.shift||drawerShift();
       const progress=gesture.mode==='open'
         ? clamp(gesture.dx/shift)
-        : clamp(1+gesture.dx/shift);
+        : gesture.mode==='peek'
+          ? clamp(0.5+gesture.dx/shift)
+          : clamp(1+gesture.dx/shift);
       applyGestureProgress(progress);
     }
   }
@@ -315,16 +324,22 @@
     if(!gesture||animating)return;
     if(!gesture.horizontal||!gesture.visualActive){gesture=null;return;}
     const current=gesture;
+    if(current.mode==='peek'){
+      if(current.progress>=0.68||current.velocityX>=FLING_VELOCITY)settleGesture(1);
+      else if(current.progress<=0.32||current.velocityX<=-FLING_VELOCITY)settleGesture(0);
+      else settleGesture(0.5);
+      return;
+    }
     const forward=current.mode==='open'
       ? current.progress>=SNAP_PROGRESS||current.velocityX>=FLING_VELOCITY
       : current.progress<=1-SNAP_PROGRESS||current.velocityX<=-FLING_VELOCITY;
-    settleGesture(current.mode==='open'?(forward?1:0):(forward?0:1));
+    settleGesture(current.mode==='open'?(forward?0.5:0):(forward?0:1));
   }
 
   function cancelGesture(){
     if(!gesture||animating)return;
     if(!gesture.visualActive){gesture=null;return;}
-    settleGesture(gesture.mode==='open'?0:1);
+    settleGesture(gesture.mode==='open'?0:gesture.mode==='peek'?0.5:1);
   }
 
   function bindGestureDocument(doc){
