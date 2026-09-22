@@ -286,16 +286,11 @@
 
     period.classList.add('period-overview', 'period-entry-mode');
     period.innerHTML = `
-      <div class="inline-register-head">
-        <div>
-          <div class="kicker">Taak registreren</div>
-          <h2>Start je taak</h2>
-        </div>
-      </div>
       ${state.themes.length ? `
         <div class="inline-fields">
-          <label class="inline-field"><span>Thema</span><select id="inlineTaskTheme">${themeOptions(selectedThemeId)}</select></label>
-          <label class="inline-field"><span>Subthema</span><select id="inlineTaskSub">${selectedThemeId ? subthemeOptions(selectedThemeId, selectedSubId) : '<option value="">Geen subthema</option>'}</select></label>
+          <label class="inline-field"><select id="inlineTaskTheme" aria-label="Thema">${themeOptions(selectedThemeId)}</select></label>
+          <label class="inline-field"><select id="inlineTaskSub" aria-label="Subthema">${selectedThemeId ? subthemeOptions(selectedThemeId, selectedSubId) : '<option value="">Geen subthema</option>'}</select></label>
+          ${suggestionValue ? `<div id="inlineTaskSuggestion" class="inline-task-suggestion">Voorstel: ${safeText(suggestionValue.theme.name)}${suggestionValue.sub ? ` · ${safeText(suggestionValue.sub.name)}` : ''} · gebaseerd op eerder gebruik, dag en tijdstip.</div>` : ''}
           <label class="inline-field inline-field-wide"><span>Locatie <small>optioneel</small></span><input id="inlineTaskLocation" value="${safeText(suggestionValue?.locationName || '')}" placeholder="Bijvoorbeeld kantoor"></label>
         </div>
         <button id="startInlineTask" class="btn primary full start-confirm">Start taak</button>
@@ -319,9 +314,12 @@
 
     const themeSelect = $('#inlineTaskTheme');
     const subSelect = $('#inlineTaskSub');
+    const suggestionHint = $('#inlineTaskSuggestion');
     themeSelect?.addEventListener('change', () => {
       subSelect.innerHTML = themeSelect.value ? subthemeOptions(themeSelect.value) : '<option value="">Geen subthema</option>';
+      if (suggestionHint) suggestionHint.hidden = true;
     });
+    subSelect?.addEventListener('change', () => { if (suggestionHint) suggestionHint.hidden = true; });
 
     $('#startInlineTask')?.addEventListener('click', () => {
       const theme = state.themes.find(t => t.id === themeSelect.value);

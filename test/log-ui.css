@@ -74,6 +74,7 @@ button,input,select,textarea{font:inherit}
 .btn{min-height:47px;padding:12px 15px;border-radius:var(--log-control-radius)!important;box-shadow:none!important;font-weight:750}
 .btn.primary,.btn:not(.secondary):not(.danger):not(.ghost){background:var(--accent);color:#fff}
 .btn.secondary{border:var(--log-hairline) solid var(--line);background:var(--surface2);color:var(--text)}
+.app-shell .home-action.context-preparing .home-action-button.task-cancel-button{background:transparent!important;border:0!important;color:var(--muted)!important;box-shadow:none!important}
 .btn.ghost{background:transparent;color:var(--accent)}
 .btn.danger{background:color-mix(in srgb,var(--bad) 18%,var(--surface));color:var(--bad)}
 .btn:active,.mini:active,.iconbtn:active,.action:active{opacity:.68}

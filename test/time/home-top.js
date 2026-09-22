@@ -39,6 +39,7 @@
     button.hidden = false;
     if (button.textContent !== label) button.textContent = label;
     button.classList.toggle('primary', !preparing);
+    button.classList.toggle('secondary', preparing);
     button.classList.toggle('task-cancel-button', preparing);
   }
 

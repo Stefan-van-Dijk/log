@@ -62,6 +62,7 @@
 .inline-field>span small{font-size:9px;text-transform:none;letter-spacing:0;font-weight:600}
 .inline-field select,.inline-field input{min-height:34px;padding:0;border:0;background:transparent;border-radius:0}
 .inline-field select:focus,.inline-field input:focus{outline:0;border:0}
+.inline-task-suggestion{grid-column:1/-1;margin:-2px 1px 3px;color:var(--muted);font-size:11px;line-height:1.35}
 .inline-field-wide{grid-column:1/-1}
 .inline-field-block{margin-bottom:13px}
 .inline-people{display:flex;gap:7px;flex-wrap:wrap}
