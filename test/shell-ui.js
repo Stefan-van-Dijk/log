@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const BUILD = '0.31.10-test.97';
+  const BUILD = '0.31.10-test.98';
   const SHELL_VERSION = (() => {
     try {
       const script = document.currentScript || [...document.scripts].find(item => item.src.includes('shell-ui.js'));
@@ -892,6 +892,8 @@
   }
 
   function visiblePeriodTimeEntries(time) {
+    const periodEntries = window.LogTimeModule?.getPeriodEntries?.();
+    if (Array.isArray(periodEntries)) return periodEntries;
     const visibleIds = new Set($$('#timeModuleRoot .entry[data-entry]').map(node => String(node.dataset.entry || '')));
     return (Array.isArray(time.entries) ? time.entries : []).filter(entry => visibleIds.has(String(entry.id || '')));
   }
@@ -904,29 +906,14 @@
     const previous = select.value || 'all';
     let time = {};
     try { time = JSON.parse(localStorage.getItem('urenregistratie.test.pwa.v1') || '{}'); } catch (_) {}
-    const themes = Array.isArray(time.themes) ? [...time.themes] : [];
-    const subthemes = Array.isArray(time.subthemes) ? time.subthemes : [];
     const periodEntries = visiblePeriodTimeEntries(time);
-    const minutesFor = (theme, subtheme = null) => periodEntries.reduce((sum, entry) => {
-      const themeMatch = String(entry.themeId || '') === String(theme.id || '') || (!entry.themeId && String(entry.themeName || '') === String(theme.name || ''));
-      if (!themeMatch) return sum;
-      if (subtheme) {
-        const subthemeMatch = String(entry.subthemeId || '') === String(subtheme.id || '') || (!entry.subthemeId && String(entry.subthemeName || '') === String(subtheme.name || ''));
-        if (!subthemeMatch) return sum;
-      }
-      return sum + (Number(entry.ownMinutes) || 0);
-    }, 0);
-    const timedThemes = themes.map(theme => ({ theme, minutes: minutesFor(theme) })).filter(item => item.minutes > 0);
-    timedThemes.sort((a, b) => String(a.theme.name || '').localeCompare(String(b.theme.name || ''), 'nl', { sensitivity: 'base' }));
-    const allMinutes = periodEntries.reduce((sum, entry) => sum + (Number(entry.ownMinutes) || 0), 0);
-    const optionRecords = timedThemes.map(({ theme, minutes }) => {
-      const children = subthemes
-        .filter(item => String(item.themeId) === String(theme.id))
-        .map(subtheme => ({ subtheme, minutes: minutesFor(theme, subtheme) }))
-        .filter(item => item.minutes > 0)
-        .sort((a, b) => String(a.subtheme.name || '').localeCompare(String(b.subtheme.name || ''), 'nl', { sensitivity: 'base' }));
-      return { theme, minutes, children };
-    });
+    const model = window.LogTimeFilterModel?.buildOptions?.({
+      themes: Array.isArray(time.themes) ? time.themes : [],
+      subthemes: Array.isArray(time.subthemes) ? time.subthemes : [],
+      entries: periodEntries
+    }) || { allMinutes: 0, records: [] };
+    const allMinutes = model.allMinutes;
+    const optionRecords = model.records;
     const optionsHtml = `<option value="all">Alle thema’s · ${compactFilterTime(allMinutes)}</option>` + optionRecords.map(({ theme, minutes, children }) => {
       return `<option value="theme:${esc(theme.id)}">${esc(theme.name || 'Thema')} · ${compactFilterTime(minutes)}</option>${children.map(({ subtheme, minutes: childMinutes }) => `<option value="subtheme:${esc(subtheme.id)}">↳ ${esc(subtheme.name || 'Subthema')} · ${compactFilterTime(childMinutes)}</option>`).join('')}`;
     }).join('');
@@ -980,11 +967,16 @@
       visible = setSearchMatches($$('#kmShellThemesView .km-shell-theme-node'), query);
     } else {
       const nodes = $$('#timeModuleRoot .activity-entry-shell');
-      const entries = new Map((window.LogTimeModule?.getState?.().entries || []).map(entry => [String(entry.id), entry]));
+      const timeState = window.LogTimeModule?.getState?.() || { entries: [], themes: [], subthemes: [] };
+      const entries = new Map((timeState.entries || []).map(entry => [String(entry.id), entry]));
       let filteredMinutes = 0;
       for (const node of nodes) {
         const queryMatch = !query || normalizedSearch(node.textContent).includes(query);
-        const filterMatch = themeFilter === 'all' || (themeFilter.startsWith('theme:') && String(node.dataset.themeId) === themeFilter.slice(6)) || (themeFilter.startsWith('subtheme:') && String(node.dataset.subthemeId) === themeFilter.slice(9));
+        const filterMatch = window.LogTimeFilterModel?.matchesFilter?.(
+          entries.get(String(node.dataset.id || '')) || { themeId: node.dataset.themeId, subthemeId: node.dataset.subthemeId },
+          themeFilter,
+          timeState
+        ) ?? true;
         const shouldHide = !(queryMatch && filterMatch);
         if (node.hidden !== shouldHide) node.hidden = shouldHide;
         if (!node.hidden) {
@@ -996,7 +988,6 @@
       if (status && themeFilter !== 'all' && visible > 0) {
         const option = $('#kmShellThemeFilter')?.selectedOptions?.[0];
         const label = String(option?.textContent || 'Selectie').replace(/\s·\s[^·]+$/, '');
-        const timeState = window.LogTimeModule?.getState?.() || { themes: [], subthemes: [] };
         const themeId = themeFilter.startsWith('theme:')
           ? themeFilter.slice(6)
           : timeState.subthemes?.find(item => String(item.id) === themeFilter.slice(9))?.themeId;
@@ -2655,6 +2646,16 @@
       syncChrome();
       applyShellSearch();
     });
+    let timeRenderQueued = false;
+    window.addEventListener('log-time-rendered', () => {
+      if (section !== 'time' || timeRenderQueued) return;
+      timeRenderQueued = true;
+      requestAnimationFrame(() => {
+        timeRenderQueued = false;
+        syncChrome();
+        applyShellSearch();
+      });
+    });
     window.addEventListener('log-backup-updated', () => {
       const content = $('#kmShellSettingsContent');
       if (content?.dataset.mode === 'general') renderGeneralSettings();
@@ -2703,6 +2704,7 @@
       const relevant = mutations.some(mutation => {
         const target = mutation.target instanceof Element ? mutation.target : mutation.target?.parentElement;
         if (target?.closest?.('#kmShellSearch,#kmShellSearchStatus')) return false;
+        if (target?.closest?.('#timeModuleRoot')) return false;
         if (mutation.type === 'attributes' && mutation.target === document.body && mutation.attributeName === 'class') {
           const before = new Set(String(mutation.oldValue || '').split(/\s+/).filter(Boolean));
           const after = new Set(document.body.className.split(/\s+/).filter(Boolean));

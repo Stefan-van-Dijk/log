@@ -454,6 +454,14 @@ function render() {
   main.innerHTML = `${renderPeriodNav()}${renderSummary(t)}${renderActionCard()}${renderUndoCompletion()}${renderPeriodList(periodEntries)}`;
   wireHome();
   syncNavigationChrome();
+  window.dispatchEvent(new CustomEvent('log-time-rendered', {
+    detail: {
+      view: currentView,
+      periodMode: state.ui.periodMode,
+      anchorDate: state.ui.anchorDate,
+      entryCount: periodEntries.length
+    }
+  }));
 }
 
 function renderUndoCompletion() {
@@ -946,6 +954,7 @@ function init() {
 
 window.LogTimeModule = Object.freeze({
   getState: () => state,
+  getPeriodEntries: () => entriesForPeriod(),
   getThemeCatalog: () => ({
     themes: state.themes.map(item => ({ ...item, lastUsedAt: themeLastUsedAt(item) })),
     subthemes: state.subthemes.map(item => ({ ...item })),

@@ -47,7 +47,7 @@ Bij iedere nieuwe ontwikkeling of wijziging:
 | LOC-001 | Hoofd- en sublocaties | Gepland | Sublocaties onder hoofdlocaties kunnen hangen. | Relatie moet ook bruikbaar zijn voor herkenning. |
 | LOC-002 | Locatieherkenning hoofd + sub | Gepland | Bij locatieherkenning zowel hoofdlocatie als relevante sublocatie kunnen tonen. | Voorkom dubbelzinnige weergave. |
 | LOC-003 | Locaties sorteren en ordenen | Testen | Locaties logisch, alfabetisch of in een eigen volgorde kunnen tonen zonder dat herkenningsstatus of volgorde verspringt bij openklappen. | Logisch gebruikt recent gebruik; Eigen toont sleephandvatten voor hoofdlocaties en verplaatst sublocaties als groep. Release 0.31.10-test.94. |
-| FILTER-001 | Filter op thema's | Testen | Taken/tijdregistratie kunnen filteren op thema en subthema naast zoeken. | Alleen thema’s en subthema’s met tijd in de actieve periode worden getoond; zoekmutaties zijn uitgesloten van de algemene layout-observer. Release 0.31.10-test.97. |
+| FILTER-001 | Filter op thema's | Testen | Taken/tijdregistratie kunnen filteren op thema en subthema naast zoeken. | Het filter gebruikt rechtstreeks de actieve periode uit de tijdmodule en is losgekoppeld van de algemene DOM-observer; thema’s zonder tijd blijven buiten de keuzelijst. Gerichte regressietest toegevoegd. Release 0.31.10-test.98. |
 | TIME-001 | Collega-inzet achteraf wijzigen | Testen | Bij een bestaande tijdregistratie personen en minuten per persoon kunnen aanpassen. | Persoonsverdeling, gebruiksteller en totale inzet worden opnieuw berekend zonder opslagmigratie. Release 0.31.10-test.88. |
 | TIME-002 | Thema’s selectief meetellen | Testen | Per thema bepalen of registraties meetellen in de tijdtotalen. | Klokstatus per thema, Alles aan en Alles uit; uitgesloten tijden blijven zichtbaar maar zijn grijs, lichter en niet-vet. Release 0.31.10-test.95. |
 | THEME-001 | Kleur per thema | Testen | Aan ieder thema een eigen kleur kunnen toekennen en die gebruiken bij Tijd/Taken. | De accentlijn toont de gekozen kleur; aanpassen blijft beschikbaar via Bewerk. Release 0.31.10-test.89. |
@@ -73,6 +73,7 @@ Bij iedere nieuwe ontwikkeling of wijziging:
 
 | Datum | Wijziging |
 |---|---|
+| 2026-09-22 | FILTER-001 structureel verbeterd voor testrelease 0.31.10-test.98: filteropties komen rechtstreeks uit de actieve periode van de tijdmodule, tijdmodulemutaties zijn losgekoppeld van de algemene layout-observer en een herhaalbare regressietest controleert kiezen, wissen en periodewisselen. Getest met het aangeleverde bestand: 8 registraties, 5 thema’s en 540 minuten in de actieve week. |
 | 2026-09-21 | BUG-001 toegevoegd: GPS-punten terug als vast zichtbaar veld in uitgeklapte ritdetails; PWA-cache voor het betreffende UI-script ververst zonder opslag of andere modules te wijzigen. |
 | 2026-09-21 | FILTER-001 aanvullend gecorrigeerd voor testrelease 0.31.10-test.97: themaselectie veroorzaakt geen terugkoppeling meer met de algemene layout-observer en herhaalde filterpasses wijzigen de DOM niet. |
 | 2026-09-21 | FILTER-001 gecorrigeerd voor testrelease 0.31.10-test.96: thema’s zonder tijd verdwijnen uit het periodefilter en een observerlus bij de tijdsamenvatting is verholpen. |
