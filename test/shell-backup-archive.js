@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const BUILD='0.31.10-test.100';
+  const BUILD='0.31.10-test.101';
   const ARCHIVE_KEY='log-archive-v1';
   const RECOVERY_FIELD='_log_archive_v1';
   const originalBuild=window.buildCompleteRegistrationExport;
