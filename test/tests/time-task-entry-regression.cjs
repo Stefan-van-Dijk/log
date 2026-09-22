@@ -14,10 +14,11 @@ assert.match(layout, /themeOptions\(selectedThemeId\)/, 'Het voorgestelde thema 
 assert.match(layout, /subthemeOptions\(selectedThemeId, selectedSubId\)/, 'Het voorgestelde subthema moet vooraf geselecteerd blijven.');
 assert.match(top, /preparing \? 'Annuleer taak' : 'Taak registreren'/, 'De bovenkaart moet bij invoer een rustige annuleeractie tonen.');
 assert.match(top, /time:cancel-inline-task/, 'De annuleeractie moet het taakformulier sluiten.');
-assert.match(topStyle, /context-preparing[\s\S]*home-action-button[\s\S]*background:transparent!important;[\s\S]*border:0!important;/, 'De annuleeractie moet zonder blauwe knopachtergrond worden getoond.');
-assert.match(sharedStyle, /task-cancel-button\{background:transparent!important;border:0!important;color:var\(--muted\)!important/, 'De gedeelde knopstijl mag de annuleeractie niet opnieuw blauw maken.');
+assert.match(topStyle, /context-preparing[\s\S]*home-action-button[\s\S]*background:var\(--surface\)!important;[\s\S]*border:0!important;/, 'De annuleeractie moet opgaan in de achtergrond van de kaart.');
+assert.match(sharedStyle, /task-cancel-button\{background:var\(--surface\)!important;border:0!important;border-radius:0!important/, 'De gedeelde knopstijl mag geen afwijkend vlak of rand rond annuleren tonen.');
 assert.doesNotMatch(layout, /<div class="kicker">Taak registreren<\/div>|<h2>Start je taak<\/h2>/, 'Het taakformulier mag geen dubbele introductiekoppen tonen.');
-assert.match(layout, /select id="inlineTaskTheme" aria-label="Thema"/, 'De themakeuze moet zonder zichtbaar veldlabel toegankelijk blijven.');
+assert.match(layout, /<label class="inline-label" for="inlineTaskTheme">Thema<\/label>/, 'Thema moet als losse veldkop boven de selectie staan.');
+assert.match(layout, /<label class="inline-label" for="inlineTaskSub">Subthema<\/label>/, 'Subthema moet als losse veldkop boven de selectie staan.');
 assert.match(layout, /class="inline-task-suggestion">Voorstel:/, 'De voorgestelde keuze moet compact onder de keuzelijsten worden toegelicht.');
 
 console.log('time task entry regression: ok');

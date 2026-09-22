@@ -20,8 +20,10 @@
 .home-action.context-preparing .home-action-title,.home-action.context-preparing .home-action-subtitle,.home-action.context-preparing .home-action-meta{opacity:.55!important}
 .home-action.context-preparing .home-action-button{
   display:block!important;
-  background:transparent!important;
+  background:var(--surface)!important;
   border:0!important;
+  border-radius:0!important;
+  box-shadow:none!important;
   color:var(--muted)!important;
   min-height:40px!important;
   opacity:1!important;

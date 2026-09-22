@@ -288,8 +288,8 @@
     period.innerHTML = `
       ${state.themes.length ? `
         <div class="inline-fields">
-          <label class="inline-field"><select id="inlineTaskTheme" aria-label="Thema">${themeOptions(selectedThemeId)}</select></label>
-          <label class="inline-field"><select id="inlineTaskSub" aria-label="Subthema">${selectedThemeId ? subthemeOptions(selectedThemeId, selectedSubId) : '<option value="">Geen subthema</option>'}</select></label>
+          <div class="inline-field-group"><label class="inline-label" for="inlineTaskTheme">Thema</label><div class="inline-field"><select id="inlineTaskTheme" aria-label="Thema">${themeOptions(selectedThemeId)}</select></div></div>
+          <div class="inline-field-group"><label class="inline-label" for="inlineTaskSub">Subthema</label><div class="inline-field"><select id="inlineTaskSub" aria-label="Subthema">${selectedThemeId ? subthemeOptions(selectedThemeId, selectedSubId) : '<option value="">Geen subthema</option>'}</select></div></div>
           ${suggestionValue ? `<div id="inlineTaskSuggestion" class="inline-task-suggestion">Voorstel: ${safeText(suggestionValue.theme.name)}${suggestionValue.sub ? ` · ${safeText(suggestionValue.sub.name)}` : ''} · gebaseerd op eerder gebruik, dag en tijdstip.</div>` : ''}
           <label class="inline-field inline-field-wide"><span>Locatie <small>optioneel</small></span><input id="inlineTaskLocation" value="${safeText(suggestionValue?.locationName || '')}" placeholder="Bijvoorbeeld kantoor"></label>
         </div>

@@ -2,7 +2,7 @@
    Module-CSS blijft alleen verantwoordelijk voor module-specifieke layout en interactie. */
 :root{
   color-scheme:dark;
-  --log-bg:#07150d;
+  --log-bg:#0a0c0f;
   --log-surface:#11151a;
   --log-surface-2:#171c23;
   --log-text:#f4f7fb;
@@ -47,7 +47,7 @@
 @media(prefers-color-scheme:light){
   :root{
     color-scheme:light;
-    --log-bg:#eef8f0;
+    --log-bg:#f5f5f7;
     --log-surface:#fff;
     --log-surface-2:#eceef2;
     --log-text:#1d1d1f;
@@ -74,7 +74,7 @@ button,input,select,textarea{font:inherit}
 .btn{min-height:47px;padding:12px 15px;border-radius:var(--log-control-radius)!important;box-shadow:none!important;font-weight:750}
 .btn.primary,.btn:not(.secondary):not(.danger):not(.ghost){background:var(--accent);color:#fff}
 .btn.secondary{border:var(--log-hairline) solid var(--line);background:var(--surface2);color:var(--text)}
-.app-shell .home-action.context-preparing .home-action-button.task-cancel-button{background:transparent!important;border:0!important;color:var(--muted)!important;box-shadow:none!important}
+.app-shell .home-action.context-preparing .home-action-button.task-cancel-button{background:var(--surface)!important;border:0!important;border-radius:0!important;color:var(--muted)!important;box-shadow:none!important}
 .btn.ghost{background:transparent;color:var(--accent)}
 .btn.danger{background:color-mix(in srgb,var(--bad) 18%,var(--surface));color:var(--bad)}
 .btn:active,.mini:active,.iconbtn:active,.action:active{opacity:.68}
