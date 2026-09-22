@@ -285,6 +285,11 @@
     const selectedSubId = suggestionValue?.sub?.id || '';
 
     period.classList.add('period-overview', 'period-entry-mode');
+    const main = period.closest('#main');
+    main?.querySelector(':scope > .home-action')?.classList.add('context-preparing');
+    const periodSummary = main?.querySelector(':scope > .summary');
+    if (periodSummary) periodSummary.hidden = true;
+    document.dispatchEvent(new CustomEvent('time:entry-mode-change'));
     period.innerHTML = `
       ${state.themes.length ? `
         <div class="inline-fields">

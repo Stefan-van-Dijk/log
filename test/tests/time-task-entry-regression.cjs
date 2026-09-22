@@ -20,5 +20,9 @@ assert.doesNotMatch(layout, /<div class="kicker">Taak registreren<\/div>|<h2>Sta
 assert.match(layout, /<label class="inline-label" for="inlineTaskTheme">Thema<\/label>/, 'Thema moet als losse veldkop boven de selectie staan.');
 assert.match(layout, /<label class="inline-label" for="inlineTaskSub">Subthema<\/label>/, 'Subthema moet als losse veldkop boven de selectie staan.');
 assert.match(layout, /class="inline-task-suggestion">Voorstel:/, 'De voorgestelde keuze moet compact onder de keuzelijsten worden toegelicht.');
+assert.match(layout, /classList\.add\('context-preparing'\)/, 'De bovenkaart moet direct bij het openen de invoerstatus krijgen.');
+assert.match(layout, /periodSummary\.hidden = true/, 'Geboekte uren moeten tijdens het aanmaken worden verborgen.');
+assert.match(layout, /time:entry-mode-change/, 'De knopstijl moet direct worden bijgewerkt zonder eerst van module te wisselen.');
+assert.match(top, /addEventListener\('time:entry-mode-change', syncPrimaryAction\)/, 'De bovenste actie moet direct op de invoerstatus reageren.');
 
 console.log('time task entry regression: ok');

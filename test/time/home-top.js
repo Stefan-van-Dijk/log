@@ -64,6 +64,8 @@
     });
   }, true);
 
+  document.addEventListener('time:entry-mode-change', syncPrimaryAction);
+
   document.addEventListener('DOMContentLoaded', () => {
     sync();
     const main = document.querySelector('#main');
