@@ -44,6 +44,7 @@ Bij iedere nieuwe ontwikkeling of wijziging:
 | UI-004 | Iconen bij adressen/locaties | Gepland | Locaties voorzien van herkenbare iconen en voorbereiden op meerdere locatietypen. | Hoofd- en sublocaties meenemen. |
 | UI-005 | Uren leesbaar in periodeoverzicht | Testen | Totalen rustig en compact tonen zonder informatieverlies. | Tijd staat als `3u 30m`; minuten worden alleen getoond als ze aanwezig zijn. Release 0.31.10-test.90. |
 | BUG-001 | GPS-punten zichtbaar in ritdetails | Testen | Het aantal opgeslagen GPS-punten van een rit weer als vast veld tonen in de uitgeklapte ritdetails, ook wanneer het aantal 0 is. | De bestaande GPS-telling blijft leidend; alleen de detailweergave is hersteld. Commits `04187fb` en `ece77a8`; gerichte controle op iPhone-PWA volgt. |
+| BUG-002 | GPS-punten behouden na herstart | Testen | GPS-punten na hervatten of heropenen van de PWA gekoppeld houden aan hun rit. | `pageshow` gebruikt de veilige herlaadroute, zodat de uit IndexedDB geladen punten niet meer door de lege localStorage-fallback worden overschreven. Live 0.32.1 en test 0.31.10-test.106; regressietest toegevoegd. |
 | LOC-001 | Hoofd- en sublocaties | Gepland | Sublocaties onder hoofdlocaties kunnen hangen. | Relatie moet ook bruikbaar zijn voor herkenning. |
 | LOC-002 | Locatieherkenning hoofd + sub | Gepland | Bij locatieherkenning zowel hoofdlocatie als relevante sublocatie kunnen tonen. | Voorkom dubbelzinnige weergave. |
 | LOC-003 | Locaties sorteren en ordenen | Testen | Locaties logisch, alfabetisch of in een eigen volgorde kunnen tonen zonder dat herkenningsstatus of volgorde verspringt bij openklappen. | Logisch gebruikt recent gebruik; Eigen toont sleephandvatten voor hoofdlocaties en verplaatst sublocaties als groep. Release 0.31.10-test.94. |
@@ -73,6 +74,7 @@ Bij iedere nieuwe ontwikkeling of wijziging:
 
 | Datum | Wijziging |
 |---|---|
+| 2026-09-22 | BUG-002 hersteld voor live 0.32.1 en test 0.31.10-test.106: bij `pageshow` blijft IndexedDB leidend, waardoor GPS-punten na hervatten of heropenen aan de juiste rit gekoppeld blijven. Een regressietest bewaakt het gemelde 4-naar-0-scenario in beide builds. |
 | 2026-09-22 | Testrelease 0.31.10-test.104 is als productierelease 0.32.0 voorbereid. De productieversie gebruikt de bestaande productie-opslagsleutels voor ritten, tijd, identiteiten en GPS. Testrelease 0.31.10-test.105 scheidt daarnaast de resterende menu- en archiefopslag van live, zodat verdere tests geen productie-instellingen of archiefdata kunnen wijzigen. |
 | 2026-09-22 | UI-002 gebouwd voor testrelease 0.31.10-test.99: conflicterende headerregels verwijderd; Ritten, Tijd/taken, Locaties en Thema’s gebruiken nu dezelfde sticky iPhone-header met safe-area, 44px-bediening en compacte scrolstatus. Een statische regressiecontrole bewaakt de belangrijkste layoutregels. |
 | 2026-09-22 | Tijd/taken volgt bij een nieuwe registratie hetzelfde rustige patroon als Nieuwe rit: de inhoud van de bovenkaart wordt gedimd en de actieknop verdwijnt zolang het invoerblok openstaat. Testrelease 0.31.10-test.100. |

@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const BUILD='0.32.0';
+  const BUILD='0.32.1';
   const VIEW_ID='kmShellLocationsView';
   const SECTION_KEY='kmreg-shell-section-v1';
   const DATA_KEY='kmreg-v4-data';

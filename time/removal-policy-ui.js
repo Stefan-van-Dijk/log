@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const BUILD='0.32.0';
+  const BUILD='0.32.1';
   const STORAGE_KEY='urenregistratie.pwa.v1';
   const policy=window.LogRemovalPolicy;
   if(!policy){console.error('LogRemovalPolicy ontbreekt in Tijd en taken.');return;}
