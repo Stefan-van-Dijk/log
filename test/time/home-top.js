@@ -34,7 +34,7 @@
   function syncPrimaryAction() {
     const button = document.querySelector('#registerTaskInline');
     if (!button) return;
-    const preparing = Boolean(document.querySelector('#cancelInlineTask'));
+    const preparing = Boolean(document.querySelector('.period-entry-mode'));
     const label = preparing ? 'Annuleer taak' : 'Taak registreren';
     if (button.textContent !== label) button.textContent = label;
     button.classList.toggle('primary', !preparing);
@@ -50,11 +50,10 @@
     const button = event.target.closest?.('#registerTaskInline');
     if (!button) return;
 
-    const cancel = document.querySelector('#cancelInlineTask');
-    if (cancel) {
+    if (document.querySelector('.period-entry-mode')) {
       event.preventDefault();
       event.stopImmediatePropagation();
-      cancel.click();
+      document.dispatchEvent(new CustomEvent('time:cancel-inline-task'));
       return;
     }
 

@@ -291,9 +291,7 @@
           <div class="kicker">Taak registreren</div>
           <h2>Start je taak</h2>
         </div>
-        <button id="cancelInlineTask" class="period-arrow inline-close" type="button" aria-label="Annuleren">×</button>
       </div>
-      ${suggestionValue ? `<div class="inline-proposal"><span>Voorstel</span><strong>${safeText(suggestionValue.theme.name)}${suggestionValue.sub ? ` · ${safeText(suggestionValue.sub.name)}` : ''}</strong><small>Gebaseerd op eerder gebruik, dag en tijdstip.</small></div>` : ''}
       ${state.themes.length ? `
         <div class="inline-fields">
           <label class="inline-field"><span>Thema</span><select id="inlineTaskTheme">${themeOptions(selectedThemeId)}</select></label>
@@ -308,11 +306,6 @@
           <button id="addInlineFirstTheme" class="btn small">Toevoegen</button>
         </div>
       `}`;
-
-    $('#cancelInlineTask')?.addEventListener('click', () => {
-      panelMode = 'overview';
-      render();
-    });
 
     if (!state.themes.length) {
       $('#addInlineFirstTheme')?.addEventListener('click', () => {
@@ -770,6 +763,11 @@
   document.addEventListener('touchmove', periodTouchMove, { passive: false });
   document.addEventListener('touchend', periodTouchEnd, { passive: true });
   document.addEventListener('touchcancel', () => { periodGesture = null; }, { passive: true });
+  document.addEventListener('time:cancel-inline-task', () => {
+    if (panelMode !== 'task') return;
+    panelMode = 'overview';
+    render();
+  });
   document.addEventListener('dblclick', event => {
     if (event.target.closest?.('.period-overview') && panelMode === 'overview' && !event.target.closest?.('button,input,select,textarea')) resetCurrentPeriod();
   });
