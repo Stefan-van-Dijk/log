@@ -18,13 +18,7 @@
 .home-action .home-action-button{width:100%!important;max-width:420px;min-width:0!important;margin-top:0}
 
 .home-action.context-preparing .home-action-title,.home-action.context-preparing .home-action-subtitle,.home-action.context-preparing .home-action-meta{opacity:.55!important}
-.home-action.context-preparing .home-action-button{
-  background:transparent!important;
-  border-color:var(--line)!important;
-  color:var(--muted)!important;
-  min-height:40px;
-  opacity:1!important;
-}
+.home-action.context-preparing .home-action-button{display:none!important}
 
 @media(max-width:520px){
   .topbar h1{font-size:24px}

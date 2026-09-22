@@ -763,11 +763,6 @@
   document.addEventListener('touchmove', periodTouchMove, { passive: false });
   document.addEventListener('touchend', periodTouchEnd, { passive: true });
   document.addEventListener('touchcancel', () => { periodGesture = null; }, { passive: true });
-  document.addEventListener('time:cancel-inline-task', () => {
-    if (panelMode !== 'task') return;
-    panelMode = 'overview';
-    render();
-  });
   document.addEventListener('dblclick', event => {
     if (event.target.closest?.('.period-overview') && panelMode === 'overview' && !event.target.closest?.('button,input,select,textarea')) resetCurrentPeriod();
   });

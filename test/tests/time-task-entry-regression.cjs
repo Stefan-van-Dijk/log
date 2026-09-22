@@ -10,7 +10,7 @@ assert.doesNotMatch(layout, /id="cancelInlineTask"/, 'Het taakformulier mag geen
 assert.doesNotMatch(layout, /class="inline-proposal"/, 'Het geselecteerde voorstel mag niet dubbel worden uitgeschreven.');
 assert.match(layout, /themeOptions\(selectedThemeId\)/, 'Het voorgestelde thema moet vooraf geselecteerd blijven.');
 assert.match(layout, /subthemeOptions\(selectedThemeId, selectedSubId\)/, 'Het voorgestelde subthema moet vooraf geselecteerd blijven.');
-assert.match(top, /classList\.toggle\('task-cancel-button', preparing\)/, 'De annuleeractie moet de rustige knopstijl krijgen.');
-assert.match(top, /time:cancel-inline-task/, 'De bovenste annuleerknop moet het taakformulier kunnen sluiten.');
+assert.match(top, /button\.hidden = preparing/, 'De bovenste actieknop moet verdwijnen zodra het taakformulier opent.');
+assert.doesNotMatch(top, /Annuleer taak|time:cancel-inline-task/, 'Het taakformulier mag geen aparte annuleeractie in de bovenkaart tonen.');
 
 console.log('time task entry regression: ok');

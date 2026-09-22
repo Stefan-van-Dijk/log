@@ -35,10 +35,8 @@
     const button = document.querySelector('#registerTaskInline');
     if (!button) return;
     const preparing = Boolean(document.querySelector('.period-entry-mode'));
-    const label = preparing ? 'Annuleer taak' : 'Taak registreren';
-    if (button.textContent !== label) button.textContent = label;
-    button.classList.toggle('primary', !preparing);
-    button.classList.toggle('task-cancel-button', preparing);
+    button.hidden = preparing;
+    if (!preparing && button.textContent !== 'Taak registreren') button.textContent = 'Taak registreren';
   }
 
   function sync() {
@@ -49,13 +47,6 @@
   document.addEventListener('click', event => {
     const button = event.target.closest?.('#registerTaskInline');
     if (!button) return;
-
-    if (document.querySelector('.period-entry-mode')) {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      document.dispatchEvent(new CustomEvent('time:cancel-inline-task'));
-      return;
-    }
 
     requestAnimationFrame(() => {
       document.querySelector('.period-entry-mode')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
