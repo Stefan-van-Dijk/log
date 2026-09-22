@@ -2,7 +2,7 @@
   'use strict';
 
   const VERSION=1;
-  const ARCHIVE_KEY='log-test-archive-v1';
+  const ARCHIVE_KEY='log-archive-v1';
 
   const clone=value=>{
     if(value==null)return value;

@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 3,
+  "updatedAt": "2026-09-21",
+  "modules": [
+    {
+      "id": "rides",
+      "label": "Ritten",
+      "shortLabel": "Ritten",
+      "subtitle": "Ritten registreren en terugvinden",
+      "icon": "rides",
+      "available": true,
+      "defaultPlacement": "both",
+      "bottomOrder": 10,
+      "menuOrder": 10,
+      "view": "rides",
+      "settingsTarget": "rides"
+    },
+    {
+      "id": "time",
+      "label": "Tijd en taken",
+      "shortLabel": "Tijd/taken",
+      "subtitle": "Tijd en werkzaamheden registreren",
+      "icon": "time",
+      "available": true,
+      "defaultPlacement": "both",
+      "bottomOrder": 20,
+      "menuOrder": 20,
+      "view": "time",
+      "settingsTarget": "time"
+    },
+    {
+      "id": "locations",
+      "label": "Locaties",
+      "shortLabel": "Locaties",
+      "subtitle": "Adressen en herkenning beheren",
+      "icon": "locations",
+      "available": true,
+      "defaultPlacement": "both",
+      "bottomOrder": 30,
+      "menuOrder": 30,
+      "view": "locations",
+      "settingsTarget": "locations"
+    },
+    {
+      "id": "themes",
+      "label": "Thema’s",
+      "shortLabel": "Thema’s",
+      "subtitle": "Thema’s en subthema’s beheren",
+      "icon": "themes",
+      "available": true,
+      "defaultPlacement": "both",
+      "bottomOrder": 40,
+      "menuOrder": 40,
+      "view": "themes",
+      "settingsTarget": null
+    },
+    {
+      "id": "barcodes",
+      "label": "Barcodekaarten",
+      "shortLabel": "Kaarten",
+      "subtitle": "Barcodekaarten scannen en beheren",
+      "icon": "barcodes",
+      "available": true,
+      "defaultPlacement": "hidden",
+      "bottomOrder": 50,
+      "menuOrder": 50,
+      "view": "placeholder",
+      "settingsTarget": null
+    }
+  ]
+}

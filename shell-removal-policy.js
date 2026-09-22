@@ -1,10 +1,10 @@
 (function(){
   'use strict';
 
-  const BUILD='0.31.10-test.105';
-  const DATA_KEY='kmreg-test-v4-data';
+  const BUILD='0.32.0';
+  const DATA_KEY='kmreg-v4-data';
   const KM_STATE_EVENT='log-km-state-change';
-  const SECTION_KEY='kmreg-test-shell-section-v1';
+  const SECTION_KEY='kmreg-shell-section-v1';
   const VIEW_ID='kmShellLocationsView';
   const policy=window.LogRemovalPolicy;
   if(!policy){console.error('LogRemovalPolicy ontbreekt.');return;}

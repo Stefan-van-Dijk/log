@@ -1,9 +1,9 @@
 (function(){
   'use strict';
 
-  const BUILD='0.31.10-test.105';
-  const DATA_KEY='kmreg-test-v4-data';
-  const TIME_KEY='urenregistratie.test.pwa.v1';
+  const BUILD='0.32.0';
+  const DATA_KEY='kmreg-v4-data';
+  const TIME_KEY='urenregistratie.pwa.v1';
   const POSITIVE_SWIPE_THRESHOLD=36;
   let decorateQueued=false;
   let busy=false;
@@ -276,7 +276,7 @@
     const badge=$('.km-shell-version');
     const today=$('#today');
     if(version&&version.textContent!==BUILD)version.textContent=BUILD;
-    if(badge)badge.setAttribute('aria-label',`Geladen testversie ${BUILD}`);
+    if(badge)badge.setAttribute('aria-label',`Geladen versie ${BUILD}`);
     if(today){
       const date=new Intl.DateTimeFormat('nl-NL',{weekday:'long',day:'numeric',month:'long'}).format(new Date());
       const value=`${date} · ${BUILD}`;

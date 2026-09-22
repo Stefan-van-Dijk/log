@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const BUILD='0.31.10-test.105';
+  const BUILD='0.32.0';
   const HORIZONTAL_RATIO=1.25;
   const SNAP_PROGRESS=0.28;
   const FLING_VELOCITY=0.45;
@@ -31,7 +31,7 @@
     const badge=$('.km-shell-version');
     const today=$('#today');
     if(version&&version.textContent!==BUILD)version.textContent=BUILD;
-    if(badge)badge.setAttribute('aria-label',`Geladen testversie ${BUILD}`);
+    if(badge)badge.setAttribute('aria-label',`Geladen versie ${BUILD}`);
     if(today){
       const date=new Intl.DateTimeFormat('nl-NL',{weekday:'long',day:'numeric',month:'long'}).format(new Date());
       const value=`${date} · ${BUILD}`;
@@ -63,7 +63,7 @@
     if(scrollLocked)return;
     scrollLocked=true;
     lockedScrollY=Math.max(0,window.scrollY||window.pageYOffset||0);
-    lockedSection=localStorage.getItem('kmreg-test-shell-section-v1')||'';
+    lockedSection=localStorage.getItem('kmreg-shell-section-v1')||'';
     savedHtmlStyle={
       overflow:document.documentElement.style.overflow,
       overscrollBehavior:document.documentElement.style.overscrollBehavior
@@ -90,7 +90,7 @@
       document.body.style.overscrollBehavior=savedBodyStyle.overscrollBehavior;
     }
     const y=lockedScrollY;
-    const restoreLockedPosition=lockedSection===(localStorage.getItem('kmreg-test-shell-section-v1')||'');
+    const restoreLockedPosition=lockedSection===(localStorage.getItem('kmreg-shell-section-v1')||'');
     savedHtmlStyle=null;
     savedBodyStyle=null;
     lockedSection='';

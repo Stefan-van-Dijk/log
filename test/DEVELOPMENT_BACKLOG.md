@@ -73,6 +73,7 @@ Bij iedere nieuwe ontwikkeling of wijziging:
 
 | Datum | Wijziging |
 |---|---|
+| 2026-09-22 | Testrelease 0.31.10-test.104 is als productierelease 0.32.0 voorbereid. De productieversie gebruikt de bestaande productie-opslagsleutels voor ritten, tijd, identiteiten en GPS. Testrelease 0.31.10-test.105 scheidt daarnaast de resterende menu- en archiefopslag van live, zodat verdere tests geen productie-instellingen of archiefdata kunnen wijzigen. |
 | 2026-09-22 | UI-002 gebouwd voor testrelease 0.31.10-test.99: conflicterende headerregels verwijderd; Ritten, Tijd/taken, Locaties en Thema’s gebruiken nu dezelfde sticky iPhone-header met safe-area, 44px-bediening en compacte scrolstatus. Een statische regressiecontrole bewaakt de belangrijkste layoutregels. |
 | 2026-09-22 | Tijd/taken volgt bij een nieuwe registratie hetzelfde rustige patroon als Nieuwe rit: de inhoud van de bovenkaart wordt gedimd en de actieknop verdwijnt zolang het invoerblok openstaat. Testrelease 0.31.10-test.100. |
 | 2026-09-22 | De bovenkaart van Tijd/taken is exact gelijkgetrokken met Nieuwe rit: tijdens invoer blijft één grijze tekstactie “Annuleer taak” zichtbaar, zonder blauwe knopachtergrond. Testrelease 0.31.10-test.101. |

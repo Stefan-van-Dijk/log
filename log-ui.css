@@ -1,0 +1,351 @@
+/* Log shared UI — centrale visuele basis voor de volledige app.
+   Module-CSS blijft alleen verantwoordelijk voor module-specifieke layout en interactie. */
+:root{
+  color-scheme:dark;
+  --log-bg:#0a0c0f;
+  --log-surface:#11151a;
+  --log-surface-2:#171c23;
+  --log-text:#f4f7fb;
+  --log-muted:#929ca8;
+  --log-line:#242a33;
+  --log-accent:#4da3ff;
+  --log-good:#49d17d;
+  --log-warn:#ffbd4a;
+  --log-bad:#ff6767;
+  --log-card-radius:16px;
+  --log-control-radius:12px;
+  --log-sheet-radius:24px;
+  --log-hairline:.5px;
+  --log-page-width:760px;
+  --log-type-page:32px;
+  --log-type-section:20px;
+  --log-type-row:15px;
+  --log-type-sub:11px;
+  --log-type-meta:11px;
+  --log-weight-page:780;
+  --log-weight-section:720;
+  --log-weight-row:620;
+  --log-weight-sub:450;
+  --log-weight-value:720;
+
+  /* Compatibiliteit met de bestaande modulevariabelen. */
+  --bg:var(--log-bg);
+  --card:var(--log-surface);
+  --card2:var(--log-surface-2);
+  --surface:var(--log-surface);
+  --surface2:var(--log-surface-2);
+  --text:var(--log-text);
+  --muted:var(--log-muted);
+  --line:var(--log-line);
+  --accent:var(--log-accent);
+  --good:var(--log-good);
+  --warn:var(--log-warn);
+  --bad:var(--log-bad);
+  --r:var(--log-card-radius);
+}
+
+@media(prefers-color-scheme:light){
+  :root{
+    color-scheme:light;
+    --log-bg:#f5f5f7;
+    --log-surface:#fff;
+    --log-surface-2:#eceef2;
+    --log-text:#1d1d1f;
+    --log-muted:#6e6e73;
+    --log-line:#d7d9de;
+    --log-accent:#007aff;
+    --log-good:#248a3d;
+    --log-warn:#8a5b00;
+    --log-bad:#d70015;
+  }
+}
+
+/* Basis */
+html,body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+button,input,select,textarea{font:inherit}
+.muted,.hint,small{color:var(--muted)}
+.kicker,.eyebrow{color:var(--muted);font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase}
+.section{margin-top:26px}
+.section-title{gap:10px;margin-bottom:7px;padding:0 1px}
+.section-title h2,.section-title h3{margin:0;font-size:19px;letter-spacing:-.015em}
+.divider{height:var(--log-hairline);background:var(--line)}
+
+/* Knoppen en compacte bediening */
+.btn{min-height:47px;padding:12px 15px;border-radius:var(--log-control-radius)!important;box-shadow:none!important;font-weight:750}
+.btn.primary,.btn:not(.secondary):not(.danger):not(.ghost){background:var(--accent);color:#fff}
+.btn.secondary{border:var(--log-hairline) solid var(--line);background:var(--surface2);color:var(--text)}
+.app-shell .home-action.context-preparing .home-action-button.task-cancel-button{background:var(--surface)!important;border:0!important;border-radius:0!important;color:var(--muted)!important;box-shadow:none!important}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn.danger{background:color-mix(in srgb,var(--bad) 18%,var(--surface));color:var(--bad)}
+.btn:active,.mini:active,.iconbtn:active,.action:active{opacity:.68}
+.mini,.iconbtn,.close{border:var(--log-hairline) solid var(--line);border-radius:var(--log-control-radius);background:var(--surface);color:var(--text);box-shadow:none}
+
+/* Gedeelde kaarten */
+body:not(.time-mode) #app .hero,
+body:not(.time-mode) #app .summary,
+body:not(.time-mode) #app .notice,
+body:not(.time-mode) #app .empty,
+.app-shell .content>.home-action,
+.app-shell .suggestion,
+.app-shell .active-card,
+.detail-hero,
+.detail-item,
+.detail-note,
+.km-shell-placeholder-card{
+  border:var(--log-hairline) solid var(--line)!important;
+  border-radius:var(--log-card-radius)!important;
+  background:var(--surface)!important;
+  box-shadow:none!important;
+}
+body:not(.time-mode) #app .hero,.app-shell .content>.home-action{padding:17px 16px 18px!important;margin-bottom:14px!important}
+body:not(.time-mode) #app .hero h2,.app-shell .home-action .home-action-title{margin:7px 0 5px!important;font-size:30px!important;line-height:1.12!important;letter-spacing:-.035em}
+.app-shell .home-action .home-action-subtitle{margin:5px 0 14px!important}
+body:not(.time-mode) #app .hero .btn.full,.app-shell .home-action .home-action-button{width:100%!important;max-width:none!important;min-height:48px!important;border-radius:13px!important}
+
+/* Periodebediening: dezelfde structuur voor Ritten en Tijd/taken. */
+#periodNavigator.period-navigator,.app-shell .period-overview{
+  margin:0 0 18px!important;
+  padding:6px 0 20px!important;
+  border:0!important;
+  border-bottom:1px solid var(--line)!important;
+  border-radius:0!important;
+  background:transparent!important;
+}
+.period-navigator .period-nav-head,.app-shell .period-overview .period-head{margin-bottom:5px!important}
+.period-navigator .period-center strong,.app-shell .period-overview .period-center strong{font-size:25px!important;letter-spacing:-.025em!important}
+.period-navigator .period-center small,.app-shell .period-overview .period-center small{font-size:11px!important}
+.period-navigator .mini,.period-navigator .period-mode-chip,.app-shell .period-overview .period-arrow{
+  border:0!important;background:transparent!important;color:var(--muted)!important;box-shadow:none!important
+}
+.period-navigator>.summary,.app-shell .period-overview .period-summary{
+  overflow:hidden!important;
+  margin:12px 0 0!important;
+  border:var(--log-hairline) solid var(--line)!important;
+  border-radius:var(--log-card-radius)!important;
+  background:var(--surface)!important;
+  box-shadow:none!important;
+}
+.period-navigator>.summary .summary-head,.app-shell .period-overview .period-summary .summary-main{padding:15px 12px 5px!important}
+.period-navigator>.summary .summary-total strong,.app-shell .period-overview .period-summary .summary-value{font-size:40px!important;letter-spacing:-.045em!important}
+.period-navigator>.summary .summary-parts,.app-shell .period-overview .period-summary .summary-parts{justify-content:center;gap:18px!important;padding:8px 12px 13px!important;border:0!important}
+.period-navigator>.summary .summary-part,.app-shell .period-overview .period-summary .summary-part{flex:0 0 auto;padding:0!important;border:0!important}
+.period-navigator>.summary .summary-part span,.period-navigator>.summary .summary-part strong,.app-shell .period-overview .period-summary .summary-part span,.app-shell .period-overview .period-summary .summary-part strong{display:inline}
+
+/* Gedeelde lijstkaart: ritten, tijdregels en toekomstige registraties. */
+body:not(.time-mode) #app .list,.app-shell .section .list{
+  gap:0!important;
+  overflow:hidden!important;
+  border:var(--log-hairline) solid var(--line)!important;
+  border-radius:var(--log-card-radius)!important;
+  background:var(--surface)!important;
+}
+body:not(.time-mode) #app .list .list-item,.app-shell .activity-swipe-surface.entry{
+  margin:0!important;
+  padding:14px 12px!important;
+  border:0!important;
+  border-radius:0!important;
+  background:var(--surface)!important;
+}
+body:not(.time-mode) #app .list .list-item{position:relative}
+body:not(.time-mode) #app .list .list-item::after{content:"";position:absolute;left:58px;right:0;bottom:0;height:var(--log-hairline);background:var(--line);pointer-events:none}
+body:not(.time-mode) #app .list .trip-entry:last-child .list-item::after{display:none}
+.app-shell .activity-group{margin-top:18px!important}
+.app-shell .section-title+.activity-group{margin-top:0!important}
+.app-shell .activity-group-title{padding:0 2px 7px!important;border:0!important;background:transparent!important}
+.app-shell .activity-entry-shell{margin:0!important;border-bottom:var(--log-hairline) solid var(--line)!important;background:var(--surface)!important}
+.app-shell .activity-entry-shell:last-child{border-bottom:0!important}
+.app-shell .activity-swipe-row{background:var(--surface2)!important}
+.app-shell .activity-entry-shell.expanded .activity-swipe-surface.entry{background:color-mix(in srgb,var(--surface2) 46%,var(--surface))!important}
+.app-shell .activity-inline-details{padding:0 12px 15px!important;background:var(--surface)!important}
+.entry-time,.trip-date{font-variant-numeric:tabular-nums;color:var(--muted)}
+.chev{color:color-mix(in srgb,var(--muted) 62%,transparent)!important;font-size:20px!important}
+.empty{padding:18px 12px!important;text-align:left!important}
+
+/* Invoer, keuzevelden en detailtegels */
+.form-group input,.form-group select,.form-group textarea,
+.field input,.field select,.field textarea,
+.app-shell .inline-field,
+.app-shell .inline-stop-grid>div,
+.app-shell .activity-inline-grid .activity-inline-item,
+.period-choice,.trip-type-option span,.day-option span,.check-row{
+  border:var(--log-hairline) solid var(--line)!important;
+  border-radius:var(--log-control-radius)!important;
+  background:var(--surface2)!important;
+  color:var(--text)!important;
+  box-shadow:none!important;
+}
+.form-group input,.form-group select,.form-group textarea,.field input,.field select,.field textarea{outline:none}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus,.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent)!important}
+.period-choice.active,.trip-type-option input:checked+span,.day-option input:checked+span{border-color:var(--accent)!important;background:color-mix(in srgb,var(--accent) 13%,var(--surface2))!important}
+
+/* Locaties gebruikt dezelfde kaart- en lijsttaal. */
+.km-shell-locations-head{padding:7px 2px 12px!important}
+.km-shell-locations-head h2{font-size:var(--log-type-section)!important;font-weight:var(--log-weight-section)!important;letter-spacing:-.025em!important}
+.km-shell-location-actions{overflow:hidden!important;gap:0!important;border:var(--log-hairline) solid var(--line)!important;border-radius:14px!important;background:var(--surface)!important}
+.km-shell-location-actions button{border:0!important;border-radius:0!important;background:transparent!important;color:var(--accent)!important;font-weight:650!important}
+.km-shell-location-actions button+button{border-left:var(--log-hairline) solid var(--line)!important}
+.km-shell-location-sort{border:var(--log-hairline) solid var(--line)!important;border-radius:9px!important;background:color-mix(in srgb,var(--muted) 13%,transparent)!important}
+.km-shell-location-tree{overflow:hidden!important;border:var(--log-hairline) solid var(--line)!important;border-radius:var(--log-card-radius)!important;background:var(--surface)!important}
+.km-shell-location-row{background:var(--surface)!important}
+.km-shell-location-node:last-child>.km-shell-location-row{border-bottom:0!important}
+
+/* Zijpaneel en globale navigatie. */
+.km-shell-drawer{
+  border-right:var(--log-hairline) solid var(--line)!important;
+  background:color-mix(in srgb,var(--surface) 96%,transparent)!important;
+  box-shadow:18px 0 52px rgba(0,0,0,.18)!important;
+}
+.km-shell-drawer-head strong{font-size:19px!important;letter-spacing:-.025em!important}
+.km-shell-drawer-head small{color:var(--muted)!important}
+.km-shell-nav-button{border-radius:var(--log-control-radius)!important;color:var(--text)!important}
+.km-shell-nav-button .icon{border:var(--log-hairline) solid var(--line)!important;border-radius:10px!important;color:var(--muted)!important;background:color-mix(in srgb,var(--accent) 7%,transparent)!important}
+.km-shell-nav-button.active{background:color-mix(in srgb,var(--accent) 10%,var(--surface))!important}
+.km-shell-nav-button.active .icon{border-color:color-mix(in srgb,var(--accent) 42%,var(--line))!important;color:var(--accent)!important;background:color-mix(in srgb,var(--accent) 10%,transparent)!important}
+.km-shell-drawer-footer{border-top:var(--log-hairline) solid var(--line)!important}
+.km-shell-settings-button,.km-shell-menu-button{color:var(--accent)!important}
+.km-shell-version{border-radius:10px!important;background:color-mix(in srgb,var(--accent) 8%,transparent)!important}
+
+/* Onderbalk als één gedeeld glass-component. */
+.km-shell-tabbar{
+  border:var(--log-hairline) solid color-mix(in srgb,#fff 62%,var(--line))!important;
+  border-radius:29px!important;
+  background:color-mix(in srgb,var(--surface) 66%,transparent)!important;
+  box-shadow:0 12px 36px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.70)!important;
+}
+.km-shell-tab-button{border-radius:22px!important;color:color-mix(in srgb,var(--text) 66%,var(--muted))!important}
+.km-shell-tab-button.active{border-color:color-mix(in srgb,var(--accent) 46%,transparent)!important;background:color-mix(in srgb,var(--accent) 16%,var(--surface))!important;color:var(--accent)!important;box-shadow:none!important}
+
+/* Algemene instellingen en module-instellingen. */
+.km-shell-settings-surface{border:var(--log-hairline) solid var(--line)!important;border-bottom:0!important;border-radius:var(--log-sheet-radius) var(--log-sheet-radius) 0 0!important;background:var(--bg)!important}
+.km-shell-settings-head{border-bottom:var(--log-hairline) solid var(--line)!important;background:color-mix(in srgb,var(--bg) 88%,transparent)!important}
+.km-shell-settings-close,.km-shell-settings-back{color:var(--accent)!important}
+.km-shell-settings-close{background:var(--surface2)!important}
+.km-shell-general-intro,.km-shell-general-card{border-bottom:var(--log-hairline) solid var(--line)!important}
+.km-shell-general-card>strong{font-size:17px!important}
+.km-shell-settings-accordion,.settings-accordion,.accordion{border-color:var(--line)!important;background:transparent!important;box-shadow:none!important}
+.km-shell-settings-accordion summary,.settings-accordion summary,.accordion summary{background:transparent!important}
+.km-shell-settings-accordion-title strong,.settings-accordion-title strong,.accordion-title strong{font-weight:650!important}
+.km-shell-module-row{border:var(--log-hairline) solid var(--line)!important;border-radius:14px!important;background:var(--surface)!important;box-shadow:none!important}
+
+/* Modals, editors en detailweergaves delen dezelfde oppervlakken. */
+.modal-panel,.modal,.arrival-info-sheet{border:var(--log-hairline) solid var(--line)!important;border-radius:20px!important;background:var(--bg)!important;box-shadow:none}
+.modal-head{border-color:var(--line)!important;background:color-mix(in srgb,var(--bg) 90%,transparent)!important}
+.editor-nav,.editor-savebar{background:color-mix(in srgb,var(--bg) 92%,transparent)!important}
+.km-shell-placeholder-hero{border:var(--log-hairline) solid color-mix(in srgb,var(--accent) 24%,var(--line))!important;border-radius:20px!important;background:linear-gradient(145deg,color-mix(in srgb,var(--accent) 10%,var(--surface)),var(--surface))!important;box-shadow:none!important}
+
+/* Eén typografische hiërarchie voor alle modules en bladen. */
+body{font-size:16px;line-height:1.35;font-weight:400}
+.km-shell-title,.km-shell-drawer-head strong{
+  font-size:var(--log-type-page)!important;
+  line-height:1.05!important;
+  font-weight:var(--log-weight-page)!important;
+  letter-spacing:-.035em!important;
+}
+.section-title h2,.section-title h3,.km-shell-locations-head h2,.km-shell-settings-group-head h2,.settings-page-title h2,.modal-head h2,.inline-register-head h2,.settings-modal-head h2{
+  color:var(--text)!important;
+  font-size:var(--log-type-section)!important;
+  line-height:1.2!important;
+  font-weight:var(--log-weight-section)!important;
+  letter-spacing:-.02em!important;
+}
+.trip-main strong,.entry-main strong,.km-shell-location-copy strong,.settings-list-row strong,.km-shell-module-copy strong{
+  display:block;
+  color:var(--text)!important;
+  font-size:var(--log-type-row)!important;
+  line-height:1.25!important;
+  font-weight:var(--log-weight-row)!important;
+  letter-spacing:-.005em!important;
+}
+.trip-main small,.entry-main small,.km-shell-location-copy small,.settings-list-row small,.km-shell-module-copy small,
+.km-shell-meta,.km-shell-drawer-head small,.km-shell-settings-accordion-title small,.settings-accordion-title small,.accordion-title small{
+  color:var(--muted)!important;
+  font-size:var(--log-type-sub)!important;
+  line-height:1.35!important;
+  font-weight:var(--log-weight-sub)!important;
+  letter-spacing:0!important;
+}
+.trip-date,.entry-time,.activity-group-title,.summary-label,.kicker,.eyebrow{
+  color:var(--muted)!important;
+  font-size:var(--log-type-meta)!important;
+  line-height:1.25!important;
+  font-weight:650!important;
+}
+.trip-km-stack>span,.entry-value-stack>strong,.trip-km{
+  color:var(--text)!important;
+  font-size:var(--log-type-row)!important;
+  line-height:1.2!important;
+  font-weight:var(--log-weight-value)!important;
+}
+/* Categoriekleuren blijven zichtbaar boven de gedeelde lijst- en typografieregels. */
+body:not(.time-mode) #app .list .trip-swipe-surface.category-business,
+body:not(.time-mode) #app .list .trip-swipe-surface.category-commute,
+body:not(.time-mode) #app .list .trip-swipe-surface.category-private{
+  border-left:3px solid var(--category-color)!important;
+  padding-left:10px!important;
+}
+body:not(.time-mode) #app .list .trip-swipe-surface.category-business .trip-km-stack>span,
+body:not(.time-mode) #app .list .trip-swipe-surface.category-commute .trip-km-stack>span,
+body:not(.time-mode) #app .list .trip-swipe-surface.category-private .trip-km-stack>span{
+  color:var(--category-color)!important;
+}
+.app-shell .activity-swipe-surface.entry{
+  border-left:3px solid var(--item-accent,var(--accent))!important;
+  padding-left:10px!important;
+}
+.app-shell .activity-swipe-surface.entry .entry-value-stack>strong{
+  color:var(--item-accent,var(--accent))!important;
+}
+.app-shell .activity-swipe-surface.entry.excluded-from-totals .entry-value-stack{
+  opacity:.58!important;
+}
+.app-shell .activity-swipe-surface.entry.excluded-from-totals .entry-value-stack>strong,
+.app-shell .activity-swipe-surface.entry.excluded-from-totals .entry-value-stack>small{
+  color:var(--muted)!important;
+  font-weight:500!important;
+}
+.form-group label,.field label,.inline-label,.inline-field>span,.activity-inline-item span{
+  color:var(--muted)!important;
+  font-size:var(--log-type-meta)!important;
+  font-weight:650!important;
+}
+.btn:not(.small),.action,.km-shell-location-actions button{
+  font-size:15px!important;
+  font-weight:650!important;
+}
+.btn.small,.mini,.settings-row-action,.activity-edit-link{
+  font-size:13px!important;
+  font-weight:650!important;
+}
+#periodNavigator.period-navigator .period-choice-list,.app-shell .period-choice-list{
+  margin-top:4px!important;
+  gap:0!important;
+  overflow:hidden!important;
+  border:var(--log-hairline) solid var(--line)!important;
+  border-radius:14px!important;
+  background:var(--surface)!important;
+}
+#periodNavigator.period-navigator .period-choice-list .period-choice,.app-shell .period-choice-list .period-choice{
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+}
+#periodNavigator.period-navigator .period-choice-list .period-choice:nth-child(even),.app-shell .period-choice-list .period-choice:nth-child(even){border-left:var(--log-hairline) solid var(--line)!important}
+#periodNavigator.period-navigator .period-choice-list .period-choice:nth-child(n+3),.app-shell .period-choice-list .period-choice:nth-child(n+3){border-top:var(--log-hairline) solid var(--line)!important}
+#periodNavigator.period-navigator .period-choice-list .period-choice.active,.app-shell .period-choice-list .period-choice.active{
+  background:color-mix(in srgb,var(--accent) 13%,var(--surface))!important;
+  color:var(--accent)!important;
+}
+#periodNavigator.period-navigator.period-entry-mode{padding-top:18px!important}
+#periodNavigator.period-navigator .period-choice-help{margin-top:14px!important;padding-top:13px!important}
+
+@media(prefers-color-scheme:light){
+  .km-shell-drawer{background:rgba(255,255,255,.96)!important;box-shadow:18px 0 48px rgba(30,45,65,.12)!important}
+  .km-shell-tabbar{background:rgba(255,255,255,.72)!important;box-shadow:0 12px 36px rgba(30,45,65,.12),inset 0 1px 0 rgba(255,255,255,.95)!important}
+}
+
+@media(max-width:520px){
+  body:not(.time-mode) #app .hero,.app-shell .content>.home-action{padding-left:14px!important;padding-right:14px!important}
+  .period-navigator .period-center strong,.app-shell .period-overview .period-center strong{font-size:23px!important}
+  .period-navigator>.summary .summary-total strong,.app-shell .period-overview .period-summary .summary-value{font-size:38px!important}
+  body:not(.time-mode) #app .list .list-item,.app-shell .activity-swipe-surface.entry{padding-left:11px!important;padding-right:11px!important}
+}

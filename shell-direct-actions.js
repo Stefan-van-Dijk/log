@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const BUILD='0.31.10-test.105';
+  const BUILD='0.32.0';
   const EDIT_THRESHOLD=48;
   const LIFECYCLE_EXTRA=44;
   const AXIS_LOCK_DISTANCE=10;
@@ -118,13 +118,13 @@
   }
 
   function updateVersion(){
-    window.LOG_TEST_BUILD=BUILD;
+    window.LOG_BUILD=BUILD;
     document.documentElement.dataset.logBuild=BUILD;
     const version=$('.km-shell-version-number');
     const badge=$('.km-shell-version');
     const today=$('#today');
     if(version&&version.textContent!==BUILD)version.textContent=BUILD;
-    if(badge&&badge.getAttribute('aria-label')!==`Geladen testversie ${BUILD}`)badge.setAttribute('aria-label',`Geladen testversie ${BUILD}`);
+    if(badge&&badge.getAttribute('aria-label')!==`Geladen versie ${BUILD}`)badge.setAttribute('aria-label',`Geladen versie ${BUILD}`);
     if(today){
       const date=new Intl.DateTimeFormat('nl-NL',{weekday:'long',day:'numeric',month:'long'}).format(new Date());
       const value=`${date} · ${BUILD}`;

@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stefan-van-dijk.github.io/log/config/modules.schema.json",
+  "title": "Log menuconfiguratie",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "modules"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 3
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date"
+    },
+    "modules": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "label",
+          "shortLabel",
+          "subtitle",
+          "icon",
+          "available",
+          "defaultPlacement",
+          "bottomOrder",
+          "menuOrder",
+          "view",
+          "settingsTarget"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_-]{1,31}$"
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "shortLabel": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 16
+          },
+          "subtitle": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "icon": {
+            "enum": [
+              "rides",
+              "time",
+              "locations",
+              "themes",
+              "barcodes"
+            ]
+          },
+          "available": {
+            "type": "boolean"
+          },
+          "defaultPlacement": {
+            "enum": [
+              "bottom",
+              "menu",
+              "both",
+              "hidden"
+            ]
+          },
+          "bottomOrder": {
+            "type": "number"
+          },
+          "menuOrder": {
+            "type": "number"
+          },
+          "view": {
+            "enum": [
+              "rides",
+              "time",
+              "locations",
+              "themes",
+              "placeholder"
+            ]
+          },
+          "settingsTarget": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "rides",
+              "time",
+              "locations",
+              null
+            ]
+          }
+        }
+      }
+    }
+  }
+}

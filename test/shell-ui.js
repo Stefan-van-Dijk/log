@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const BUILD = '0.31.10-test.104';
+  const BUILD = '0.31.10-test.105';
   const SHELL_VERSION = (() => {
     try {
       const script = document.currentScript || [...document.scripts].find(item => item.src.includes('shell-ui.js'));
@@ -16,9 +16,9 @@
   const SECTION_KEY = 'kmreg-test-shell-section-v1';
   const DRAWER_KEY = 'kmreg-test-shell-drawer-v1';
   const MENU_DOCUMENT_URL = './config/modules.json';
-  const MENU_DOCUMENT_CACHE_KEY = 'log-menu-document-v3';
+  const MENU_DOCUMENT_CACHE_KEY = 'log-test-menu-document-v3';
   const MENU_SCHEMA_VERSION = 3;
-  const THEMES_NAVIGATION_MIGRATION_KEY = 'log-native-themes-navigation-v1';
+  const THEMES_NAVIGATION_MIGRATION_KEY = 'log-test-native-themes-navigation-v1';
   const FALLBACK_MENU_DOCUMENT = {
     schemaVersion: MENU_SCHEMA_VERSION,
     modules: [

@@ -1,10 +1,10 @@
 (function(){
   'use strict';
 
-  const BUILD='0.31.10-test.105';
+  const BUILD='0.32.0';
   const VIEW_ID='kmShellLocationsView';
-  const SECTION_KEY='kmreg-test-shell-section-v1';
-  const DATA_KEY='kmreg-test-v4-data';
+  const SECTION_KEY='kmreg-shell-section-v1';
+  const DATA_KEY='kmreg-v4-data';
   const KM_STATE_EVENT='log-km-state-change';
   let viewObserver=null;
   let observedView=null;
@@ -18,7 +18,7 @@
     const badge=$('.km-shell-version');
     const today=$('#today');
     if(version&&version.textContent!==BUILD)version.textContent=BUILD;
-    if(badge)badge.setAttribute('aria-label',`Geladen testversie ${BUILD}`);
+    if(badge)badge.setAttribute('aria-label',`Geladen versie ${BUILD}`);
     if(today){
       const date=new Intl.DateTimeFormat('nl-NL',{weekday:'long',day:'numeric',month:'long'}).format(new Date());
       const value=`${date} · ${BUILD}`;
@@ -152,7 +152,7 @@
     });
     bodyObserver.observe(document.body,{attributes:true,attributeFilter:['class'],childList:true,subtree:false});
 
-    window.addEventListener('kmreg-test-shell-select-section',event=>{
+    window.addEventListener('kmreg-shell-select-section',event=>{
       if(event.detail?.section!=='locations')return;
       requestAnimationFrame(restoreLocationsView);
     });
