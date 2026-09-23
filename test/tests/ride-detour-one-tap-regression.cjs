@@ -16,9 +16,14 @@ function setup(getPosition, events = []) {
   const data = {activeTrip: {id: 'ride-1'}, events};
   let writes = 0, renders = 0, message = '', nextId = 0;
   const copy = {textContent: ''}, countdown = {textContent: ''}, bar = {style: {width: ''}};
+  const panel = {
+    classList: {toggle() {}},
+    querySelector: selector => ({'.detour-countdown': countdown, '.detour-progress': bar})[selector],
+  };
   const button = {
     disabled: false,
-    querySelector: selector => ({'.detour-copy': copy, '.detour-countdown': countdown, '.detour-progress': bar})[selector],
+    closest: () => panel,
+    querySelector: selector => ({'.detour-copy': copy})[selector],
     setAttribute() {},
   };
   const context = {
