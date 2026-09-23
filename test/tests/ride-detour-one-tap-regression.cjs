@@ -11,6 +11,11 @@ assert.ok(cooldownStart >= 0 && cooldownEnd > cooldownStart && recordStart >= 0 
 assert.match(source, /a==='detour'\)await recordDetour\(el\)/);
 assert.match(source, /class="detour-action" data-action="detour"/);
 assert.doesNotMatch(source, /id=['"]detourForm['"]/);
+const panelSource = source.slice(source.indexOf('function renderDetourPanel('), source.indexOf('\nfunction renderHome('));
+assert.match(vm.runInNewContext(panelSource+';renderDetourPanel(1)'), /1 tussenpunt vastgelegd/);
+assert.match(vm.runInNewContext(panelSource+';renderDetourPanel(3)'), /<svg[^>]*>[\s\S]*3 tussenpunten vastgelegd/);
+assert.match(source, /renderDetourPanel\(activePoints\.length\)/);
+assert.match(source, /class="active-primary"[\s\S]*?renderDetourPanel\(activePoints\.length\)\}<\/div>\$\{arrivalDraft/);
 
 function setup(getPosition, events = []) {
   const data = {activeTrip: {id: 'ride-1'}, events};
