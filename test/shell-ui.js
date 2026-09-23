@@ -1,11 +1,11 @@
 (function () {
   'use strict';
 
-  const BUILD = '0.31.10-test.106';
+  const BUILD = window.LOG_TEST_BUILD || '0.31.10-test.109';
   const SHELL_VERSION = (() => {
     try {
       const script = document.currentScript || [...document.scripts].find(item => item.src.includes('shell-ui.js'));
-      return new URL(script?.src || location.href).searchParams.get('v') || BUILD;
+      return window.LOG_TEST_BUILD || new URL(script?.src || location.href).searchParams.get('v') || BUILD;
     } catch (_) {
       return BUILD;
     }
