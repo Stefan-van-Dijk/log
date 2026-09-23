@@ -349,3 +349,6 @@ body:not(.time-mode) #app .list .trip-swipe-surface.category-private .trip-km-st
   .period-navigator>.summary .summary-total strong,.app-shell .period-overview .period-summary .summary-value{font-size:38px!important}
   body:not(.time-mode) #app .list .list-item,.app-shell .activity-swipe-surface.entry{padding-left:11px!important;padding-right:11px!important}
 }
+
+/* Compact active ride; keep the large detour target and 44px utility actions. */
+body:not(.time-mode) #app .hero.active-hero{padding-top:14px!important;padding-bottom:8px!important}

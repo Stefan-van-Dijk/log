@@ -77,6 +77,7 @@ Bij iedere nieuwe ontwikkeling of wijziging:
 
 | Datum | Wijziging |
 |---|---|
+| 2026-09-23 | RIDE-002 compacter in testrelease .112: kop Actieve rit binnen de linkerkolom, tegel bovenaan uitgelijnd, wachttijd binnen de tegelhoogte en minder onderruimte bij ritacties. Gerichte regressiecontrole; visuele iPhone-controle volgt. |
 | 2026-09-23 | RIDE-002 aangepast in testrelease .111: de grote Omrijpunt-tegel rechts naast de route in de actieve ritkaart geplaatst op basis van de aangeleverde schermindeling; de teller staat in de tegel, de dubbele teller is verwijderd en er is een getekend route-icoon toegevoegd. Opslag en wachttijd zijn niet gewijzigd. |
 | 2026-09-23 | RIDE-002 visueel verfijnd voor testrelease .110: Omrijpunt uit de ritkaart gehaald en als losse neutrale actieregel onder de kaart geplaatst; subtiele voortgangslijn en resterende seconden staan onder de knop. De 60 seconden blokkering en opgeslagen gegevens blijven gelijk. |
 | 2026-09-23 | RIDE-002 gebouwd in testrelease .109: prominente Omrijpunt-knop, 60 seconden blokkering met aftellende balk, subtiele ritacties met symbolen. Versielabel leest voortaan dezelfde buildwaarde als Ritten; daarnaast zijn verouderde fallbackwaarden van de shell bijgewerkt. |
