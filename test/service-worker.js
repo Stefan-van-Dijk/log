@@ -1,35 +1,35 @@
-const CACHE='kmreg-test-shell-0.31.10-test.107';
+const CACHE='kmreg-test-shell-0.31.10-test.108';
 const SHELL=[
   './',
   './index.html',
   './log-json-v2.js?v=2.0.0',
-  './log-ui.css?v=0.31.10-test.107',
-  './removal-policy.js?v=0.31.10-test.107',
-  './shell-backup-archive.js?v=0.31.10-test.107',
-  './shell-ui.js?v=0.31.10-test.107',
-  './shell-ui-stable.js?v=0.31.10-test.107',
-  './shell-gestures.js?v=0.31.10-test.107',
-  './shell-location-status.js?v=0.31.10-test.107',
-  './shell-removal-policy.js?v=0.31.10-test.107',
-  './shell-quick-actions.js?v=0.31.10-test.107',
-  './shell-direct-actions.js?v=0.31.10-test.107',
+  './log-ui.css?v=0.31.10-test.108',
+  './removal-policy.js?v=0.31.10-test.108',
+  './shell-backup-archive.js?v=0.31.10-test.108',
+  './shell-ui.js?v=0.31.10-test.108',
+  './shell-ui-stable.js?v=0.31.10-test.108',
+  './shell-gestures.js?v=0.31.10-test.108',
+  './shell-location-status.js?v=0.31.10-test.108',
+  './shell-removal-policy.js?v=0.31.10-test.108',
+  './shell-quick-actions.js?v=0.31.10-test.108',
+  './shell-direct-actions.js?v=0.31.10-test.108',
   './id-converter.html',
   './manifest.webmanifest',
   './app-icon.svg',
   './config/modules.json',
   './time/index.html',
-  './time/filter-model.js?v=0.31.10-test.107',
-  './time/app.js?v=0.31.10-test.107',
-  './time/styles.css?v=0.31.10-test.107',
-  './time/home-layout.css?v=0.31.10-test.107',
-  './time/home-layout.js?v=0.31.10-test.107',
-  './time/home-top.css?v=0.31.10-test.107',
-  './time/home-top.js?v=0.31.10-test.107',
-  './time/removal-policy-ui.js?v=0.31.10-test.107'
+  './time/filter-model.js?v=0.31.10-test.108',
+  './time/app.js?v=0.31.10-test.108',
+  './time/styles.css?v=0.31.10-test.108',
+  './time/home-layout.css?v=0.31.10-test.108',
+  './time/home-layout.js?v=0.31.10-test.108',
+  './time/home-top.css?v=0.31.10-test.108',
+  './time/home-top.js?v=0.31.10-test.108',
+  './time/removal-policy-ui.js?v=0.31.10-test.108'
 ];
 
 self.addEventListener('install',event=>{
-  event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)).then(()=>self.skipWaiting()));
+  event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL.map(path=>new Request(path,{cache:'reload'})))).then(()=>self.skipWaiting()));
 });
 
 self.addEventListener('activate',event=>{
@@ -77,7 +77,7 @@ self.addEventListener('fetch',event=>{
   }
   if(req.mode==='navigate'&&url.pathname.startsWith(new URL('./time/',self.registration.scope).pathname)){
     event.respondWith(
-      fetch(req)
+      fetch(new Request(req,{cache:'reload'}))
         .then(resp=>{
           const copy=resp.clone();
           caches.open(CACHE).then(cache=>cache.put('./time/index.html',copy));
@@ -89,7 +89,7 @@ self.addEventListener('fetch',event=>{
   }
   if(req.mode==='navigate'){
     event.respondWith(
-      fetch(req)
+      fetch(new Request(req,{cache:'reload'}))
         .then(resp=>{
           const copy=resp.clone();
           caches.open(CACHE).then(cache=>cache.put('./index.html',copy));
