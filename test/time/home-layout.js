@@ -552,7 +552,7 @@
       shell.dataset.themeId = entry.themeId || '';
       shell.dataset.subthemeId = entry.subthemeId || '';
       shell.style.setProperty('--item-accent', themeColor(entry.themeId || entry.themeName));
-      const canDelete = state.settings.swipeDeleteEnabled !== false;
+      const canDelete = state.settings.swipeDeleteEnabled !== false && (window.LogSwipePolicy?.enabled('time') ?? true);
       const canReopen = state.timer.status === 'inactive' && state.lastCompletion?.type === 'task' && state.lastCompletion.entryId === id && entry.activityType !== 'interruption';
       const actionCount = (canDelete ? 1 : 0) + 1;
       shell.innerHTML = `
@@ -629,7 +629,7 @@
       surface.style.transition = 'transform .18s ease';
       surface.style.transform = 'translateX(0)';
     }
-    row.classList.remove('delete-armed', 'swipe-open');
+    row.classList.remove('delete-armed', 'swipe-open', 'swipe-edit-armed');
   }
 
   function closeActivitySwipes(except = null) {
@@ -675,15 +675,15 @@
     event.preventDefault();
     const rightCount = gesture.row?.querySelectorAll('.activity-swipe-actions-right .activity-swipe-action').length || 0;
     const leftCount = gesture.row?.querySelectorAll('.activity-swipe-actions-left .activity-swipe-action').length || 0;
-    const rightDistance = rightCount * 84;
-    const leftDistance = leftCount * 84;
+    const rightDistance = rightCount * (window.LogSwipePolicy?.actionWidth() || 84);
+    const leftDistance = leftCount * (window.LogSwipePolicy?.actionWidth() || 84);
     const dx = Math.max(-rightDistance, Math.min(leftDistance, rawX));
     gesture.rightDistance = rightDistance;
     gesture.leftDistance = leftDistance;
     gesture.dx = dx;
     gesture.surface.style.transition = 'none';
     gesture.surface.style.transform = `translateX(${dx}px)`;
-    gesture.row.classList.remove('delete-armed');
+    // Shared direct-action controller owns the armed action highlight.
   }
 
   function deleteEntryInline(id) {

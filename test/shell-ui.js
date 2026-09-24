@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const BUILD = window.LOG_TEST_BUILD || '0.31.10-test.116';
+  const BUILD = window.LOG_TEST_BUILD || '0.31.10-test.117';
   const SHELL_VERSION = (() => {
     try {
       const script = document.currentScript || [...document.scripts].find(item => item.src.includes('shell-ui.js'));
@@ -252,6 +252,10 @@
   }
 
   function refreshKmState(detail = {}) {
+    if (detail.reason === 'swipe-policy') {
+      if(section === 'themes') renderThemes();
+      if(section === 'time') window.LogTimeModule?.showHome?.({scroll:false});
+    }
     if (String(detail.reason || '').startsWith('location-') && localStorage.getItem(SECTION_KEY) === 'locations') section = 'locations';
     if (section === 'locations') {
       if (document.body.classList.contains('editor-view')) scheduleLocationRefresh();
@@ -1116,7 +1120,7 @@
     const { plan, action } = themeLifecycle(id, type);
     const attribute = type === 'theme' ? 'data-log-delete-theme' : 'data-del-sub';
     const lifecycleClass = plan?.action === 'archive' ? 'km-shell-theme-swipe-archive' : 'km-shell-theme-swipe-delete';
-    return `<div class="km-shell-theme-swipe-actions"><button type="button" class="km-shell-theme-swipe-action ${lifecycleClass}" ${attribute}="${esc(id)}">${action}</button><button type="button" class="km-shell-theme-swipe-action km-shell-theme-swipe-edit" data-shell-theme-edit="${esc(id)}" data-shell-theme-type="${type}">Bewerk</button></div>`;
+    return `<div class="km-shell-theme-swipe-actions">${window.LogSwipePolicy.enabled('themes')?`<button type="button" class="km-shell-theme-swipe-action ${lifecycleClass}" ${attribute}="${esc(id)}">${action}</button>`:''}<button type="button" class="km-shell-theme-swipe-action km-shell-theme-swipe-edit" data-shell-theme-edit="${esc(id)}" data-shell-theme-type="${type}">Bewerk</button></div>`;
   }
 
   function resetThemeSwipeRow(row) {
@@ -1213,13 +1217,13 @@
       }
       if (event.cancelable) event.preventDefault();
       const actionWidth = innerWidth <= 520 ? 78 : 84;
-      const maxDistance = actionWidth * 2;
+      const maxDistance = actionWidth * gesture.row.querySelectorAll('.km-shell-theme-swipe-action').length;
       const dx = Math.max(-maxDistance, Math.min(0, rawX));
       const distance = Math.abs(dx);
       const lifecycleThreshold = actionWidth + 44;
       gesture.peakLeft = Math.max(gesture.peakLeft, distance);
       const editArmed = gesture.peakLeft >= 48 && distance >= 36;
-      const lifecycleArmed = gesture.peakLeft >= lifecycleThreshold && distance >= lifecycleThreshold - 18;
+      const lifecycleArmed = window.LogSwipePolicy.enabled('themes') && gesture.peakLeft >= lifecycleThreshold && distance >= lifecycleThreshold - 18;
       gesture.surface.style.transition = 'none';
       gesture.surface.style.transform = `translateX(${dx}px)`;
       gesture.row.classList.toggle('swipe-edit-armed', editArmed && !lifecycleArmed);
@@ -1659,7 +1663,7 @@
     const gps = effective.lat != null && effective.lng != null ? `${Number(effective.lat).toFixed(5)}, ${Number(effective.lng).toFixed(5)}` : 'Niet vastgelegd';
     const inherited = depth && (!location.address || location.lat == null || location.lng == null) && effective.parent;
     const count = locationTripCount(location, snapshot);
-    const canDelete = snapshot.settings.swipeDeleteEnabled !== false && snapshot.settings.locationDeleteEnabled !== false;
+    const canDelete = window.LogSwipePolicy.enabled('locations');
     const custom = depth === 0 && locationSortMode(snapshot) === 'custom';
     const dragHandle = custom ? `<button type="button" class="km-shell-location-drag-handle" data-location-drag-handle aria-label="${esc(location.name || 'Locatie')} verslepen" title="Sleep om te verplaatsen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h14"></path></svg></button>` : '';
     return `
@@ -2342,6 +2346,7 @@
         </section>
         <section class="km-shell-settings-group" aria-labelledby="kmShellAppSettingsTitle">
           <header class="km-shell-settings-group-head"><h2 id="kmShellAppSettingsTitle">App</h2><p>Bepaal per onderdeel waar het staat en in welke volgorde.</p></header>
+          ${generalSettingsAccordion('kmShellSwipeSettings', 'Bediening', 'Dezelfde swipe-acties in alle onderdelen', `<label class="log-swipe-setting"><input type="checkbox" id="logSwipeLifecycle" ${window.LogSwipePolicy.masterEnabled()?'checked':''}><span>Archiveren en verwijderen toestaan<small>Een korte veeg naar links bewerkt de regel. Veeg verder om te archiveren of verwijderen. Uitgeschakeld blijft bewerken mogelijk. Bestaande beperkingen per onderdeel blijven gelden.</small></span></label>`)}
           ${generalSettingsAccordion('kmShellModuleSettingsAccordion', 'Onderdelen en volgorde', 'Zet onderbalk en menu per onderdeel aan of uit', '<div id="kmShellModuleSettings" class="km-shell-module-settings"></div>')}
         </section>
         <section class="km-shell-settings-group" aria-labelledby="kmShellDataSettingsTitle">
@@ -2393,6 +2398,7 @@
       }
       saveModuleConfiguration(config, item.id, toggle.dataset.surface, showBottomBar);
     });
+    content.querySelector('#logSwipeLifecycle')?.addEventListener('change',event=>{window.dispatchEvent(new CustomEvent('log-swipe-policy-change',{detail:{enabled:event.target.checked}}));event.target.checked=window.LogSwipePolicy.masterEnabled();});
     content.querySelector('[data-general-action="backup-export"]')?.addEventListener('click', () => {
       const status = $('#kmShellBackupStatus');
       if (status) status.textContent = 'Back-up wordt voorbereid…';

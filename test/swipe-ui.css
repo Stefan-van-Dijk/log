@@ -1,0 +1,22 @@
+/* Shared action dimensions and semantics for every Log module. */
+:root{--log-action-width:84px;--log-row-height:64px;--log-edit:#2869b6;--log-delete:#9b3037;--log-archive:#8a6500;--log-reactivate:#198754}
+@media(max-width:520px){:root{--log-action-width:78px}}
+body :is(.trip-swipe-action,.activity-swipe-action,.km-shell-location-swipe-action,.km-shell-theme-swipe-action,.code-card-actions button){width:var(--log-action-width)!important;flex:0 0 var(--log-action-width)!important;display:flex!important;align-items:center;justify-content:center;padding:0 4px!important;border:0!important;border-radius:0!important;font-family:inherit!important;font-size:12px!important;font-weight:650!important;line-height:1.25!important;color:#fff!important;opacity:.7!important;transition:opacity .15s ease,filter .15s ease}
+body :is(.swipe-edit,.activity-swipe-edit,.km-shell-location-swipe-edit,.km-shell-theme-swipe-edit,.code-card-actions [data-card-edit]){background:var(--log-edit)!important}
+body :is(.swipe-delete,.activity-swipe-delete,.km-shell-location-swipe-delete,.km-shell-theme-swipe-delete,.code-card-actions [data-card-delete]){background:var(--log-delete)!important}
+body :is(.km-shell-location-swipe-archive,.km-shell-theme-swipe-archive,.activity-swipe-archive){background:var(--log-archive)!important}
+body :is(.swipe-reopen,.activity-swipe-reopen){background:var(--log-reactivate)!important}
+body .swipe-edit-armed :is(.swipe-edit,.activity-swipe-edit,.km-shell-location-swipe-edit,.km-shell-theme-swipe-edit,[data-card-edit]),body .delete-armed :is(.swipe-delete,.activity-swipe-delete,.activity-swipe-archive,.km-shell-location-swipe-delete,.km-shell-location-swipe-archive,.km-shell-theme-swipe-delete,.km-shell-theme-swipe-archive,[data-card-delete]),body .actions-open .code-card-actions button{opacity:1!important;filter:brightness(1.08)}
+body .activity-swipe-actions{width:calc(var(--activity-action-count)*var(--log-action-width))!important;grid-template-columns:repeat(var(--activity-action-count),var(--log-action-width))!important}
+body .code-card-actions{width:calc(var(--card-action-count,2)*var(--log-action-width))!important}
+/* Minimum height only: long titles and larger accessibility text can grow. */
+body :is(.trip-swipe-surface.list-item,.inline-event-surface,.km-shell-location-row,.km-shell-theme-row,.km-shell-subtheme-row,.code-card-surface){min-height:var(--log-row-height)!important}
+body :is(.trip-swipe-surface.list-item,.inline-event-surface,.km-shell-location-row,.km-shell-theme-row,.km-shell-subtheme-row){padding-top:10px!important;padding-bottom:10px!important}
+body .activity-swipe-surface.entry{min-height:var(--log-row-height)!important;padding-top:10px!important;padding-bottom:10px!important}
+body .code-card-surface .code-card{min-height:var(--log-row-height);padding-top:10px!important;padding-bottom:10px!important}
+body :is(.code-card-copy strong,.km-shell-location-copy strong,.km-shell-theme-copy strong,.km-shell-subtheme-copy strong){font-size:14px!important;line-height:1.3}
+body .code-card-icon{width:32px;height:32px;border-radius:10px}body .code-card-icon svg{width:22px;height:22px}
+body :is(.trip-inline-actions button,.activity-inline-actions button,.km-shell-child-add){min-height:40px;padding:8px 0;border:0;background:transparent;color:var(--accent);font-size:13px;font-weight:650}
+/* Respect the same policy in open editors and action menus. Restore stays available. */
+body.log-cards-lifecycle-disabled [data-card-delete],body.log-themes-lifecycle-disabled :is([data-log-delete-theme],[data-del-sub],[data-del-theme]),body.log-locations-lifecycle-disabled :is([data-shell-location-swipe-action="delete"],[data-action="delete-location"]),body.log-time-lifecycle-disabled :is([data-swipe-action="delete"],#deleteEntry,[data-del-entry],[data-delete-colleague]),body.log-rides-lifecycle-disabled :is([data-action="delete-trip"],[data-action="delete-event"]){display:none!important}
+.log-swipe-setting{display:flex;align-items:center;gap:12px;padding:12px 0;font-size:14px}.log-swipe-setting input{width:22px;height:22px;flex:none}.log-swipe-setting span{display:block}.log-swipe-setting small{display:block;margin-top:5px;line-height:1.4;color:var(--muted)}

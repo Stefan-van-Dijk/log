@@ -1,6 +1,6 @@
 # Kaarten: gerichte controle
 
-Release: 0.31.10-test.114. Productiebestanden zijn niet gewijzigd.
+Release: 0.31.10-test.117. Productiebestanden zijn niet gewijzigd.
 
 ## Automatische test
 
@@ -29,3 +29,5 @@ De test leest gegenereerde QR-, Code128- en EAN13-SVG's opnieuw met de scannerde
 Codes kopiëren de tekstinhoud, niet de beveiliging of geldigheid van een originele pas. Dynamische/tijdgebonden codes kunnen na verloop van tijd ongeldig worden.
 
 Test .114 voegt synthetische cameraframes toe: QR en Code128 worden met de echte decoder gelezen en naar het formulier overgedragen, inclusief vertraagde videoafmetingen en zichtbare herstart na leesfouten. Camera start bij Code scannen; Camera opnieuw starten blijft beschikbaar bij fouten.
+
+Test .117: `module-swipe-regression.cjs` controleert korte/lange veeg, annuleren, verticaal scrollen, globale en lokale uitschakeling, blokkering van oude knoppen en de actievolgorde. Kaarttest controleert gedeeld swipegedrag en afwezig codetype. Controleer op iPhone per module de regelhoogte, korte/lange veeg en Algemene instellingen → App → Bediening. Ook met uitschakeling moet bewerken beschikbaar blijven.

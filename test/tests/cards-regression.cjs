@@ -17,7 +17,7 @@ w.HTMLMediaElement.prototype.play=async function(){};
 let state={cards:[],settings:{recognitionRadius:500},locations:[{id:'parent',name:'Kantoor',lat:52,lng:6},{id:'child',name:'Entree',parentId:'parent'},{id:'other',name:'Magazijn',lat:53,lng:7}]};
 let failSave=false,stopped=0;
 w.LogCardData={snapshot:()=>JSON.parse(JSON.stringify(state)),save(cards){if(failSave)throw Error('Opslag vol');state.cards=JSON.parse(JSON.stringify(cards))}};
-for(const file of ['vendor/qrcode-2.0.4.js','vendor/jsbarcode-3.12.1.min.js','vendor/zxing-0.21.3.min.js','cards.js'])w.eval(fs.readFileSync(path.join(base,file),'utf8'));
+for(const file of ['vendor/qrcode-2.0.4.js','vendor/jsbarcode-3.12.1.min.js','vendor/zxing-0.21.3.min.js','cards.js','shell-direct-actions.js'])w.eval(fs.readFileSync(path.join(base,file),'utf8'));
 const q=s=>d.querySelector(s),click=s=>q(s).click(),set=(name,value)=>{q(`[name="${name}"]`).value=value};
 const submit=()=>q('form').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));
 const tick=()=>new Promise(r=>setImmediate(r));
@@ -27,6 +27,7 @@ async function decoded(svg){
  return new ZXing.MultiFormatReader().decode(new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(new ZXing.RGBLuminanceSource(new Uint8ClampedArray(data),info.width,info.height)))).getText();
 }
 (async()=>{
+ d.dispatchEvent(new w.Event('DOMContentLoaded'));
  w.LogCardsModule.mount(q('#root'));
  openNew();const unicode='00123 – café 🏠\nhttps://example.test/?a=1&b=2';set('value',unicode);set('locationId','child');submit();
  assert.equal(state.cards.length,1);assert.equal(state.cards[0].color,'#c04d92');assert.equal(state.cards[0].locationId,'child');
@@ -39,12 +40,13 @@ async function decoded(svg){
  const qrFrame=await sharp(Buffer.from(q('[data-code-display] svg').outerHTML)).ensureAlpha().raw().toBuffer({resolveWithObject:true});
  click('[data-card-close]');assert.match(q('[data-cards-list]').textContent,/Kantoor › Entree/);
  const row=q('.code-card-swipe'),surface=q('.code-card-surface');
- const pointer=(type,x,y)=>q('#root')['on'+type]({target:surface,pointerId:1,clientX:x,clientY:y,button:0,preventDefault(){}});
+ const pointer=(type,x,y)=>{const event=new w.MouseEvent(type,{bubbles:true,cancelable:true,clientX:x,clientY:y,button:0});Object.defineProperty(event,'pointerId',{value:1});surface.dispatchEvent(event);};
  pointer('pointerdown',200,20);pointer('pointermove',110,22);pointer('pointerup',110,22);
- assert.equal(row.classList.contains('actions-open'),true,'left swipe reveals actions');
- assert.equal(q('.code-card-actions').hasAttribute('inert'),false);
+ await new Promise(resolve=>setTimeout(resolve,10));
+ assert.ok(q('#cardForm'),'short swipe edits without opening code');click('[data-card-close]');
  click('[data-card-open]');assert.equal(q('dialog'),null,'swipe release cannot open card');
- row.dataset.suppressUntil='0';click('[data-card-edit]');assert.ok(q('#cardForm'),'edit without opening code');click('[data-card-close]');
+ row.dataset.suppressUntil='0';
+ assert.doesNotMatch(q('[data-cards-list]').textContent,/QR-code|Code 128|Code 39/,'list omits technical code type');
  pointer('pointerdown',200,20);pointer('pointermove',195,100);pointer('pointerup',195,100);
  assert.equal(row.classList.contains('actions-open'),false,'vertical scrolling does not reveal actions');
  click('[data-card-actions]');assert.equal(row.classList.contains('actions-open'),true,'keyboard-accessible action toggle');

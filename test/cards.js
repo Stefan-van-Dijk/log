@@ -85,7 +85,7 @@
   function renderList() {
     if (!root) return 0;
     const list=visibleCards(), host=$('[data-cards-list]',root); if (!host) return 0;
-    const markup=list.map(card => `<div class="code-card-swipe" style="--card-color:${color(card.color)}"><div class="code-card-actions" inert aria-hidden="true"><button type="button" data-card-edit="${esc(card.id)}">Bewerken</button><button type="button" data-card-delete="${esc(card.id)}">Verwijderen</button></div><div class="code-card-surface"><button type="button" class="code-card" data-card-open="${esc(card.id)}"><span class="code-card-icon">${icon}</span><span class="code-card-copy"><strong>${esc(card.name || 'Kaart')}</strong><small>${esc(locationLabel(card.locationId))}</small><span>${esc(FORMATS[card.format] || card.format)}${nearby?.ids.has(String(card.locationId))?' · In de buurt':''}</span></span><span aria-hidden="true">›</span></button><button type="button" class="cards-more" data-card-actions aria-label="Acties voor ${esc(card.name || 'kaart')}" aria-expanded="false">⋯</button></div></div>`).join('') || `<div class="cards-empty">${records().length ? 'Geen kaarten voor deze selectie.' : 'Je eerste kaart toevoegen'}<small>${records().length ? 'Kies een andere locatie of zoekterm.' : 'Scan een code of voer de inhoud zelf in. Koppel de kaart aan een locatie om deze snel terug te vinden.'}</small></div>`;
+    const markup=list.map(card => `<div class="code-card-swipe" style="--card-color:${color(card.color)};--card-action-count:${window.LogSwipePolicy?.enabled('cards')===false?1:2}"><div class="code-card-actions" inert aria-hidden="true">${window.LogSwipePolicy?.enabled('cards')===false?'':`<button type="button" data-card-delete="${esc(card.id)}">Verwijder</button>`}<button type="button" data-card-edit="${esc(card.id)}">Bewerk</button></div><div class="code-card-surface"><button type="button" class="code-card" data-card-open="${esc(card.id)}"><span class="code-card-icon">${icon}</span><span class="code-card-copy"><strong>${esc(card.name || 'Kaart')}</strong><small>${esc(locationLabel(card.locationId))}</small>${nearby?.ids.has(String(card.locationId))?'<span>In de buurt</span>':''}</span><span aria-hidden="true">›</span></button><button type="button" class="cards-more" data-card-actions aria-label="Acties voor ${esc(card.name || 'kaart')}" aria-expanded="false">⋯</button></div></div>`).join('') || `<div class="cards-empty">${records().length ? 'Geen kaarten voor deze selectie.' : 'Je eerste kaart toevoegen'}<small>${records().length ? 'Kies een andere locatie of zoekterm.' : 'Scan een code of voer de inhoud zelf in. Koppel de kaart aan een locatie om deze snel terug te vinden.'}</small></div>`;
     if(host._cardsMarkup!==markup){host.innerHTML=markup;host._cardsMarkup=markup;}
     const status=$('[data-cards-notice]',root);if(status.textContent!==notice)status.textContent=notice;
     return list.length;
@@ -95,8 +95,7 @@
     root=target;lastSignature='';
     root.innerHTML=`<section class="cards-module"><div class="cards-actions"><button type="button" class="btn" data-cards-scan>${icon}<span>Code scannen</span></button><button type="button" class="btn secondary" data-cards-new>＋ Nieuwe kaart</button></div><div class="cards-filter"><label><span>Locatie</span><select data-cards-location>${locationOptions(filter,true)}</select></label><button type="button" data-cards-near>◎ In de buurt</button></div><p class="cards-notice" data-cards-notice role="status"></p><div data-cards-list></div></section>`;
     $('[data-cards-location]',root).value=filter;
-    root.onclick=event=>{const b=event.target.closest('button');if(!b)return;const row=b.closest('.code-card-swipe');if(row && Date.now()<Number(row.dataset.suppressUntil||0)){event.preventDefault();return;}if(b.hasAttribute('data-cards-new'))edit();if(b.hasAttribute('data-cards-scan'))scanner();if(b.hasAttribute('data-cards-near'))findNearby();if(b.hasAttribute('data-card-actions'))setSwipe(row,!row.classList.contains('actions-open'));if(b.dataset.cardEdit){setSwipe(row,false);edit(b.dataset.cardEdit);}if(b.dataset.cardDelete)removeCard(b.dataset.cardDelete);if(b.dataset.cardOpen){if(row?.classList.contains('actions-open'))setSwipe(row,false);else show(b.dataset.cardOpen)}};
-    bindCardSwipe(root);
+    root.onclick=event=>{const b=event.target.closest('button');if(!b)return;const row=b.closest('.code-card-swipe');if(row && (b.dataset.cardOpen || b.hasAttribute('data-card-actions')) && Date.now()<Number(row.dataset.suppressUntil||0)){event.preventDefault();return;}if(b.hasAttribute('data-cards-new'))edit();if(b.hasAttribute('data-cards-scan'))scanner();if(b.hasAttribute('data-cards-near'))findNearby();if(b.hasAttribute('data-card-actions'))setSwipe(row,!row.classList.contains('actions-open'));if(b.dataset.cardEdit){setSwipe(row,false);edit(b.dataset.cardEdit);}if(b.dataset.cardDelete)removeCard(b.dataset.cardDelete);if(b.dataset.cardOpen){if(row?.classList.contains('actions-open'))setSwipe(row,false);else show(b.dataset.cardOpen)}};
     $('[data-cards-location]',root).onchange=event=>{filter=event.target.value;renderList()};
     renderList();
   }
@@ -104,39 +103,21 @@
     if(!row)return;
     if(open)root?.querySelectorAll('.code-card-swipe.actions-open').forEach(other=>{if(other!==row)setSwipe(other,false)});
     row.classList.toggle('actions-open',open);
-    $('.code-card-surface',row).style.transform=open?'translateX(-168px)':'';
+    const width=(window.LogSwipePolicy?.actionWidth() || 84)*$('.code-card-actions',row).children.length;
+    $('.code-card-surface',row).style.transform=open?`translateX(-${width}px)`:'';
     $('.code-card-actions',row).toggleAttribute('inert',!open);
     $('.code-card-actions',row).setAttribute('aria-hidden',String(!open));
     $('[data-card-actions]',row).setAttribute('aria-expanded',String(open));
   }
-  function bindCardSwipe(target) {
-    let gesture=null;
-    target.onpointerdown=event=>{
-      if(event.button!=null&&event.button!==0)return;
-      const surface=event.target.closest('.code-card-surface');if(!surface||event.target.closest('[data-card-actions]'))return;
-      const row=surface.closest('.code-card-swipe');gesture={id:event.pointerId,x:event.clientX,y:event.clientY,row,surface,open:row.classList.contains('actions-open'),horizontal:false};
-    };
-    target.onpointermove=event=>{
-      const g=gesture;if(!g||g.id!==event.pointerId)return;
-      const dx=event.clientX-g.x,dy=event.clientY-g.y;
-      if(!g.horizontal){if(Math.max(Math.abs(dx),Math.abs(dy))<10)return;if(Math.abs(dy)>=Math.abs(dx)){gesture=null;return;}g.horizontal=true;g.surface.setPointerCapture?.(event.pointerId);}
-      event.preventDefault();g.surface.style.transition='none';g.surface.style.transform=`translateX(${Math.max(-168,Math.min(0,(g.open?-168:0)+dx))}px)`;
-    };
-    target.onpointerup=event=>{
-      const g=gesture;if(!g||g.id!==event.pointerId)return;gesture=null;if(!g.horizontal)return;
-      g.surface.style.transition='';g.row.dataset.suppressUntil=String(Date.now()+350);
-      const dx=event.clientX-g.x;setSwipe(g.row,g.open?dx<45:dx<-45);
-    };
-    target.onpointercancel=()=>{if(gesture){gesture.surface.style.transition='';setSwipe(gesture.row,gesture.open);}gesture=null;};
-  }
   function removeCard(id) {
+    if(window.LogSwipePolicy?.enabled('cards')===false)return;
     const card=records().find(item=>item.id===id);if(!card||!confirm(`Kaart “${card.name}” verwijderen?`))return;
     try{window.LogCardData.save(records().filter(item=>item.id!==id));notice='Kaart verwijderd.';refresh();}
     catch(_){notice='Verwijderen is niet gelukt. De kaart is behouden.';renderList();}
   }
   function refresh() {
     if (!root) return;
-    const signature=JSON.stringify([records(),locations()]);if(signature===lastSignature)return;lastSignature=signature;
+    const signature=JSON.stringify([records(),locations(),window.LogSwipePolicy?.enabled('cards')]);if(signature===lastSignature)return;lastSignature=signature;
     const select=$('[data-cards-location]',root);if(select){select.innerHTML=locationOptions(filter,true);if(filter && filter!=='unlinked' && !locations().some(l=>String(l.id)===filter))filter='';select.value=filter;}
     renderList();
   }
@@ -260,7 +241,7 @@
       notice=count?`${count} ${count===1?'kaart past':'kaarten passen'} bij locaties in de buurt · bovenaan gezet.`:'Geen gekoppelde kaarten in de buurt. Alle kaarten blijven beschikbaar.';renderList();
     },()=>{if(root!==target)return;button.disabled=false;notice='Locatie niet beschikbaar. Kies zelf een locatie.';renderList()}, {enableHighAccuracy:true,timeout:10000,maximumAge:30000});
   }
-  window.LogCardsModule={mount,unmount(){if(root){close();root=null;}},search(value){query=String(value||'').toLocaleLowerCase('nl');return renderList()},refresh};
+  window.LogCardsModule={mount,closeSwipe:row=>setSwipe(row,false),unmount(){if(root){close();root=null;}},search(value){query=String(value||'').toLocaleLowerCase('nl');return renderList()},refresh};
   window.addEventListener('log-km-state-change',refresh);
   window.addEventListener('storage',event=>{if(event.key==='kmreg-test-v4-data')refresh()});
   window.addEventListener('pagehide',stopScanner);

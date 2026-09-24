@@ -15,11 +15,15 @@
   function actionWidth(){return innerWidth<=520?78:84;}
 
   function contextFor(surface){
+    if(surface.matches('.code-card-surface')){
+      const row=surface.closest('.code-card-swipe');
+      return {row,surface,edit:$('[data-card-edit]',row),lifecycle:$('[data-card-delete]',row),module:'cards'};
+    }
     if(surface.matches('.activity-swipe-surface')){
       const row=surface.closest('.activity-swipe-row');
       if(!row)return null;
       return {
-        row,
+        row,module:'time',
         surface,
         edit:$('[data-swipe-action="edit"]',row),
         lifecycle:$('[data-swipe-action="delete"]',row)
@@ -29,7 +33,7 @@
       const row=surface.closest('.km-shell-location-swipe-row');
       if(!row)return null;
       return {
-        row,
+        row,module:'locations',
         surface,
         edit:$('[data-shell-location-swipe-action="edit"]',row),
         lifecycle:$('[data-shell-location-swipe-action="delete"]',row)
@@ -39,7 +43,7 @@
       const row=surface.closest('.km-shell-theme-swipe-row');
       if(!row)return null;
       return {
-        row,
+        row,module:'themes',
         surface,
         edit:$('[data-shell-theme-edit]',row),
         lifecycle:$('[data-log-delete-theme],[data-del-sub]',row)
@@ -48,7 +52,7 @@
     const row=surface.closest('.swipe-row');
     if(!row)return null;
     return {
-      row,
+      row,module:'rides',
       surface,
       edit:$('.trip-swipe-actions [data-action^="edit-"]',row),
       lifecycle:$('.trip-swipe-actions [data-action^="delete-"]',row)
@@ -61,15 +65,20 @@
     ctx.surface.style.transform='translateX(0)';
     delete ctx.surface.dataset.swipeOpen;
     ctx.row?.classList.remove('swipe-open','delete-armed');
+    ctx.row?.classList.remove('swipe-edit-armed');
+    if(ctx.module==='cards')window.LogCardsModule?.closeSwipe(ctx.row);
   }
 
   function pointerDown(event){
     if(event.button!=null&&event.button!==0)return;
-    if(event.target.closest?.('button,input,select,textarea'))return;
-    const surface=event.target.closest?.('.activity-swipe-surface,.km-shell-location-swipe-surface,.km-shell-theme-swipe-surface,.swipe-surface');
+    if(event.target.closest?.('input,select,textarea,button:not([data-card-open])'))return;
+    const surface=event.target.closest?.('.activity-swipe-surface,.km-shell-location-swipe-surface,.km-shell-theme-swipe-surface,.swipe-surface,.code-card-surface');
     if(!surface)return;
     const ctx=contextFor(surface);
     if(!ctx||(!ctx.edit&&!ctx.lifecycle))return;
+    if(ctx.module==='cards'){
+      document.querySelectorAll('.code-card-swipe.actions-open').forEach(row=>window.LogCardsModule?.closeSwipe(row));
+    }
     gesture={pointerId:event.pointerId,startX:event.clientX,startY:event.clientY,dx:0,dy:0,peakLeft:0,horizontal:false,cancelled:false,ctx};
   }
 
@@ -87,6 +96,17 @@
       else return;
     }
     g.peakLeft=Math.max(g.peakLeft,Math.max(0,-g.dx));
+    const lifecycleAllowed=g.ctx.lifecycle&&(window.LogSwipePolicy?.enabled(g.ctx.module)??true);
+    const lifeArmed=lifecycleAllowed&&g.peakLeft>=actionWidth()+LIFECYCLE_EXTRA&&-g.dx>=actionWidth()+LIFECYCLE_EXTRA-LIFECYCLE_RELEASE_BUFFER;
+    g.ctx.row.classList.toggle('swipe-edit-armed',-g.dx>=EDIT_RELEASE_THRESHOLD&&g.peakLeft>=EDIT_THRESHOLD&&!lifeArmed);
+    g.ctx.row.classList.toggle('delete-armed',Boolean(lifeArmed));
+    if(g.ctx.module==='cards'){
+      if(event.cancelable)event.preventDefault();
+      try{g.ctx.surface.setPointerCapture(event.pointerId);}catch(_){}
+      const width=actionWidth()*(lifecycleAllowed?2:1);
+      g.ctx.surface.style.transition='none';
+      g.ctx.surface.style.transform=`translateX(${Math.max(-width,Math.min(0,g.dx))}px)`;
+    }
   }
 
   function pointerUp(event){
@@ -98,9 +118,13 @@
     const lifecycleThreshold=actionWidth()+LIFECYCLE_EXTRA;
     const lifecycleArmed=g.peakLeft>=lifecycleThreshold&&distance>=lifecycleThreshold-LIFECYCLE_RELEASE_BUFFER;
     const editArmed=g.peakLeft>=EDIT_THRESHOLD&&distance>=EDIT_RELEASE_THRESHOLD;
-    const action=g.ctx.lifecycle&&lifecycleArmed
+    const action=g.ctx.lifecycle&&lifecycleArmed&&(window.LogSwipePolicy?.enabled(g.ctx.module)??true)
       ?g.ctx.lifecycle
-      :(g.ctx.edit&&editArmed?g.ctx.edit:(!g.ctx.edit&&g.ctx.lifecycle&&editArmed?g.ctx.lifecycle:null));
+      :(g.ctx.edit&&editArmed?g.ctx.edit:null);
+    if(g.ctx.module==='cards'){
+      g.ctx.row.dataset.suppressUntil=String(Date.now()+400);
+      resetRow(g.ctx);
+    }
     if(!action)return;
     setTimeout(()=>{
       if(!action.isConnected)return;
@@ -111,6 +135,7 @@
 
   function pointerCancel(event){
     if(!gesture||gesture.pointerId!==event.pointerId)return;
+    if(gesture.ctx.module==='cards')resetRow(gesture.ctx);
     gesture=null;
   }
 

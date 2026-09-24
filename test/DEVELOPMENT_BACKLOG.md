@@ -112,3 +112,5 @@ Bij iedere nieuwe ontwikkeling of wijziging:
 | 2026-09-21 | NAV-001, NAV-002 en NAV-006 gebouwd voor testrelease 0.31.10-test.85; gerichte controle en testomgeving volgen. |
 | 2026-09-21 | Werkwijze aangescherpt: alleen relevante informatie, bestanden en controles doorlopen en risicogestuurd testen in plaats van standaard de volledige app. |
 | 2026-09-21 | Backlog aangemaakt en huidige navigatie-, UI-, locatie-, filter-, quick-action- en barcodewensen opgenomen. |
+
+| 2026-09-24 | Testrelease .117: uniforme swipevolgorde (kort bewerken, verder archiveren/verwijderen), gedeelde actieopmaak en minimale regelhoogte in alle modules inclusief kaarten en subthema’s. Algemene instelling schakelt lifecycle-acties uit, ook in open editors; bestaande modulebeperkingen blijven gelden. Codetype verborgen in kaartenlijst. Moduleoverstijgende regressie en kaartcontroles toegevoegd. |
