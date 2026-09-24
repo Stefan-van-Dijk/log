@@ -31,9 +31,11 @@ async function decoded(svg){
  openNew();const unicode='00123 – café 🏠\nhttps://example.test/?a=1&b=2';set('value',unicode);set('locationId','child');submit();
  assert.equal(state.cards.length,1);assert.equal(state.cards[0].color,'#c04d92');assert.equal(state.cards[0].locationId,'child');
  assert.equal(await decoded(q('[data-code-display] svg')),unicode,'QR SVG round-trips exact Unicode and leading zeros');
+ const qrFrame=await sharp(Buffer.from(q('[data-code-display] svg').outerHTML)).ensureAlpha().raw().toBuffer({resolveWithObject:true});
  click('[data-card-close]');assert.match(q('[data-cards-list]').textContent,/Kantoor › Entree/);
  openNew();set('value','000123456789');set('format','CODE128');set('locationId','parent');submit();
- assert.equal(state.cards.length,2);assert.equal(await decoded(q('[data-code-display] svg')),'000123456789','Code128 round-trip');click('[data-card-close]');
+ assert.equal(state.cards.length,2);assert.equal(await decoded(q('[data-code-display] svg')),'000123456789','Code128 round-trip');
+ const barcodeFrame=await sharp(Buffer.from(q('[data-code-display] svg').outerHTML)).ensureAlpha().raw().toBuffer({resolveWithObject:true});click('[data-card-close]');
  openNew();set('value','5901234123457');set('format','EAN13');submit();assert.equal(state.cards.length,3);assert.equal(await decoded(q('[data-code-display] svg')),'5901234123457');click('[data-card-close]');
  openNew();set('value','5901234123458');set('format','EAN13');submit();assert.equal(state.cards.length,3);assert.match(q('[data-card-message]').textContent,/controlecijfer/);click('[data-card-close]');
  openNew();set('value',unicode);set('locationId','child');submit();assert.equal(state.cards.length,3);assert.match(q('[data-card-message]').textContent,/al opgeslagen/);click('[data-card-close]');
@@ -51,6 +53,29 @@ async function decoded(svg){
  w.navigator.mediaDevices.getUserMedia=async()=>{throw Object.assign(new Error('denied'),{name:'NotAllowedError'})};click('[data-cards-scan]');click('[data-camera-start]');await tick();assert.match(q('[data-card-message]').textContent,/toestemming/);assert.equal(q('[data-camera-start]').disabled,false);assert.ok(q('[data-card-photo]'));click('[data-card-close]');
  // A successfully opened camera also stops on module navigation.
  w.navigator.mediaDevices.getUserMedia=async()=>({getTracks:()=>[{stop(){stopped++}}]});click('[data-cards-scan]');click('[data-camera-start]');await tick();w.LogCardsModule.unmount();assert.equal(stopped,2);assert.equal(d.querySelector('dialog'),null);
+ // Exercise the actual camera-frame decoder and handoff into the form, not just generation.
+ w.LogCardsModule.mount(q('#root'));
+ const originalTimeout=w.setTimeout,originalClear=w.clearTimeout;
+ let nextScan=null,frame=null,draws=0,broken=false;
+ w.setTimeout=callback=>{nextScan=callback;return 1};w.clearTimeout=()=>{nextScan=null};
+ w.HTMLCanvasElement.prototype.getContext=function(){return {
+   drawImage(){if(broken)throw Error('frame failure');draws++},
+   getImageData(){return {data:new w.Uint8ClampedArray(frame.data)}}
+ }};
+ for(const [fixture,value,format] of [[qrFrame,unicode,'QR_CODE'],[barcodeFrame,'000123456789','CODE128']]){
+   frame=fixture;click('[data-cards-scan]');const video=q('video');
+   Object.defineProperties(video,{readyState:{value:2},videoWidth:{value:0,configurable:true},videoHeight:{value:0,configurable:true}});
+   const previousDraws=draws;await tick();assert.equal(draws,previousDraws,'do not decode zero-size iOS frames');
+   Object.defineProperties(video,{videoWidth:{value:frame.info.width},videoHeight:{value:frame.info.height}});
+   assert.equal(typeof nextScan,'function');nextScan();
+   assert.ok(q('#cardForm'),'decoded camera result opens editor');
+   assert.equal(q('[name=value]').value,value);assert.equal(q('[name=format]').value,format);
+   assert.equal(q('video'),null,'camera closes once a code is recognized');click('[data-card-close]');
+ }
+ broken=true;click('[data-cards-scan]');const badVideo=q('video');
+ Object.defineProperties(badVideo,{readyState:{value:2},videoWidth:{value:640},videoHeight:{value:480}});
+ await tick();nextScan();nextScan();assert.match(q('[data-card-message]').textContent,/camerabeeld kan niet worden gelezen/);assert.equal(q('[data-camera-start]').disabled,false);click('[data-card-close]');
+ w.setTimeout=originalTimeout;w.clearTimeout=originalClear;
  // Existing main data normalization and persistence retain the new additive field.
  const source=fs.readFileSync(path.join(base,'index.html'),'utf8');
  const normalize=source.slice(source.indexOf('function normalize(x)'),source.indexOf('\nfunction load()'));

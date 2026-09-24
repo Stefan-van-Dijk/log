@@ -164,20 +164,49 @@
     if(!value){message('De code bevat geen leesbare inhoud.');return;}
     edit(null,{value,format});
   }
+  function decodeFrame(video, canvas, decoder) {
+    // iOS may report playable video before dimensions arrive. Never cache a zero-sized frame.
+    if(video.readyState<2 || !video.videoWidth || !video.videoHeight)return null;
+    const scale=Math.min(1,1600/Math.max(video.videoWidth,video.videoHeight));
+    const width=Math.round(video.videoWidth*scale),height=Math.round(video.videoHeight*scale);
+    if(canvas.width!==width || canvas.height!==height){canvas.width=width;canvas.height=height;}
+    const context=canvas.getContext('2d',{willReadFrequently:true});
+    if(!context)throw new Error('Camera frame unavailable');
+    context.drawImage(video,0,0,width,height);
+    const source=new window.ZXing.HTMLCanvasElementLuminanceSource(canvas);
+    return decoder.decodeBitmap(new window.ZXing.BinaryBitmap(new window.ZXing.HybridBinarizer(source)));
+  }
   function scanner() {
     const panel=sheet('Code scannen',`<p>Richt de camera op een QR-code of barcode.</p><video class="cards-video" playsinline muted autoplay></video><button type="button" class="btn full" data-camera-start>Camera starten</button><label class="cards-photo btn secondary">Code uit foto lezen<input type="file" accept="image/*" data-card-photo></label><button type="button" class="cards-link" data-manual>Zelf inhoud invoeren</button>`);
     $('[data-manual]',panel).onclick=()=>edit();
     const start=$('[data-camera-start]',panel);
     start.onclick=async()=>{
+      if(start.disabled)return;
       stopScanner();const token=session;start.disabled=true;message('Camera wordt geopend…');
       try{
         if(!navigator.mediaDevices?.getUserMedia)throw new Error('camera-unavailable');
         const media=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false});
         if(token!==session || dialog!==panel){media.getTracks().forEach(track=>track.stop());return;}
-        stream=media;const video=$('video',panel);video.srcObject=media;await video.play();
+        stream=media;const video=$('video',panel);video.muted=true;video.playsInline=true;video.srcObject=media;await video.play();
         if(token!==session || dialog!==panel)return;
         scanReader=reader();message('Houd de code rustig en volledig in beeld.');start.textContent='Camera actief';
-        const scan=()=>{if(token!==session || dialog!==panel)return;try{if(video.readyState>=2){const result=scanReader.decode(video);if(result){accept(result);return;}}}catch(_){}scanTimer=setTimeout(scan,250)};scan();
+        const canvas=document.createElement('canvas'),started=Date.now();let failures=0;
+        const scan=()=>{
+          if(token!==session || dialog!==panel)return;
+          try{
+            const result=decodeFrame(video,canvas,scanReader);
+            if(result){accept(result);return;}
+            if(Date.now()-started>10000 && (!video.videoWidth || !video.videoHeight || video.readyState<2))throw new Error('No camera frames');
+          }catch(error){
+            const expected=error instanceof window.ZXing.NotFoundException || error instanceof window.ZXing.ChecksumException || error instanceof window.ZXing.FormatException;
+            if(!expected){
+              failures++;
+              if(failures>=3){console.warn('Kaarten: camera kon niet worden uitgelezen.',error);stopScanner();start.disabled=false;start.textContent='Camera opnieuw starten';message('Het camerabeeld kan niet worden gelezen. Start de camera opnieuw of kies een foto.');return;}
+            }else failures=0;
+            if(expected && Date.now()-started>8000)message('Nog geen code herkend. Houd de volledige code scherp in beeld, probeer iets meer afstand of kies een foto.');
+          }
+          scanTimer=setTimeout(scan,200);
+        };scan();
       }catch(error){if(token!==session || dialog!==panel)return;stopScanner();start.disabled=false;start.textContent='Camera opnieuw starten';message(error.name==='NotAllowedError'?'Geef toestemming voor de camera, of kies een foto.':'De camera kan niet worden geopend. Probeer opnieuw of kies een foto.');}
     };
     $('[data-card-photo]',panel).onchange=async event=>{
@@ -185,6 +214,7 @@
       const url=URL.createObjectURL(file),decoder=reader();
       try{const result=await decoder.decodeFromImageUrl(url);if(token===session && dialog===panel)accept(result)}catch(_){if(token===session && dialog===panel)message('Geen ondersteunde code gevonden. Kies een scherpe foto met de volledige code.')}finally{URL.revokeObjectURL(url);decoder.reset();event.target.value=''}
     };
+    start.click();
   }
   function findNearby() {
     if(!navigator.geolocation){notice='Locatiebepaling is niet beschikbaar. Kies zelf een locatie.';renderList();return;}
