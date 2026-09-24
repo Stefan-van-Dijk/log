@@ -1,7 +1,6 @@
 (function(){
   'use strict';
 
-  const BUILD='0.31.10-test.106';
   const EDIT_THRESHOLD=48;
   const LIFECYCLE_EXTRA=44;
   const AXIS_LOCK_DISTANCE=10;
@@ -10,8 +9,6 @@
   const EDIT_RELEASE_THRESHOLD=36;
   const LIFECYCLE_RELEASE_BUFFER=18;
   let gesture=null;
-  let versionObserver=null;
-  let versionQueued=false;
 
   const $=(selector,root=document)=>root.querySelector(selector);
 
@@ -117,45 +114,11 @@
     gesture=null;
   }
 
-  function updateVersion(){
-    window.LOG_TEST_BUILD=BUILD;
-    document.documentElement.dataset.logBuild=BUILD;
-    const version=$('.km-shell-version-number');
-    const badge=$('.km-shell-version');
-    const today=$('#today');
-    if(version&&version.textContent!==BUILD)version.textContent=BUILD;
-    if(badge&&badge.getAttribute('aria-label')!==`Geladen testversie ${BUILD}`)badge.setAttribute('aria-label',`Geladen testversie ${BUILD}`);
-    if(today){
-      const date=new Intl.DateTimeFormat('nl-NL',{weekday:'long',day:'numeric',month:'long'}).format(new Date());
-      const value=`${date} · ${BUILD}`;
-      if(today.textContent!==value)today.textContent=value;
-    }
-  }
-
-  function scheduleVersion(){
-    if(versionQueued)return;
-    versionQueued=true;
-    requestAnimationFrame(()=>{
-      versionQueued=false;
-      updateVersion();
-    });
-  }
-
-  function bindVersionGuard(){
-    if(versionObserver||!document.body)return;
-    versionObserver=new MutationObserver(scheduleVersion);
-    versionObserver.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['aria-label','class']});
-  }
-
   function init(){
-    updateVersion();
-    bindVersionGuard();
     document.addEventListener('pointerdown',pointerDown,true);
     document.addEventListener('pointermove',pointerMove,true);
     document.addEventListener('pointerup',pointerUp,true);
     document.addEventListener('pointercancel',pointerCancel,true);
-    window.addEventListener('pageshow',scheduleVersion);
-    window.addEventListener('log-shell-view-refresh',scheduleVersion);
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});

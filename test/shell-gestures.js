@@ -1,7 +1,6 @@
 (function(){
   'use strict';
 
-  const BUILD='0.31.10-test.106';
   const HORIZONTAL_RATIO=1.25;
   const SNAP_PROGRESS=0.28;
   const FLING_VELOCITY=0.45;
@@ -25,19 +24,6 @@
     return document.body.classList.contains('cards-dialog-open')||
       document.body.classList.contains('km-shell-settings-open')||
       document.body.classList.contains('editor-view');
-  }
-
-  function updateVersion(){
-    const version=$('.km-shell-version-number');
-    const badge=$('.km-shell-version');
-    const today=$('#today');
-    if(version&&version.textContent!==BUILD)version.textContent=BUILD;
-    if(badge)badge.setAttribute('aria-label',`Geladen testversie ${BUILD}`);
-    if(today){
-      const date=new Intl.DateTimeFormat('nl-NL',{weekday:'long',day:'numeric',month:'long'}).format(new Date());
-      const value=`${date} · ${BUILD}`;
-      if(today.textContent!==value)today.textContent=value;
-    }
   }
 
   function installGestureStyles(){
@@ -342,19 +328,15 @@
     installGestureStyles();
     promoteSharedStyles();
     bindGestureDocument(document);
-    updateVersion();
     syncDrawerScrollLock();
 
     const observer=new MutationObserver(()=>{
-      updateVersion();
       if(!gesture?.visualActive)syncDrawerScrollLock();
     });
     observer.observe(document.body,{attributes:true,attributeFilter:['class'],childList:true,subtree:false});
 
-    document.addEventListener('click',()=>setTimeout(updateVersion,0),{passive:true});
     window.addEventListener('pageshow',()=>{
       promoteSharedStyles();
-      updateVersion();
       syncDrawerScrollLock();
     });
     window.addEventListener('resize',()=>{
