@@ -114,3 +114,5 @@ Bij iedere nieuwe ontwikkeling of wijziging:
 | 2026-09-21 | Backlog aangemaakt en huidige navigatie-, UI-, locatie-, filter-, quick-action- en barcodewensen opgenomen. |
 
 | 2026-09-24 | Testrelease .117: uniforme swipevolgorde (kort bewerken, verder archiveren/verwijderen), gedeelde actieopmaak en minimale regelhoogte in alle modules inclusief kaarten en subthema’s. Algemene instelling schakelt lifecycle-acties uit, ook in open editors; bestaande modulebeperkingen blijven gelden. Codetype verborgen in kaartenlijst. Moduleoverstijgende regressie en kaartcontroles toegevoegd. |
+
+| 2026-09-24 | Testrelease .118: kleur-overschrijvingen bij ritten verwijderd; ondoorzichtige swipe-acties geven gelijke kleuren op verschillende achtergronden. Tijd/Taken heeft een bedienbare, meedraaiende detailchevron. Kaarten openen via kaartsymbool; puntjesknop verwijderd. Gerichte detail- en kaartregressies uitgevoerd. |

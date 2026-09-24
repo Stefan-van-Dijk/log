@@ -49,9 +49,11 @@ async function decoded(svg){
  assert.doesNotMatch(q('[data-cards-list]').textContent,/QR-code|Code 128|Code 39/,'list omits technical code type');
  pointer('pointerdown',200,20);pointer('pointermove',195,100);pointer('pointerup',195,100);
  assert.equal(row.classList.contains('actions-open'),false,'vertical scrolling does not reveal actions');
- click('[data-card-actions]');assert.equal(row.classList.contains('actions-open'),true,'keyboard-accessible action toggle');
+ assert.equal(q('[data-card-actions]'),null,'no redundant more button');
+ assert.ok(q('[data-card-open] .code-card-open-icon svg'),'card symbol replaces disclosure chevron');
+ row.dataset.suppressUntil='0';click('.code-card-open-icon');assert.ok(q('.cards-display'),'card symbol opens card');click('[data-card-close]');
  w.confirm=()=>false;click('[data-card-delete]');assert.equal(state.cards.length,1,'cancel deletion preserves card');
- failSave=true;w.confirm=()=>true;click('[data-card-delete]');assert.equal(state.cards.length,1,'failed deletion preserves card');failSave=false;click('[data-card-actions]');
+ failSave=true;w.confirm=()=>true;click('[data-card-delete]');assert.equal(state.cards.length,1,'failed deletion preserves card');failSave=false;
  openNew();set('value','000123456789');set('format','CODE128');set('locationId','parent');submit();
  assert.equal(state.cards.length,2);assert.equal(await decoded(q('[data-code-display] svg')),'000123456789','Code128 round-trip');
  const barcodeFrame=await sharp(Buffer.from(q('[data-code-display] svg').outerHTML)).ensureAlpha().raw().toBuffer({resolveWithObject:true});click('[data-card-close]');
@@ -112,7 +114,10 @@ async function decoded(svg){
  vm.createContext(bridgeContext);vm.runInContext(bridge,bridgeContext);
  assert.throws(()=>bridgeContext.window.LogCardData.save([]),/quota/);
  assert.equal(bridgeContext.data.cards.length,state.cards.length);
- const countBeforeDelete=state.cards.length;click('[data-card-actions]');w.confirm=()=>true;click('[data-card-delete]');
+ const countBeforeDelete=state.cards.length;w.confirm=()=>true;
+ const currentSurface=q('.code-card-surface');
+ for(const [type,x] of [['pointerdown',220],['pointermove',50],['pointerup',50]]){const e=new w.MouseEvent(type,{bubbles:true,cancelable:true,clientX:x,clientY:20,button:0});Object.defineProperty(e,'pointerId',{value:2});currentSurface.dispatchEvent(e);}
+ await new Promise(resolve=>setTimeout(resolve,10));
  assert.equal(state.cards.length,countBeforeDelete-1,'confirmed row deletion removes only selected card');
  console.log('Cards: QR/Code128/EAN13 decoding, colors, title, location filters, nearby, duplicates, save failure, camera cleanup, denial, backup recovery and legacy data passed.');
  dom.window.close();

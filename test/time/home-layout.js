@@ -545,6 +545,17 @@
       const clean = original.cloneNode(true);
       clean.classList.add('activity-swipe-surface');
       clean.removeAttribute('style');
+      const chevron = clean.querySelector('.chev');
+      if (chevron) {
+        const toggle = document.createElement('button');
+        toggle.type = 'button';
+        toggle.className = 'chev activity-details-toggle';
+        toggle.setAttribute('aria-label', 'Details van registratie');
+        toggle.setAttribute('aria-expanded', String(expandedEntryId === id));
+        toggle.innerHTML = '<span aria-hidden="true">›</span>';
+        chevron.replaceWith(toggle);
+      }
+
 
       const shell = document.createElement('div');
       shell.className = `activity-entry-shell${entry.activityType === 'interruption' ? ' interruption-shell' : ''}`;
@@ -596,6 +607,7 @@
           const otherDetails = other.querySelector('.activity-inline-details');
           const open = other.dataset.id === expandedEntryId;
           other.classList.toggle('expanded', open);
+          other.querySelector('.activity-details-toggle')?.setAttribute('aria-expanded', String(open));
           if (open) {
             const item = entryById(other.dataset.id);
             otherDetails.innerHTML = item ? entryDetailsHtml(item) : '';

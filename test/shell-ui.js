@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const BUILD = window.LOG_TEST_BUILD || '0.31.10-test.117';
+  const BUILD = window.LOG_TEST_BUILD || '0.31.10-test.118';
   const SHELL_VERSION = (() => {
     try {
       const script = document.currentScript || [...document.scripts].find(item => item.src.includes('shell-ui.js'));
@@ -531,8 +531,8 @@
       body:not(.time-mode) #app .list .list-item{position:relative;border-bottom:0!important}
       body:not(.time-mode) #app .list .list-item::after{content:"";position:absolute;left:58px;right:0;bottom:0;height:.5px;background:var(--line);pointer-events:none}
       body:not(.time-mode) #app .list .trip-entry:last-child .list-item::after{display:none}
-      body:not(.time-mode) #app .swipe-edit{background:#0a84ff!important;color:#fff!important}
-      body:not(.time-mode) #app .swipe-delete{background:#ff453a!important;color:#fff!important}
+      body:not(.time-mode) #app .swipe-edit{background:var(--log-edit)!important;color:#fff!important}
+      body:not(.time-mode) #app .swipe-delete{background:var(--log-delete)!important;color:#fff!important}
       body:not(.time-mode) #app .chev{color:color-mix(in srgb,var(--muted) 62%,transparent)!important;font-size:20px!important}
       body:not(.time-mode) #app .btn:active,.km-shell-locations button:active,.km-shell-themes button:active{opacity:.68}
       .km-shell-locations-head{padding:7px 2px 12px!important}.km-shell-locations-head h2{font-size:20px!important;font-weight:720!important;letter-spacing:-.02em!important}

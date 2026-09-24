@@ -1,0 +1,18 @@
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const {JSDOM}=require('jsdom');
+const base=path.resolve(__dirname,'..');
+const dom=new JSDOM('<main><section class="section"><div class="list"><div class="entry" data-entry="a"><span>A</span><div class="chev">›</div></div><div class="entry" data-entry="b"><span>B</span><div class="chev">›</div></div></div></section></main>',{runScripts:'outside-only'});
+const w=dom.window,d=w.document;
+const source=fs.readFileSync(path.join(base,'time/home-layout.js'),'utf8');
+const enhance=source.slice(source.indexOf('  function enhanceEntries('),source.indexOf('  function resetActivitySwipe('));
+w.eval(`let expandedEntryId=null;const state={settings:{},timer:{status:'inactive'}};const entryById=id=>({id,themeId:'t'});const themeColor=()=> '#123456';const safeText=String;const $$=(s,r)=>[...r.querySelectorAll(s)];const entryDetailsHtml=e=>'<p>Details '+e.id+'</p>';function resetActivitySwipe(){};function openEntryEdit(){};function deleteEntryInline(){};function reopenLastTask(){};${enhance};enhanceEntries(document.querySelector('main'));`);
+const rows=d.querySelectorAll('.activity-entry-shell'),button=i=>rows[i].querySelector('.activity-details-toggle'),details=i=>rows[i].querySelector('.activity-inline-details');
+assert.equal(button(0).getAttribute('aria-expanded'),'false');assert.ok(details(0).hidden);
+button(0).querySelector('span').click();assert.equal(button(0).getAttribute('aria-expanded'),'true');assert.equal(details(0).hidden,false);assert.match(details(0).textContent,/Details a/);
+button(1).click();assert.equal(details(0).hidden,true);assert.equal(button(0).getAttribute('aria-expanded'),'false');assert.equal(details(1).hidden,false);
+button(1).click();assert.equal(details(1).hidden,true);
+rows[0].querySelector('.activity-swipe-surface').dataset.suppressClick='1';button(0).click();assert.equal(details(0).hidden,true,'swipe release cannot expand');
+const css=fs.readFileSync(path.join(base,'time/home-layout.css'),'utf8');assert.match(css,/aria-expanded="true"\] span\{transform:rotate\(90deg\)/);
+const shell=fs.readFileSync(path.join(base,'shell-ui.js'),'utf8');assert.match(shell,/\.swipe-edit\{background:var\(--log-edit\)!important/);assert.match(shell,/\.swipe-delete\{background:var\(--log-delete\)!important/);
+const shared=fs.readFileSync(path.join(base,'swipe-ui.css'),'utf8');assert.doesNotMatch(shared,/opacity:\.7/,'opaque actions avoid different background blending');
+console.log('Entry disclosure: opening, closing, switching, swipe suppression and shared color overrides passed.');dom.window.close();
