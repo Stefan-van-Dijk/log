@@ -1,6 +1,6 @@
 # Kaarten: gerichte controle
 
-Release: 0.31.10-test.117. Productiebestanden zijn niet gewijzigd.
+Release: 0.31.10-test.119. Productiebestanden zijn niet gewijzigd.
 
 ## Automatische test
 
@@ -31,3 +31,5 @@ Codes kopiëren de tekstinhoud, niet de beveiliging of geldigheid van een origin
 Test .114 voegt synthetische cameraframes toe: QR en Code128 worden met de echte decoder gelezen en naar het formulier overgedragen, inclusief vertraagde videoafmetingen en zichtbare herstart na leesfouten. Camera start bij Code scannen; Camera opnieuw starten blijft beschikbaar bij fouten.
 
 Test .117: `module-swipe-regression.cjs` controleert korte/lange veeg, annuleren, verticaal scrollen, globale en lokale uitschakeling, blokkering van oude knoppen en de actievolgorde. Kaarttest controleert gedeeld swipegedrag en afwezig codetype. Controleer op iPhone per module de regelhoogte, korte/lange veeg en Algemene instellingen → App → Bediening. Ook met uitschakeling moet bewerken beschikbaar blijven.
+
+Test .119: `scan-actions-regression.cjs` controleert bekende/onbekende en meervoudige matches, voorloopnullen, opgeslagen actieconfiguratie, bevestiging, ontbrekende locaties/thema’s, lopende/te voltooien taken en opslagfouten. De cameraframetest controleert herkenning van bestaande QR- en barcodekaarten. Controleer op iPhone scannen → herkenning → actie, inclusief een sublocatie en een al lopende taak.

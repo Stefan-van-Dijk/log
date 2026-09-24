@@ -140,17 +140,56 @@
     dialog.addEventListener('cancel',event=>{event.preventDefault();close()});dialog.addEventListener('click',event=>{if(event.target===dialog)close()});
     document.body.classList.add('cards-dialog-open');dialog.showModal();return dialog;
   }
+  function actionCatalog() { return window.LogTimeModule?.getThemeCatalog?.() || {themes:[],subthemes:[]}; }
+  function actionEditor(card) {
+    const action=card.scanAction || {}, catalog=actionCatalog();
+    const options=(items,selected)=>items.map(item=>`<option value="${esc(item.id)}"${item.id===selected?' selected':''}>${esc(item.name)}</option>`).join('');
+    return `<details class="cards-content-details"${action.type?' open':''}><summary>Acties na scannen</summary><label for="cardAction">Voorkeursactie</label><select id="cardAction" name="actionType"><option value="">Alleen kaart tonen</option><option value="location"${action.type==='location'?' selected':''}>Locatie openen</option><option value="task"${action.type==='task'?' selected':''}>Taak starten</option></select><p data-action-location>Gebruikt de locatie of sublocatie van deze kaart.</p><div data-action-task><label for="cardActionTheme">Thema</label><select id="cardActionTheme" name="actionTheme"><option value="">Kies een thema</option>${options(catalog.themes,action.themeId)}</select><label for="cardActionSubtheme">Subthema</label><select id="cardActionSubtheme" name="actionSubtheme"><option value="">Geen subthema</option>${options(catalog.subthemes.filter(item=>item.themeId===action.themeId),action.subthemeId)}</select><p>Na scannen bevestig je de start. Een lopende taak blijft behouden.</p></div></details>`;
+  }
+  function validateAction(card) {
+    const action=card.scanAction;if(!action)return;
+    if(!['location','task'].includes(action.type))throw Error('Kies een geldige scanactie.');
+    if((action.type==='location'||card.locationId)&&!locations().some(item=>String(item.id)===String(card.locationId)))throw Error('Kies een beschikbare locatie voor deze actie.');
+    if(action.type==='task'){
+      const catalog=actionCatalog();
+      if(!catalog.themes.some(item=>item.id===action.themeId))throw Error('Kies een beschikbaar thema voor deze actie.');
+      if(action.subthemeId&&!catalog.subthemes.some(item=>item.id===action.subthemeId&&item.themeId===action.themeId))throw Error('Kies een beschikbaar subthema voor deze actie.');
+    }
+  }
+  function actionLabel(card) {
+    const action=card.scanAction;if(!action)return '';
+    if(action.type==='location')return `Open ${locationLabel(card.locationId)}`;
+    if(action.type!=='task')return '';
+    const catalog=actionCatalog(),theme=catalog.themes.find(item=>item.id===action.themeId),sub=catalog.subthemes.find(item=>item.id===action.subthemeId);
+    return `Start ${sub?.name || theme?.name || 'taak'}${card.locationId?' bij '+locationLabel(card.locationId):''}`;
+  }
+  function runAction(id) {
+    const card=records().find(item=>item.id===id);if(!card)return message('Deze kaart is niet meer beschikbaar.');
+    try {
+      validateAction(card);
+      if(card.scanAction?.type==='location'){
+        if(!window.LogCardActions?.openLocation(card.locationId))throw Error('Locatie kan nu niet worden geopend.');
+      } else if(card.scanAction?.type==='task'){
+        if(!window.LogTimeModule?.startFromCard)throw Error('Tijd/Taken is niet beschikbaar.');
+        window.LogTimeModule.startFromCard({...card.scanAction,locationName:card.locationId?locationLabel(card.locationId):''});
+        close();window.dispatchEvent(new CustomEvent('kmreg-test-shell-select-section',{detail:{section:'time'}}));
+      }
+    }catch(error){message(error.message || 'De actie kon niet worden uitgevoerd.');}
+  }
   function edit(id = null, scanned = null) {
     const stored=id?records().find(card=>card.id===id):null;if(id&&!stored)return;
     const card=stored || {name:scanned?'Gescande kaart':'',value:scanned?.value || '',format:scanned?.format || 'QR_CODE',locationId:filter !== 'unlinked'?filter:''};
-    const panel=sheet(id?'Kaart bewerken':'Nieuwe kaart',`<form id="cardForm"><div class="form-group"><label for="cardName">Titel</label><input id="cardName" name="name" maxlength="80" required value="${esc(card.name)}" placeholder="Bijvoorbeeld toegangspas of klantenkaart"></div><div class="form-group cards-color-field"><label for="cardColor">Kleur</label><input type="color" id="cardColor" name="color" value="${color(card.color)}"></div><div class="form-group"><label for="cardFormat">Codetype</label><select id="cardFormat" name="format">${Object.entries(FORMATS).map(([key,label])=>`<option value="${key}"${key===card.format?' selected':''}>${label}</option>`).join('')}</select></div><div class="form-group"><label for="cardValue">Inhoud</label><textarea id="cardValue" name="value" required maxlength="2000" spellcheck="false" autocapitalize="off">${esc(card.value)}</textarea><small>De inhoud blijft exact bewaard, ook voorloopnullen.</small></div><div class="form-group"><label for="cardLocation">Locatie of sublocatie</label><select id="cardLocation" name="locationId">${locationOptions(String(card.locationId || ''))}${card.locationId&&!locations().some(l=>String(l.id)===String(card.locationId))?`<option value="${esc(card.locationId)}" selected>Locatie niet meer beschikbaar</option>`:''}</select></div><div class="code-surface cards-preview" data-card-preview hidden></div><p class="cards-preview-error" data-preview-error></p><button class="btn full" type="submit">Kaart opslaan</button></form>`);
+    const panel=sheet(id?'Kaart bewerken':'Nieuwe kaart',`<form id="cardForm"><div class="form-group"><label for="cardName">Titel</label><input id="cardName" name="name" maxlength="80" required value="${esc(card.name)}" placeholder="Bijvoorbeeld toegangspas of klantenkaart"></div><div class="form-group cards-color-field"><label for="cardColor">Kleur</label><input type="color" id="cardColor" name="color" value="${color(card.color)}"></div><div class="form-group"><label for="cardFormat">Codetype</label><select id="cardFormat" name="format">${Object.entries(FORMATS).map(([key,label])=>`<option value="${key}"${key===card.format?' selected':''}>${label}</option>`).join('')}</select></div><div class="form-group"><label for="cardValue">Inhoud</label><textarea id="cardValue" name="value" required maxlength="2000" spellcheck="false" autocapitalize="off">${esc(card.value)}</textarea><small>De inhoud blijft exact bewaard, ook voorloopnullen.</small></div><div class="form-group"><label for="cardLocation">Locatie of sublocatie</label><select id="cardLocation" name="locationId">${locationOptions(String(card.locationId || ''))}${card.locationId&&!locations().some(l=>String(l.id)===String(card.locationId))?`<option value="${esc(card.locationId)}" selected>Locatie niet meer beschikbaar</option>`:''}</select></div>${actionEditor(card)}<div class="code-surface cards-preview" data-card-preview hidden></div><p class="cards-preview-error" data-preview-error></p><button class="btn full" type="submit">Kaart opslaan</button></form>`);
     const form=$('form',panel);
-    const values=()=>({name:form.elements.name.value.trim(),color:color(form.elements.color.value),value:form.elements.value.value,format:form.elements.format.value,locationId:form.elements.locationId.value || null});
+    const values=()=>({name:form.elements.name.value.trim(),color:color(form.elements.color.value),value:form.elements.value.value,format:form.elements.format.value,locationId:form.elements.locationId.value || null,scanAction:form.elements.actionType.value?{type:form.elements.actionType.value,...(form.elements.actionType.value==='task'?{themeId:form.elements.actionTheme.value,subthemeId:form.elements.actionSubtheme.value || null}:{})}:null});
+    const syncAction=()=>{$('[data-action-task]',form).hidden=form.elements.actionType.value!=='task';$('[data-action-location]',form).hidden=!form.elements.actionType.value;};
+    form.elements.actionType.onchange=syncAction;syncAction();
+    form.elements.actionTheme.onchange=()=>{form.elements.actionSubtheme.innerHTML='<option value="">Geen subthema</option>'+actionCatalog().subthemes.filter(item=>item.themeId===form.elements.actionTheme.value).map(item=>`<option value="${esc(item.id)}">${esc(item.name)}</option>`).join('');};
     const preview=()=>{if(dialog!==panel)return;const host=$('[data-card-preview]',panel);host.hidden=true;$('[data-preview-error]',panel).textContent='';if(!values().value)return;try{renderCode(host,values());host.hidden=false}catch(error){$('[data-preview-error]',panel).textContent=error.message || 'Deze inhoud kan niet als code worden weergegeven.'}};
     form.addEventListener('input',()=>{clearTimeout(previewTimer);previewTimer=setTimeout(preview,180)});form.addEventListener('change',preview);preview();
     if(scanned)message('Code gelezen. Kies een titel, kleur en eventueel een locatie en sla de kaart op.');
     form.onsubmit=event=>{event.preventDefault();try{
-      const fields=values();validate(fields);makeCode(fields);
+      const fields=values();validate(fields);makeCode(fields);validateAction(fields);
       const next={...stored,...fields,id:stored?.id || crypto.randomUUID(),createdAt:stored?.createdAt || new Date().toISOString(),updatedAt:new Date().toISOString()};
       const cards=records();const duplicate=cards.find(item=>item.id!==next.id && item.format===next.format && item.value===next.value && String(item.locationId||'')===String(next.locationId||''));
       if(duplicate){message(`Deze code staat voor deze locatie al opgeslagen als “${duplicate.name}”.`);return;}
@@ -158,9 +197,10 @@
       window.LogCardData.save(cards);notice='Kaart opgeslagen.';refresh();show(next.id);
     }catch(error){message(error.message || 'Opslaan is niet gelukt. Je invoer blijft staan.')}};
   }
-  function show(id) {
+  function show(id, recognized = false) {
     const card=records().find(item=>item.id===id);if(!card)return;
-    const panel=sheet(card.name,`<p class="cards-location-label">${esc(locationLabel(card.locationId))}</p><div class="code-surface" data-code-display></div><details class="cards-content-details"><summary>Inhoud bekijken</summary><pre class="cards-value">${esc(card.value)}</pre><button type="button" class="btn secondary full" data-card-copy>Inhoud kopiëren</button></details>`);
+    const panel=sheet(card.name,`${recognized?'<p class="cards-recognized" role="status">✓ Code herkend · bestaande kaart</p>':''}<p class="cards-location-label">${esc(locationLabel(card.locationId))}</p><div class="code-surface" data-code-display></div><details class="cards-content-details"><summary>Inhoud bekijken</summary><pre class="cards-value">${esc(card.value)}</pre><button type="button" class="btn secondary full" data-card-copy>Inhoud kopiëren</button></details>${recognized&&actionLabel(card)?`<button type="button" class="btn full cards-scan-action" data-run-card-action>${esc(actionLabel(card))}</button>${card.scanAction.type==='task'?'<p class="cards-notice">De taak start pas als je op deze knop tikt.</p>':''}`:''}`);
+    $('[data-run-card-action]',panel)?.addEventListener('click',()=>runAction(id));
     panel.style.setProperty('--card-color',color(card.color));
     panel.classList.add('cards-display');
     try{renderCode($('[data-code-display]',panel),card)}catch(error){message(error.message || 'Code kan niet worden weergegeven. De inhoud is nog beschikbaar.')}
@@ -176,6 +216,12 @@
     const format=SCAN_FORMATS[window.ZXing.BarcodeFormat[result.getBarcodeFormat()]],value=result.getText();
     if(!format){message('Dit codetype wordt nog niet ondersteund.');return;}
     if(!value){message('De code bevat geen leesbare inhoud.');return;}
+    const matches=records().filter(card=>card.value===value);
+    if(matches.length===1){show(matches[0].id,true);return;}
+    if(matches.length>1){
+      const panel=sheet('Code herkend',`<p>Deze inhoud hoort bij meerdere kaarten. Kies de juiste kaart.</p>${matches.map(card=>`<button type="button" class="btn secondary full cards-scan-choice" data-recognized-card="${esc(card.id)}">${esc(card.name)}<small>${esc(locationLabel(card.locationId))}</small></button>`).join('')}`);
+      panel.querySelectorAll('[data-recognized-card]').forEach(button=>button.onclick=()=>show(button.dataset.recognizedCard,true));return;
+    }
     edit(null,{value,format});
   }
   function decodeFrame(video, canvas, decoder) {

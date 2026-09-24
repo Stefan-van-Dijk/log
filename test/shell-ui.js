@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const BUILD = window.LOG_TEST_BUILD || '0.31.10-test.118';
+  const BUILD = window.LOG_TEST_BUILD || '0.31.10-test.119';
   const SHELL_VERSION = (() => {
     try {
       const script = document.currentScript || [...document.scripts].find(item => item.src.includes('shell-ui.js'));
@@ -1046,6 +1046,20 @@
     window.addEventListener('scroll', update, { passive: true });
     update();
   }
+
+  window.LogCardActions = {
+    openLocation(id) {
+      const location=readData().locations.find(item=>String(item.id)===String(id));
+      if(!location)return false;
+      expandedLocationId=location.id;
+      selectSection('locations');
+      renderLocations();
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{
+        document.querySelector(`[data-shell-location-node="${CSS.escape(String(id))}"]`)?.scrollIntoView({block:'center',behavior:'smooth'});
+      }));
+      return true;
+    }
+  };
 
   function selectSection(next) {
     if (!ROOT_SECTIONS.has(next)) return;

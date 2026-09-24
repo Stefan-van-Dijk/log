@@ -89,8 +89,10 @@ async function decoded(svg){
    const previousDraws=draws;await tick();assert.equal(draws,previousDraws,'do not decode zero-size iOS frames');
    Object.defineProperties(video,{videoWidth:{value:frame.info.width},videoHeight:{value:frame.info.height}});
    assert.equal(typeof nextScan,'function');nextScan();
-   assert.ok(q('#cardForm'),'decoded camera result opens editor');
-   assert.equal(q('[name=value]').value,value);assert.equal(q('[name=format]').value,format);
+   assert.ok(q('.cards-display'),'known camera result opens existing card');
+   assert.match(q('.cards-recognized').textContent,/Code herkend/);
+   assert.equal(q('.cards-value').textContent,value);
+   assert.equal(q('#cardForm'),null,'known scan does not create a duplicate');
    assert.equal(q('video'),null,'camera closes once a code is recognized');click('[data-card-close]');
  }
  broken=true;click('[data-cards-scan]');const badVideo=q('video');

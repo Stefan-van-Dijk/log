@@ -952,6 +952,18 @@ function init() {
   render();
 }
 
+// Read persisted timer state again at confirmation, including changes from another tab.
+function startFromCard({themeId,subthemeId,locationName=''}) {
+  state=loadState();
+  if(state.timer.status!=='inactive')throw Error('Er loopt nog een taak of er wacht een taak op afronding. Rond die eerst af.');
+  const theme=state.themes.find(item=>item.id===themeId);
+  const subtheme=subthemeId?state.subthemes.find(item=>item.id===subthemeId&&item.themeId===themeId):null;
+  if(!theme || (subthemeId&&!subtheme))throw Error('Het gekoppelde thema of subthema is niet meer beschikbaar. Bewerk de kaart.');
+  try { startTimer(theme,subtheme,locationName); }
+  catch(error){state=loadState();throw error;}
+  return true;
+}
+
 window.LogTimeModule = Object.freeze({
   getState: () => state,
   getPeriodEntries: () => entriesForPeriod(),
@@ -976,6 +988,7 @@ window.LogTimeModule = Object.freeze({
   showSettings: options => openSettings(options),
   reloadFromStorage,
   startFromEntry,
+  startFromCard,
   resumeEntry: entryId => reopenLastTask(entryId),
   editEntry: entryId => openEntryEdit(entryId),
   openEntry: entryId => openEntryDetail(entryId),
