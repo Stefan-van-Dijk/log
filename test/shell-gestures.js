@@ -22,7 +22,8 @@
   }
 
   function blockedByOverlay(){
-    return document.body.classList.contains('km-shell-settings-open')||
+    return document.body.classList.contains('cards-dialog-open')||
+      document.body.classList.contains('km-shell-settings-open')||
       document.body.classList.contains('editor-view');
   }
 

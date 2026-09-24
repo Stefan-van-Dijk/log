@@ -56,15 +56,15 @@
     },
     {
       "id": "barcodes",
-      "label": "Barcodekaarten",
+      "label": "Kaarten",
       "shortLabel": "Kaarten",
-      "subtitle": "Barcodekaarten scannen en beheren",
+      "subtitle": "Barcodes en QR-codes",
       "icon": "barcodes",
       "available": true,
-      "defaultPlacement": "hidden",
+      "defaultPlacement": "both",
       "bottomOrder": 50,
       "menuOrder": 50,
-      "view": "placeholder",
+      "view": "barcodes",
       "settingsTarget": null
     }
   ]

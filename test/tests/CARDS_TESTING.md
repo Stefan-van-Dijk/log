@@ -1,0 +1,29 @@
+# Kaarten: gerichte controle
+
+Release: 0.31.10-test.113. Productiebestanden zijn niet gewijzigd.
+
+## Automatische test
+
+`cards-regression.cjs` gebruikt Node, jsdom 26.1.0 en sharp. Installeer de testafhankelijkheden in een tijdelijke map (niet in productie):
+
+```sh
+npm install --prefix /tmp/log-cards-tests --ignore-scripts --no-save jsdom@26.1.0 sharp
+NODE_PATH=/tmp/log-cards-tests/node_modules node test/tests/cards-regression.cjs
+node test/tests/ride-detour-one-tap-regression.cjs
+node test/tests/gps-track-resume-regression.cjs
+node test/tests/shell-header-regression.cjs
+```
+
+De test leest gegenereerde QR-, Code128- en EAN13-SVG's opnieuw met de scannerdecoder; controleert Unicode en voorloopnullen, titels en kleur, hoofd-/sublocatiefilters, nabije locaties, duplicaten, opslagfouten, cameraweigering, late cameratoestemming, stoppen bij navigatie en behoud in de complete back-up/hersteldata. DOM-tests simuleren camera en GPS; dit is geen fysieke cameratest.
+
+## Controle op iPhone in testomgeving
+
+1. Open Kaarten. Maak een QR-code met titel/kleur en een sublocatie. Controleer voorbeeld en opgeslagen kaart.
+2. Maak een Code128-kaart met `000123456789`. Heropen de PWA en controleer beide kaarten, inhoud en kleur.
+3. Scan een bestaande QR-code en barcode; sla de gelezen inhoud met titel/kleur/locatie op. Probeer ook een foto.
+4. Weiger cameratoegang en controleer de uitleg en foto-optie. Sluit tijdens het openen van de camera en controleer dat de camera-indicator verdwijnt.
+5. Wissel naar een andere module of zet de app op de achtergrond; camera moet stoppen. Hervat met de knop.
+6. Filter op hoofdlocatie en sublocatie, zoek op titel of inhoud en probeer In de buurt. GPS vraagt alleen na aantikken toestemming; alle kaarten blijven bereikbaar bij weigering.
+7. Exporteer een volledige back-up. Herstel uitsluitend in een afzonderlijke lege testinstallatie en controleer kaarten en locatiekoppelingen.
+
+Codes kopiëren de tekstinhoud, niet de beveiliging of geldigheid van een originele pas. Dynamische/tijdgebonden codes kunnen na verloop van tijd ongeldig worden.
