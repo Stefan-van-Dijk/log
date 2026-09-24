@@ -121,7 +121,7 @@
 
   function hasOwnGesture(target){
     return Boolean(target?.closest?.(
-      '#kmShellTabBar,#periodNavigator,.period-navigator,.swipe-surface,.trip-swipe-surface,.km-shell-location-swipe-surface,.activity-swipe-surface,.period-overview,.period-nav,.odo-digit.swipeable'
+      '#kmShellTabBar,#periodNavigator,.period-navigator,.swipe-surface,.trip-swipe-surface,.km-shell-location-swipe-surface,.activity-swipe-surface,.code-card-surface,.period-overview,.period-nav,.odo-digit.swipeable'
     ));
   }
 
