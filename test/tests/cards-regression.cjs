@@ -17,7 +17,7 @@ w.HTMLMediaElement.prototype.play=async function(){};
 let state={cards:[],settings:{recognitionRadius:500},locations:[{id:'parent',name:'Kantoor',lat:52,lng:6},{id:'child',name:'Entree',parentId:'parent'},{id:'other',name:'Magazijn',lat:53,lng:7}]};
 let failSave=false,stopped=0;
 w.LogCardData={snapshot:()=>JSON.parse(JSON.stringify(state)),save(cards){if(failSave)throw Error('Opslag vol');state.cards=JSON.parse(JSON.stringify(cards))}};
-for(const file of ['vendor/qrcode-2.0.4.js','vendor/jsbarcode-3.12.1.min.js','vendor/zxing-0.21.3.min.js','cards.js','shell-direct-actions.js'])w.eval(fs.readFileSync(path.join(base,file),'utf8'));
+for(const file of ['vendor/qrcode-2.0.4.js','vendor/jsbarcode-3.12.1.min.js','vendor/zxing-0.21.3.min.js','log-code.js','cards.js','shell-direct-actions.js'])w.eval(fs.readFileSync(path.join(base,file),'utf8'));
 const q=s=>d.querySelector(s),click=s=>q(s).click(),set=(name,value)=>{q(`[name="${name}"]`).value=value};
 const submit=()=>q('form').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));
 const tick=()=>new Promise(r=>setImmediate(r));
@@ -67,6 +67,10 @@ async function decoded(svg){
  const before=q('[data-cards-list]').firstElementChild;w.LogCardsModule.search('');assert.equal(q('[data-cards-list]').firstElementChild,before,'repeat search does not rebuild DOM');
  w.LogCardsModule.unmount();w.LogCardsModule.mount(q('#root'));assert.equal(d.querySelectorAll('[data-card-open]').length,2,'cards remain after remount');
  Object.defineProperty(w.navigator,'geolocation',{value:{getCurrentPosition(success){success({coords:{latitude:52,longitude:6}})}}});click('[data-cards-near]');assert.match(q('[data-cards-notice]').textContent,/2 kaarten/);
+ // Generate a portable Log QR through the real builder and card editor.
+ click('[data-cards-log]');const builder=q('[data-log-builder]');builder.elements.title.value='Projectcode';builder.elements.theme.value='new';builder.elements.theme.onchange();builder.elements.themeName.value='Nieuw project';builder.elements.task.checked=true;builder.elements.consent.checked=true;builder.dispatchEvent(new w.Event('submit',{cancelable:true}));
+ assert.equal(q('[name=name]').value,'Projectcode');const logValue=q('[name=value]').value;submit();assert.equal(await decoded(q('[data-code-display] svg')),logValue,'portable Log QR round-trip');
+ const logFrame=await sharp(Buffer.from(q('[data-code-display] svg').outerHTML)).ensureAlpha().raw().toBuffer({resolveWithObject:true});click('[data-card-close]');
  // Camera race: closing while getUserMedia is pending must stop the late stream.
  let resolveMedia;Object.defineProperty(w.navigator,'mediaDevices',{value:{getUserMedia:()=>new Promise(r=>resolveMedia=r)}});
  click('[data-cards-scan]');click('[data-camera-start]');click('[data-card-close]');resolveMedia({getTracks:()=>[{stop(){stopped++}}]});await tick();assert.equal(stopped,1);
@@ -83,12 +87,13 @@ async function decoded(svg){
    drawImage(){if(broken)throw Error('frame failure');draws++},
    getImageData(){return {data:new w.Uint8ClampedArray(frame.data)}}
  }};
- for(const [fixture,value,format] of [[qrFrame,unicode,'QR_CODE'],[barcodeFrame,'000123456789','CODE128']]){
+ for(const [fixture,value,format] of [[qrFrame,unicode,'QR_CODE'],[barcodeFrame,'000123456789','CODE128'],[logFrame,logValue,'LOG']]){
    frame=fixture;click('[data-cards-scan]');const video=q('video');
    Object.defineProperties(video,{readyState:{value:2},videoWidth:{value:0,configurable:true},videoHeight:{value:0,configurable:true}});
    const previousDraws=draws;await tick();assert.equal(draws,previousDraws,'do not decode zero-size iOS frames');
    Object.defineProperties(video,{videoWidth:{value:frame.info.width},videoHeight:{value:frame.info.height}});
    assert.equal(typeof nextScan,'function');nextScan();
+   if(format==='LOG'){assert.ok(q('[data-import-code]'),'Log QR scan opens import preview');assert.equal(q('#cardForm'),null);assert.equal(q('video'),null);click('[data-card-close]');continue;}
    assert.ok(q('.cards-display'),'known camera result opens existing card');
    assert.match(q('.cards-recognized').textContent,/Code herkend/);
    assert.equal(q('.cards-value').textContent,value);

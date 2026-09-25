@@ -6,3 +6,5 @@
 .code-card-open-icon{display:grid;place-items:center;flex:none;width:34px;height:34px;color:var(--muted)}.code-card-open-icon svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 
 .cards-recognized{color:var(--accent);font-weight:650;margin:16px 0}.cards-scan-action,.cards-scan-choice{margin-top:14px}.cards-scan-choice small{display:block;margin-top:5px}.cards-content-details select{width:100%;margin:8px 0 14px}.cards-content-details [hidden]{display:none!important}
+
+.cards-log-create{margin-bottom:18px}.log-code-row{padding:12px 0;border-bottom:1px solid var(--line)}.log-code-row strong,.log-code-row small{display:block;margin:4px 0}[data-log-builder] label{display:block;margin:12px 0}[data-log-builder] input:not([type=checkbox]),[data-log-builder] select{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--text)}[data-log-builder] [hidden]{display:none!important}

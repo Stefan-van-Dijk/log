@@ -1,6 +1,6 @@
 # Kaarten: gerichte controle
 
-Release: 0.31.10-test.119. Productiebestanden zijn niet gewijzigd.
+Release: 0.31.10-test.120. Productiebestanden zijn niet gewijzigd.
 
 ## Automatische test
 
@@ -33,3 +33,5 @@ Test .114 voegt synthetische cameraframes toe: QR en Code128 worden met de echte
 Test .117: `module-swipe-regression.cjs` controleert korte/lange veeg, annuleren, verticaal scrollen, globale en lokale uitschakeling, blokkering van oude knoppen en de actievolgorde. Kaarttest controleert gedeeld swipegedrag en afwezig codetype. Controleer op iPhone per module de regelhoogte, korte/lange veeg en Algemene instellingen → App → Bediening. Ook met uitschakeling moet bewerken beschikbaar blijven.
 
 Test .119: `scan-actions-regression.cjs` controleert bekende/onbekende en meervoudige matches, voorloopnullen, opgeslagen actieconfiguratie, bevestiging, ontbrekende locaties/thema’s, lopende/te voltooien taken en opslagfouten. De cameraframetest controleert herkenning van bestaande QR- en barcodekaarten. Controleer op iPhone scannen → herkenning → actie, inclusief een sublocatie en een al lopende taak.
+
+Test .120: `log-code-regression.cjs` controleert schema/versie, verwijzingen, importpreview, bestaande gegevens, herhaalde scans, herstel na gedeeltelijke opslagfout en taak-/ritstarters. `cards-regression.cjs` maakt via de echte invoer een Log-QR, leest die terug met ZXing en voert een synthetisch cameraframe door de scanroute naar het importscherm. Op iPhone: Kaarten → Log-QR met gegevens en starters; maak een code, scan op een tweede testinstallatie, bevestig de gegevens, probeer beide starters en herhaal de scan. Procedures met meerdere stappen zijn nog niet geïmplementeerd.

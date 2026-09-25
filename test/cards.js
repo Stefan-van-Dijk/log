@@ -93,9 +93,9 @@
   function mount(target) {
     if (root === target && $('[data-cards-list]',target)) return;
     root=target;lastSignature='';
-    root.innerHTML=`<section class="cards-module"><div class="cards-actions"><button type="button" class="btn" data-cards-scan>${icon}<span>Code scannen</span></button><button type="button" class="btn secondary" data-cards-new>＋ Nieuwe kaart</button></div><div class="cards-filter"><label><span>Locatie</span><select data-cards-location>${locationOptions(filter,true)}</select></label><button type="button" data-cards-near>◎ In de buurt</button></div><p class="cards-notice" data-cards-notice role="status"></p><div data-cards-list></div></section>`;
+    root.innerHTML=`<section class="cards-module"><div class="cards-actions"><button type="button" class="btn" data-cards-scan>${icon}<span>Code scannen</span></button><button type="button" class="btn secondary" data-cards-new>＋ Nieuwe kaart</button></div><button type="button" class="btn secondary full cards-log-create" data-cards-log>＋ Log-QR met gegevens en starters</button><div class="cards-filter"><label><span>Locatie</span><select data-cards-location>${locationOptions(filter,true)}</select></label><button type="button" data-cards-near>◎ In de buurt</button></div><p class="cards-notice" data-cards-notice role="status"></p><div data-cards-list></div></section>`;
     $('[data-cards-location]',root).value=filter;
-    root.onclick=event=>{const b=event.target.closest('button');if(!b)return;const row=b.closest('.code-card-swipe');if(row && b.dataset.cardOpen && Date.now()<Number(row.dataset.suppressUntil||0)){event.preventDefault();return;}if(b.hasAttribute('data-cards-new'))edit();if(b.hasAttribute('data-cards-scan'))scanner();if(b.hasAttribute('data-cards-near'))findNearby();if(b.dataset.cardEdit){setSwipe(row,false);edit(b.dataset.cardEdit);}if(b.dataset.cardDelete)removeCard(b.dataset.cardDelete);if(b.dataset.cardOpen){if(row?.classList.contains('actions-open'))setSwipe(row,false);else show(b.dataset.cardOpen)}};
+    root.onclick=event=>{const b=event.target.closest('button');if(!b)return;const row=b.closest('.code-card-swipe');if(row && b.dataset.cardOpen && Date.now()<Number(row.dataset.suppressUntil||0)){event.preventDefault();return;}if(b.hasAttribute('data-cards-log'))window.LogCode.builder();if(b.hasAttribute('data-cards-new'))edit();if(b.hasAttribute('data-cards-scan'))scanner();if(b.hasAttribute('data-cards-near'))findNearby();if(b.dataset.cardEdit){setSwipe(row,false);edit(b.dataset.cardEdit);}if(b.dataset.cardDelete)removeCard(b.dataset.cardDelete);if(b.dataset.cardOpen){if(row?.classList.contains('actions-open'))setSwipe(row,false);else show(b.dataset.cardOpen)}};
     $('[data-cards-location]',root).onchange=event=>{filter=event.target.value;renderList()};
     renderList();
   }
@@ -178,7 +178,7 @@
   }
   function edit(id = null, scanned = null) {
     const stored=id?records().find(card=>card.id===id):null;if(id&&!stored)return;
-    const card=stored || {name:scanned?'Gescande kaart':'',value:scanned?.value || '',format:scanned?.format || 'QR_CODE',locationId:filter !== 'unlinked'?filter:''};
+    const card=stored || {name:scanned?.name || (scanned?'Gescande kaart':''),value:scanned?.value || '',format:scanned?.format || 'QR_CODE',locationId:filter !== 'unlinked'?filter:''};
     const panel=sheet(id?'Kaart bewerken':'Nieuwe kaart',`<form id="cardForm"><div class="form-group"><label for="cardName">Titel</label><input id="cardName" name="name" maxlength="80" required value="${esc(card.name)}" placeholder="Bijvoorbeeld toegangspas of klantenkaart"></div><div class="form-group cards-color-field"><label for="cardColor">Kleur</label><input type="color" id="cardColor" name="color" value="${color(card.color)}"></div><div class="form-group"><label for="cardFormat">Codetype</label><select id="cardFormat" name="format">${Object.entries(FORMATS).map(([key,label])=>`<option value="${key}"${key===card.format?' selected':''}>${label}</option>`).join('')}</select></div><div class="form-group"><label for="cardValue">Inhoud</label><textarea id="cardValue" name="value" required maxlength="2000" spellcheck="false" autocapitalize="off">${esc(card.value)}</textarea><small>De inhoud blijft exact bewaard, ook voorloopnullen.</small></div><div class="form-group"><label for="cardLocation">Locatie of sublocatie</label><select id="cardLocation" name="locationId">${locationOptions(String(card.locationId || ''))}${card.locationId&&!locations().some(l=>String(l.id)===String(card.locationId))?`<option value="${esc(card.locationId)}" selected>Locatie niet meer beschikbaar</option>`:''}</select></div>${actionEditor(card)}<div class="code-surface cards-preview" data-card-preview hidden></div><p class="cards-preview-error" data-preview-error></p><button class="btn full" type="submit">Kaart opslaan</button></form>`);
     const form=$('form',panel);
     const values=()=>({name:form.elements.name.value.trim(),color:color(form.elements.color.value),value:form.elements.value.value,format:form.elements.format.value,locationId:form.elements.locationId.value || null,scanAction:form.elements.actionType.value?{type:form.elements.actionType.value,...(form.elements.actionType.value==='task'?{themeId:form.elements.actionTheme.value,subthemeId:form.elements.actionSubtheme.value || null}:{})}:null});
@@ -203,6 +203,7 @@
     $('[data-run-card-action]',panel)?.addEventListener('click',()=>runAction(id));
     panel.style.setProperty('--card-color',color(card.color));
     panel.classList.add('cards-display');
+    try{const payload=window.LogCode?.parse(card.value);if(payload){const button=document.createElement('button');button.type='button';button.className='btn full cards-scan-action';button.textContent='Gegevens en starters openen';button.onclick=()=>{try{window.LogCode.preview(payload)}catch(error){message(error.message)}};$('.cards-dialog-body',panel).appendChild(button);}}catch(error){message(error.message);}
     try{renderCode($('[data-code-display]',panel),card)}catch(error){message(error.message || 'Code kan niet worden weergegeven. De inhoud is nog beschikbaar.')}
     $('[data-card-copy]',panel).onclick=async()=>{try{await navigator.clipboard.writeText(card.value);if(dialog===panel)message('Inhoud gekopieerd.')}catch(_){if(dialog===panel)message('Kopiëren is niet gelukt. Selecteer de inhoud hierboven om deze te kopiëren.')}};
   }
@@ -216,6 +217,7 @@
     const format=SCAN_FORMATS[window.ZXing.BarcodeFormat[result.getBarcodeFormat()]],value=result.getText();
     if(!format){message('Dit codetype wordt nog niet ondersteund.');return;}
     if(!value){message('De code bevat geen leesbare inhoud.');return;}
+    try{const payload=window.LogCode?.parse(value);if(payload){window.LogCode.preview(payload);return;}}catch(error){sheet('Log-code niet geopend',`<p>${esc(error.message)}</p>`);return;}
     const matches=records().filter(card=>card.value===value);
     if(matches.length===1){show(matches[0].id,true);return;}
     if(matches.length>1){
@@ -287,6 +289,7 @@
       notice=count?`${count} ${count===1?'kaart past':'kaarten passen'} bij locaties in de buurt · bovenaan gezet.`:'Geen gekoppelde kaarten in de buurt. Alle kaarten blijven beschikbaar.';renderList();
     },()=>{if(root!==target)return;button.disabled=false;notice='Locatie niet beschikbaar. Kies zelf een locatie.';renderList()}, {enableHighAccuracy:true,timeout:10000,maximumAge:30000});
   }
+  window.LogCardsUI={sheet,close,edit};
   window.LogCardsModule={mount,closeSwipe:row=>setSwipe(row,false),unmount(){if(root){close();root=null;}},search(value){query=String(value||'').toLocaleLowerCase('nl');return renderList()},refresh};
   window.addEventListener('log-km-state-change',refresh);
   window.addEventListener('storage',event=>{if(event.key==='kmreg-test-v4-data')refresh()});
