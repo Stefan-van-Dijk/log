@@ -1,6 +1,6 @@
 {
   "schemaVersion": 3,
-  "updatedAt": "2026-09-21",
+  "updatedAt": "2026-09-25",
   "modules": [
     {
       "id": "rides",
@@ -65,6 +65,19 @@
       "bottomOrder": 50,
       "menuOrder": 50,
       "view": "barcodes",
+      "settingsTarget": null
+    },
+    {
+      "id": "people",
+      "label": "Personen",
+      "shortLabel": "Personen",
+      "subtitle": "Contacten en mijn gegevens",
+      "icon": "people",
+      "available": true,
+      "defaultPlacement": "both",
+      "bottomOrder": 60,
+      "menuOrder": 60,
+      "view": "people",
       "settingsTarget": null
     }
   ]

@@ -60,7 +60,8 @@
               "time",
               "locations",
               "themes",
-              "barcodes"
+              "barcodes",
+              "people"
             ]
           },
           "available": {
@@ -86,7 +87,9 @@
               "time",
               "locations",
               "themes",
-              "placeholder"
+              "placeholder",
+              "barcodes",
+              "people"
             ]
           },
           "settingsTarget": {

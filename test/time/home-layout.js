@@ -19,7 +19,7 @@
       .sort((a, b) => new Date(b.endISO || b.dateISO || b.createdAt) - new Date(a.endISO || a.dateISO || a.createdAt));
 
     if (!history.length) {
-      const first = sortedByUsage(state.colleagues)[0];
+      const first = sortedByUsage(state.colleagues.filter(p=>String(p.id)!==String(state.settings.selfPersonId)))[0];
       return {
         peopleIds: first ? [first.id] : [],
         departmentName: '',
@@ -48,7 +48,7 @@
 
     const peopleIds = (best.people || []).map(p => p.id).filter(id => colleagueById(id));
     if (!peopleIds.length) {
-      const first = sortedByUsage(state.colleagues)[0];
+      const first = sortedByUsage(state.colleagues.filter(p=>String(p.id)!==String(state.settings.selfPersonId)))[0];
       if (first) peopleIds.push(first.id);
     }
 
@@ -338,7 +338,7 @@
   function renderInterruptionPanel(period) {
     panelMode = 'interruption';
     const proposed = interruptionSuggestion();
-    const topColleagues = sortedByUsage(state.colleagues).slice(0, 8);
+    const topColleagues = sortedByUsage(state.colleagues.filter(p=>String(p.id)!==String(state.settings.selfPersonId))).slice(0, 8);
 
     period.classList.add('period-overview', 'period-entry-mode');
     period.innerHTML = `
@@ -360,7 +360,7 @@
             <label class="person-choice">
               <input type="checkbox" value="${c.id}" ${proposed.peopleIds.includes(c.id) ? 'checked' : ''}>
               <span>${safeText(c.name)}</span>
-            </label>`).join('') : '<small class="muted">Nog geen collega’s bekend.</small>'}
+            </label>`).join('') : '<small class="muted">Nog geen personen bekend.</small>'}
         </div>
       </div>
       <div class="inline-fields">
@@ -370,7 +370,7 @@
         <label class="inline-field"><span>Locatie <small>optioneel</small></span><input id="inlineInterruptLocation" value="${safeText(proposed.locationName)}"></label>
       </div>
       <div class="inline-add-person">
-        <input id="inlineInterruptNewColleague" placeholder="Andere collega toevoegen">
+        <input id="inlineInterruptNewColleague" placeholder="Andere persoon toevoegen">
         <button id="inlineAddInterruptColleague" class="btn small">Toevoegen</button>
       </div>
       <button id="startInlineInterruption" class="btn primary full start-confirm">Start tussenstop</button>`;
@@ -395,7 +395,7 @@
       requestAnimationFrame(() => {
         $$('#inlineInterruptPeople input').forEach(input => { input.checked = selected.has(input.value); });
       });
-      toast('Collega toegevoegd');
+      toast('Persoon toegevoegd');
     });
 
     $('#startInlineInterruption')?.addEventListener('click', () => {
@@ -515,7 +515,7 @@
         <div class="activity-inline-grid">
           ${detailLine('Werkelijk', clockMinutes(entry.actualMinutes))}
           ${detailLine('Geboekt', displayMinutes(entry.ownMinutes))}
-          ${entry.colleagueMinutes ? detailLine('Collega-inzet', displayMinutes(entry.colleagueMinutes)) : ''}
+          ${entry.colleagueMinutes ? detailLine('Inzet van anderen', displayMinutes(entry.colleagueMinutes)) : ''}
           ${entry.totalMinutes !== entry.ownMinutes ? detailLine('Totale inzet', displayMinutes(entry.totalMinutes)) : ''}
           ${entry.deductedInterruptionMinutes ? detailLine('Aftrek tussenstops', clockMinutes(entry.deductedInterruptionMinutes)) : ''}
           ${entry.activityType === 'interruption' && entry.deductMinutes ? detailLine('Aftrek hoofdtaak', clockMinutes(entry.deductMinutes)) : ''}

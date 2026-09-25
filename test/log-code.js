@@ -90,7 +90,7 @@
     };
   }
   function ready(payload,result){
-    const panel=window.LogCardsUI.sheet(payload.title,`<p>Gegevens zijn beschikbaar in Log. Personen staan bij de collega’s in Tijd/Taken.</p>${payload.actions.map((a,i)=>`<button class="btn full cards-scan-action" data-code-starter="${i}">${a.type==='task'?'Taak starten':'Rit voorbereiden'} · ${esc(payload.entities.find(e=>e.id===(a.type==='task'?(a.subthemeId||a.themeId):a.locationId))?.name)}</button>`).join('')}<p class="cards-notice">Een taak start na aantikken. Bij een rit controleer je eerst vertrekpunt, kilometerstand en type rit.</p><p data-log-status role="status"></p>`);
+    const panel=window.LogCardsUI.sheet(payload.title,`<p>Gegevens zijn beschikbaar in Log. Personen staan in de module Personen.</p>${payload.actions.map((a,i)=>`<button class="btn full cards-scan-action" data-code-starter="${i}">${a.type==='task'?'Taak starten':'Rit voorbereiden'} · ${esc(payload.entities.find(e=>e.id===(a.type==='task'?(a.subthemeId||a.themeId):a.locationId))?.name)}</button>`).join('')}<p class="cards-notice">Een taak start na aantikken. Bij een rit controleer je eerst vertrekpunt, kilometerstand en type rit.</p><p data-log-status role="status"></p>`);
     panel.querySelectorAll('[data-code-starter]').forEach(button=>button.onclick=async()=>{
       if(button.disabled)return;button.disabled=true;
       try{

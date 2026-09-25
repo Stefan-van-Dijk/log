@@ -32,6 +32,7 @@ Bij iedere nieuwe ontwikkeling of wijziging:
 
 | ID | Onderwerp | Status | Omschrijving | Implementatie / notitie |
 |---|---|---|---|---|
+| PEOPLE-001 | Personen als eigen module | Testen | Collega-beheer uit instellingen verplaatsen naar Personen, met eigen gegevenskaart en bredere contacten. | Test .122: naam, relatie, organisatie, e-mail, telefoon, kleur en notitie; bestaande persoon hergebruiken als eigen profiel. Bestaande identifiers, QR-bronvelden, historie en timers behouden. Gedeelde swipeacties en archief/herstel; zoeken en moduleconfiguratie. Gerichte regressies en volledige shell in jsdom gecontroleerd; iPhone-PWA-controle volgt. |
 | NAV-001 | Modulepositie instelbaar | Testen | Per module bepalen of deze zichtbaar is in de onderbalk, het zijmenu, beide of verborgen. | Schakelaars staan rechtstreeks in beide sorteerlijsten; opslag blijft achterwaarts compatibel. Release 0.31.10-test.85. |
 | NAV-002 | Volgorde modules instelbaar | Testen | Volgorde van modules in onderbalk en zijmenu vanuit de moduleconfiguratie bepalen. | Beide lijsten behouden een eigen sleepvolgorde, ook voor uitgeschakelde modules. Release 0.31.10-test.85. |
 | NAV-003 | Zijmenu half openen | Testen | Naast volledig geopend ook een gedeeltelijk geopend zijpaneel ondersteunen. | Menu opent in één stap op 50% van de schermbreedte (begrensd door de paneelbreedte); Instellingen staat als vaste menurij boven het versienummer. Release 0.31.10-test.87. |

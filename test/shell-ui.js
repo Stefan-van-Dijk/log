@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const BUILD = window.LOG_TEST_BUILD || '0.31.10-test.121';
+  const BUILD = window.LOG_TEST_BUILD || '0.31.10-test.122';
   const SHELL_VERSION = (() => {
     try {
       const script = document.currentScript || [...document.scripts].find(item => item.src.includes('shell-ui.js'));
@@ -16,7 +16,7 @@
   const SECTION_KEY = 'kmreg-test-shell-section-v1';
   const DRAWER_KEY = 'kmreg-test-shell-drawer-v1';
   const MENU_DOCUMENT_URL = './config/modules.json';
-  const MENU_DOCUMENT_CACHE_KEY = 'log-test-menu-document-v3';
+  const MENU_DOCUMENT_CACHE_KEY = 'log-test-menu-document-v4';
   const MENU_SCHEMA_VERSION = 3;
   const THEMES_NAVIGATION_MIGRATION_KEY = 'log-test-native-themes-navigation-v1';
   const FALLBACK_MENU_DOCUMENT = {
@@ -26,7 +26,8 @@
       { id: 'time', label: 'Tijd en taken', shortLabel: 'Tijd/taken', subtitle: 'Tijd en werkzaamheden registreren', icon: 'time', available: true, defaultPlacement: 'both', bottomOrder: 20, menuOrder: 20, view: 'time', settingsTarget: 'time' },
       { id: 'locations', label: 'Locaties', shortLabel: 'Locaties', subtitle: 'Adressen en herkenning beheren', icon: 'locations', available: true, defaultPlacement: 'both', bottomOrder: 30, menuOrder: 30, view: 'locations', settingsTarget: 'locations' },
       { id: 'themes', label: 'Thema’s', shortLabel: 'Thema’s', subtitle: 'Thema’s en subthema’s beheren', icon: 'themes', available: true, defaultPlacement: 'both', bottomOrder: 40, menuOrder: 40, view: 'themes', settingsTarget: null },
-      { id: 'barcodes', label: 'Kaarten', shortLabel: 'Kaarten', subtitle: 'Barcodes en QR-codes', icon: 'barcodes', available: true, defaultPlacement: 'both', bottomOrder: 50, menuOrder: 50, view: 'barcodes', settingsTarget: null }
+      { id: 'barcodes', label: 'Kaarten', shortLabel: 'Kaarten', subtitle: 'Barcodes en QR-codes', icon: 'barcodes', available: true, defaultPlacement: 'both', bottomOrder: 50, menuOrder: 50, view: 'barcodes', settingsTarget: null },
+      { id:'people',label:'Personen',shortLabel:'Personen',subtitle:'Contacten en mijn gegevens',icon:'people',available:true,defaultPlacement:'both',bottomOrder:60,menuOrder:60,view:'people',settingsTarget:null }
     ]
   };
   const ROOT_SECTIONS = new Set();
@@ -34,8 +35,8 @@
 
   function normalizeMenuDocument(value) {
     if (!value || value.schemaVersion !== MENU_SCHEMA_VERSION || !Array.isArray(value.modules)) return null;
-    const icons = new Set(['rides', 'time', 'locations', 'themes', 'barcodes']);
-    const views = new Set(['rides', 'time', 'locations', 'themes', 'barcodes', 'placeholder']);
+    const icons = new Set(['rides', 'time', 'locations', 'themes', 'barcodes', 'people']);
+    const views = new Set(['rides', 'time', 'locations', 'themes', 'barcodes', 'people', 'placeholder']);
     const settingsTargets = new Set(['rides', 'time', 'locations']);
     const seen = new Set();
     const modules = [];
@@ -327,6 +328,7 @@
 
   function moduleIcon(id) {
     const icons = {
+      people: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M16 5a3 3 0 0 1 0 6m2 3a5 5 0 0 1 3 5v2"/></svg>',
       rides: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17.5h16M6.5 17.5l1.2-6.2h8.6l1.2 6.2M8.8 11.3l1-3h4.4l1 3"/><circle cx="8" cy="18" r="1.5"/><circle cx="16" cy="18" r="1.5"/></svg>',
       time: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v5l3.3 2"/></svg>',
       locations: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s6-5.8 6-11a6 6 0 1 0-12 0c0 5.2 6 11 6 11Z"/><circle cx="12" cy="10" r="2.2"/></svg>',
@@ -969,6 +971,8 @@
       visible = setSearchMatches($$('#kmShellLocationsView .km-shell-location-node'), query);
     } else if (section === 'barcodes') {
       visible = window.LogCardsModule?.search(query) || 0;
+    } else if (section === 'people') {
+      visible = window.LogPeopleModule?.search(query) || 0;
     } else if (section === 'themes') {
       visible = setSearchMatches($$('#kmShellThemesView .km-shell-theme-node'), query);
     } else {
@@ -1459,6 +1463,7 @@
   function renderPlaceholderModule() {
     const view = $('#kmShellPlaceholderView');
     if (section === 'barcodes') { window.LogCardsModule?.mount(view); return; }
+    if (section === 'people') { window.LogPeopleModule?.mount(view); return; }
     const module = moduleById(section);
     if (!view || !module?.placeholder) return;
     const cards = section === 'themes'
@@ -1469,10 +1474,11 @@
 
   function showSection() {
     if (section !== 'barcodes') window.LogCardsModule?.unmount();
+    if (section !== 'people') window.LogPeopleModule?.unmount();
     const locations = $('#kmShellLocationsView');
     const themes = $('#kmShellThemesView');
     const placeholder = $('#kmShellPlaceholderView');
-    document.body.classList.toggle('km-shell-placeholder-mode', Boolean(section === 'barcodes' || moduleById(section)?.placeholder));
+    document.body.classList.toggle('km-shell-placeholder-mode', Boolean(section === 'barcodes' || section === 'people' || moduleById(section)?.placeholder));
     if (document.body.classList.contains('editor-view')) {
       document.body.classList.remove('km-shell-locations-mode', 'km-shell-themes-mode', 'km-shell-placeholder-mode');
       if (locations) locations.hidden = true;
@@ -1501,7 +1507,7 @@
       if (themes) themes.hidden = false;
       if (placeholder) placeholder.hidden = true;
       renderThemes();
-    } else if (section === 'barcodes' || moduleById(section)?.placeholder) {
+    } else if (section === 'barcodes' || section === 'people' || moduleById(section)?.placeholder) {
       ensureOriginalMode('kilometers');
       ensureKmView('ride');
       document.body.classList.remove('km-shell-locations-mode', 'km-shell-themes-mode');
@@ -1557,6 +1563,9 @@
       } else if (section === 'barcodes') {
         const count = window.LogCardData?.snapshot().cards.length || 0;
         wantedMeta = `${count} ${count === 1 ? 'kaart' : 'kaarten'} opgeslagen`;
+      } else if (section === 'people') {
+        const count = window.LogPeopleModule?.read().colleagues.length || 0;
+        wantedMeta = `${count} ${count === 1 ? 'persoon' : 'personen'} opgeslagen`;
       } else if (section === 'themes') {
         const catalog = window.LogTimeModule?.getThemeCatalog?.() || { themes: [], subthemes: [] };
         wantedMeta = `${catalog.themes.length} ${catalog.themes.length === 1 ? 'thema' : 'thema’s'} · ${catalog.subthemes.length} ${catalog.subthemes.length === 1 ? 'subthema' : 'subthema’s'}`;

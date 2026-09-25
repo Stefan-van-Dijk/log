@@ -17,6 +17,7 @@
   function contextFor(surface){
     if(surface.matches('.code-card-surface')){
       const row=surface.closest('.code-card-swipe');
+      if(row.hasAttribute('data-person-row'))return {row,surface,edit:$('[data-person-edit]',row),lifecycle:$('[data-delete-colleague]',row),module:'people'};
       return {row,surface,edit:$('[data-card-edit]',row),lifecycle:$('[data-card-delete]',row),module:'cards'};
     }
     if(surface.matches('.activity-swipe-surface')){
@@ -71,7 +72,7 @@
 
   function pointerDown(event){
     if(event.button!=null&&event.button!==0)return;
-    if(event.target.closest?.('input,select,textarea,button:not([data-card-open])'))return;
+    if(event.target.closest?.('input,select,textarea,button:not([data-card-open]):not([data-person-open])'))return;
     const surface=event.target.closest?.('.activity-swipe-surface,.km-shell-location-swipe-surface,.km-shell-theme-swipe-surface,.swipe-surface,.code-card-surface');
     if(!surface)return;
     const ctx=contextFor(surface);
@@ -100,7 +101,7 @@
     const lifeArmed=lifecycleAllowed&&g.peakLeft>=actionWidth()+LIFECYCLE_EXTRA&&-g.dx>=actionWidth()+LIFECYCLE_EXTRA-LIFECYCLE_RELEASE_BUFFER;
     g.ctx.row.classList.toggle('swipe-edit-armed',-g.dx>=EDIT_RELEASE_THRESHOLD&&g.peakLeft>=EDIT_THRESHOLD&&!lifeArmed);
     g.ctx.row.classList.toggle('delete-armed',Boolean(lifeArmed));
-    if(g.ctx.module==='cards'){
+    if(['cards','people'].includes(g.ctx.module)){
       if(event.cancelable)event.preventDefault();
       try{g.ctx.surface.setPointerCapture(event.pointerId);}catch(_){}
       const width=actionWidth()*(lifecycleAllowed?2:1);
@@ -121,7 +122,7 @@
     const action=g.ctx.lifecycle&&lifecycleArmed&&(window.LogSwipePolicy?.enabled(g.ctx.module)??true)
       ?g.ctx.lifecycle
       :(g.ctx.edit&&editArmed?g.ctx.edit:null);
-    if(g.ctx.module==='cards'){
+    if(['cards','people'].includes(g.ctx.module)){
       g.ctx.row.dataset.suppressUntil=String(Date.now()+400);
       resetRow(g.ctx);
     }
@@ -135,7 +136,7 @@
 
   function pointerCancel(event){
     if(!gesture||gesture.pointerId!==event.pointerId)return;
-    if(gesture.ctx.module==='cards')resetRow(gesture.ctx);
+    if(['cards','people'].includes(gesture.ctx.module))resetRow(gesture.ctx);
     gesture=null;
   }
 

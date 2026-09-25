@@ -57,9 +57,9 @@
   function colleaguePlan(id,raw=readState()){
     const item=raw.colleagues.find(value=>String(value.id)===String(id));
     if(!item)return null;
-    const references=raw.entries.filter(entry=>colleagueUsed(entry,id));
+    const references=[...raw.entries,raw.timer,raw.timer?.interruption,raw.pendingEntry].filter(entry=>colleagueUsed(entry,id));
     return policy.createPlan({
-      entityType:'colleague',id,label:item.name||'Collega',owned:[],
+      entityType:'colleague',id,label:item.name||'Persoon',owned:[],
       incoming:[references.length?{key:'entries',label:references.length===1?'registratie':'registraties',count:references.length,ids:references.map(entry=>entry.id)}:null]
     });
   }
@@ -112,7 +112,7 @@
 
   function refreshTime(view='settings'){
     const activeSection=localStorage.getItem('kmreg-test-shell-section-v1');
-    window.LogTimeModule?.reloadFromStorage?.({view:activeSection==='themes'?'home':view});
+    window.LogTimeModule?.reloadFromStorage?.({view:['themes','people'].includes(activeSection)?'home':view});
     window.dispatchEvent(new CustomEvent('log-time-state-change',{detail:{reason:'theme-catalog-change'}}));
     scheduleDecorate();
   }
@@ -305,23 +305,7 @@
   function archiveTypeLabel(type){return ({theme:'Thema',subtheme:'Subthema',colleague:'Collega'})[type]||type;}
 
   function ensureArchivePanel(){
-    const page=$('.settings-page');
-    if(!page)return;
-    const records=archiveRecords().filter(record=>record.entityType==='colleague').sort((a,b)=>String(b.archivedAt||'').localeCompare(String(a.archivedAt||'')));
-    let panel=$('#logTimeArchivePanel',page);
-    if(!records.length){panel?.remove();return;}
-    const signature=records.map(record=>`${record.archiveId}:${record.archivedAt}`).join('|');
-    if(panel?.dataset.signature===signature)return;
-    if(!panel){
-      panel=document.createElement('details');
-      panel.id='logTimeArchivePanel';
-      panel.className='settings-accordion';
-      page.appendChild(panel);
-    }
-    const wasOpen=panel.open;
-    panel.dataset.signature=signature;
-    panel.innerHTML=`<summary><span class="settings-accordion-title"><strong>Archief</strong><small>${records.length} ${records.length===1?'item':'items'} gearchiveerd</small></span><span class="settings-accordion-arrow">›</span></summary><div class="settings-accordion-body">${records.map(record=>`<div class="log-time-archive-row"><div class="log-time-archive-copy"><strong>${esc(archiveRecordName(record))}</strong><small>${archiveTypeLabel(record.entityType)}</small></div><button type="button" data-log-time-restore="${esc(record.batchId)}">Herstel</button></div>`).join('')}</div>`;
-    panel.open=wasOpen;
+    document.querySelector('#logTimeArchivePanel')?.remove();
   }
 
   function restoreBatch(batchId){
@@ -369,6 +353,8 @@
   }
 
   window.LogTimeRemovalPolicy=Object.freeze({
+    colleaguePlan:id=>colleaguePlan(id),
+    peopleArchiveRecords:()=>archiveRecords().filter(record=>record.entityType==='colleague'),
     themePlan:id=>themePlan(id),
     subthemePlan:id=>subthemePlan(id),
     themeArchiveRecords:()=>archiveRecords()
