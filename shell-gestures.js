@@ -1,7 +1,6 @@
 (function(){
   'use strict';
 
-  const BUILD='0.32.1';
   const HORIZONTAL_RATIO=1.25;
   const SNAP_PROGRESS=0.28;
   const FLING_VELOCITY=0.45;
@@ -22,21 +21,9 @@
   }
 
   function blockedByOverlay(){
-    return document.body.classList.contains('km-shell-settings-open')||
+    return document.body.classList.contains('cards-dialog-open')||
+      document.body.classList.contains('km-shell-settings-open')||
       document.body.classList.contains('editor-view');
-  }
-
-  function updateVersion(){
-    const version=$('.km-shell-version-number');
-    const badge=$('.km-shell-version');
-    const today=$('#today');
-    if(version&&version.textContent!==BUILD)version.textContent=BUILD;
-    if(badge)badge.setAttribute('aria-label',`Geladen versie ${BUILD}`);
-    if(today){
-      const date=new Intl.DateTimeFormat('nl-NL',{weekday:'long',day:'numeric',month:'long'}).format(new Date());
-      const value=`${date} · ${BUILD}`;
-      if(today.textContent!==value)today.textContent=value;
-    }
   }
 
   function installGestureStyles(){
@@ -120,7 +107,7 @@
 
   function hasOwnGesture(target){
     return Boolean(target?.closest?.(
-      '#kmShellTabBar,#periodNavigator,.period-navigator,.swipe-surface,.trip-swipe-surface,.km-shell-location-swipe-surface,.activity-swipe-surface,.period-overview,.period-nav,.odo-digit.swipeable'
+      '#kmShellTabBar,#periodNavigator,.period-navigator,.swipe-surface,.trip-swipe-surface,.km-shell-location-swipe-surface,.activity-swipe-surface,.code-card-surface,.period-overview,.period-nav,.odo-digit.swipeable'
     ));
   }
 
@@ -341,19 +328,15 @@
     installGestureStyles();
     promoteSharedStyles();
     bindGestureDocument(document);
-    updateVersion();
     syncDrawerScrollLock();
 
     const observer=new MutationObserver(()=>{
-      updateVersion();
       if(!gesture?.visualActive)syncDrawerScrollLock();
     });
     observer.observe(document.body,{attributes:true,attributeFilter:['class'],childList:true,subtree:false});
 
-    document.addEventListener('click',()=>setTimeout(updateVersion,0),{passive:true});
     window.addEventListener('pageshow',()=>{
       promoteSharedStyles();
-      updateVersion();
       syncDrawerScrollLock();
     });
     window.addEventListener('resize',()=>{

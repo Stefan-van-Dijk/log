@@ -1,11 +1,11 @@
 (function () {
   'use strict';
 
-  const BUILD = '0.32.1';
+  const BUILD = window.LOG_BUILD || '0.33.0';
   const SHELL_VERSION = (() => {
     try {
       const script = document.currentScript || [...document.scripts].find(item => item.src.includes('shell-ui.js'));
-      return new URL(script?.src || location.href).searchParams.get('v') || BUILD;
+      return window.LOG_BUILD || new URL(script?.src || location.href).searchParams.get('v') || BUILD;
     } catch (_) {
       return BUILD;
     }
@@ -26,7 +26,7 @@
       { id: 'time', label: 'Tijd en taken', shortLabel: 'Tijd/taken', subtitle: 'Tijd en werkzaamheden registreren', icon: 'time', available: true, defaultPlacement: 'both', bottomOrder: 20, menuOrder: 20, view: 'time', settingsTarget: 'time' },
       { id: 'locations', label: 'Locaties', shortLabel: 'Locaties', subtitle: 'Adressen en herkenning beheren', icon: 'locations', available: true, defaultPlacement: 'both', bottomOrder: 30, menuOrder: 30, view: 'locations', settingsTarget: 'locations' },
       { id: 'themes', label: 'Thema’s', shortLabel: 'Thema’s', subtitle: 'Thema’s en subthema’s beheren', icon: 'themes', available: true, defaultPlacement: 'both', bottomOrder: 40, menuOrder: 40, view: 'themes', settingsTarget: null },
-      { id: 'barcodes', label: 'Barcodekaarten', shortLabel: 'Kaarten', subtitle: 'Barcodekaarten scannen en beheren', icon: 'barcodes', available: true, defaultPlacement: 'hidden', bottomOrder: 50, menuOrder: 50, view: 'placeholder', settingsTarget: null }
+      { id: 'barcodes', label: 'Kaarten', shortLabel: 'Kaarten', subtitle: 'Barcodes en QR-codes', icon: 'barcodes', available: true, defaultPlacement: 'both', bottomOrder: 50, menuOrder: 50, view: 'barcodes', settingsTarget: null }
     ]
   };
   const ROOT_SECTIONS = new Set();
@@ -35,7 +35,7 @@
   function normalizeMenuDocument(value) {
     if (!value || value.schemaVersion !== MENU_SCHEMA_VERSION || !Array.isArray(value.modules)) return null;
     const icons = new Set(['rides', 'time', 'locations', 'themes', 'barcodes']);
-    const views = new Set(['rides', 'time', 'locations', 'themes', 'placeholder']);
+    const views = new Set(['rides', 'time', 'locations', 'themes', 'barcodes', 'placeholder']);
     const settingsTargets = new Set(['rides', 'time', 'locations']);
     const seen = new Set();
     const modules = [];
@@ -252,6 +252,10 @@
   }
 
   function refreshKmState(detail = {}) {
+    if (detail.reason === 'swipe-policy') {
+      if(section === 'themes') renderThemes();
+      if(section === 'time') window.LogTimeModule?.showHome?.({scroll:false});
+    }
     if (String(detail.reason || '').startsWith('location-') && localStorage.getItem(SECTION_KEY) === 'locations') section = 'locations';
     if (section === 'locations') {
       if (document.body.classList.contains('editor-view')) scheduleLocationRefresh();
@@ -527,8 +531,8 @@
       body:not(.time-mode) #app .list .list-item{position:relative;border-bottom:0!important}
       body:not(.time-mode) #app .list .list-item::after{content:"";position:absolute;left:58px;right:0;bottom:0;height:.5px;background:var(--line);pointer-events:none}
       body:not(.time-mode) #app .list .trip-entry:last-child .list-item::after{display:none}
-      body:not(.time-mode) #app .swipe-edit{background:#0a84ff!important;color:#fff!important}
-      body:not(.time-mode) #app .swipe-delete{background:#ff453a!important;color:#fff!important}
+      body:not(.time-mode) #app .swipe-edit{background:var(--log-edit)!important;color:#fff!important}
+      body:not(.time-mode) #app .swipe-delete{background:var(--log-delete)!important;color:#fff!important}
       body:not(.time-mode) #app .chev{color:color-mix(in srgb,var(--muted) 62%,transparent)!important;font-size:20px!important}
       body:not(.time-mode) #app .btn:active,.km-shell-locations button:active,.km-shell-themes button:active{opacity:.68}
       .km-shell-locations-head{padding:7px 2px 12px!important}.km-shell-locations-head h2{font-size:20px!important;font-weight:720!important;letter-spacing:-.02em!important}
@@ -963,6 +967,8 @@
       });
     } else if (section === 'locations') {
       visible = setSearchMatches($$('#kmShellLocationsView .km-shell-location-node'), query);
+    } else if (section === 'barcodes') {
+      visible = window.LogCardsModule?.search(query) || 0;
     } else if (section === 'themes') {
       visible = setSearchMatches($$('#kmShellThemesView .km-shell-theme-node'), query);
     } else {
@@ -1041,6 +1047,20 @@
     update();
   }
 
+  window.LogCardActions = {
+    openLocation(id) {
+      const location=readData().locations.find(item=>String(item.id)===String(id));
+      if(!location)return false;
+      expandedLocationId=location.id;
+      selectSection('locations');
+      renderLocations();
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{
+        document.querySelector(`[data-shell-location-node="${CSS.escape(String(id))}"]`)?.scrollIntoView({block:'center',behavior:'smooth'});
+      }));
+      return true;
+    }
+  };
+
   function selectSection(next) {
     if (!ROOT_SECTIONS.has(next)) return;
     if (next === section) {
@@ -1114,7 +1134,7 @@
     const { plan, action } = themeLifecycle(id, type);
     const attribute = type === 'theme' ? 'data-log-delete-theme' : 'data-del-sub';
     const lifecycleClass = plan?.action === 'archive' ? 'km-shell-theme-swipe-archive' : 'km-shell-theme-swipe-delete';
-    return `<div class="km-shell-theme-swipe-actions"><button type="button" class="km-shell-theme-swipe-action ${lifecycleClass}" ${attribute}="${esc(id)}">${action}</button><button type="button" class="km-shell-theme-swipe-action km-shell-theme-swipe-edit" data-shell-theme-edit="${esc(id)}" data-shell-theme-type="${type}">Bewerk</button></div>`;
+    return `<div class="km-shell-theme-swipe-actions">${window.LogSwipePolicy.enabled('themes')?`<button type="button" class="km-shell-theme-swipe-action ${lifecycleClass}" ${attribute}="${esc(id)}">${action}</button>`:''}<button type="button" class="km-shell-theme-swipe-action km-shell-theme-swipe-edit" data-shell-theme-edit="${esc(id)}" data-shell-theme-type="${type}">Bewerk</button></div>`;
   }
 
   function resetThemeSwipeRow(row) {
@@ -1211,13 +1231,13 @@
       }
       if (event.cancelable) event.preventDefault();
       const actionWidth = innerWidth <= 520 ? 78 : 84;
-      const maxDistance = actionWidth * 2;
+      const maxDistance = actionWidth * gesture.row.querySelectorAll('.km-shell-theme-swipe-action').length;
       const dx = Math.max(-maxDistance, Math.min(0, rawX));
       const distance = Math.abs(dx);
       const lifecycleThreshold = actionWidth + 44;
       gesture.peakLeft = Math.max(gesture.peakLeft, distance);
       const editArmed = gesture.peakLeft >= 48 && distance >= 36;
-      const lifecycleArmed = gesture.peakLeft >= lifecycleThreshold && distance >= lifecycleThreshold - 18;
+      const lifecycleArmed = window.LogSwipePolicy.enabled('themes') && gesture.peakLeft >= lifecycleThreshold && distance >= lifecycleThreshold - 18;
       gesture.surface.style.transition = 'none';
       gesture.surface.style.transform = `translateX(${dx}px)`;
       gesture.row.classList.toggle('swipe-edit-armed', editArmed && !lifecycleArmed);
@@ -1438,6 +1458,7 @@
 
   function renderPlaceholderModule() {
     const view = $('#kmShellPlaceholderView');
+    if (section === 'barcodes') { window.LogCardsModule?.mount(view); return; }
     const module = moduleById(section);
     if (!view || !module?.placeholder) return;
     const cards = section === 'themes'
@@ -1447,10 +1468,11 @@
   }
 
   function showSection() {
+    if (section !== 'barcodes') window.LogCardsModule?.unmount();
     const locations = $('#kmShellLocationsView');
     const themes = $('#kmShellThemesView');
     const placeholder = $('#kmShellPlaceholderView');
-    document.body.classList.toggle('km-shell-placeholder-mode', Boolean(moduleById(section)?.placeholder));
+    document.body.classList.toggle('km-shell-placeholder-mode', Boolean(section === 'barcodes' || moduleById(section)?.placeholder));
     if (document.body.classList.contains('editor-view')) {
       document.body.classList.remove('km-shell-locations-mode', 'km-shell-themes-mode', 'km-shell-placeholder-mode');
       if (locations) locations.hidden = true;
@@ -1479,7 +1501,7 @@
       if (themes) themes.hidden = false;
       if (placeholder) placeholder.hidden = true;
       renderThemes();
-    } else if (moduleById(section)?.placeholder) {
+    } else if (section === 'barcodes' || moduleById(section)?.placeholder) {
       ensureOriginalMode('kilometers');
       ensureKmView('ride');
       document.body.classList.remove('km-shell-locations-mode', 'km-shell-themes-mode');
@@ -1532,6 +1554,9 @@
         } catch (_) {
           wantedMeta = 'Tijdsregistratie';
         }
+      } else if (section === 'barcodes') {
+        const count = window.LogCardData?.snapshot().cards.length || 0;
+        wantedMeta = `${count} ${count === 1 ? 'kaart' : 'kaarten'} opgeslagen`;
       } else if (section === 'themes') {
         const catalog = window.LogTimeModule?.getThemeCatalog?.() || { themes: [], subthemes: [] };
         wantedMeta = `${catalog.themes.length} ${catalog.themes.length === 1 ? 'thema' : 'thema’s'} · ${catalog.subthemes.length} ${catalog.subthemes.length === 1 ? 'subthema' : 'subthema’s'}`;
@@ -1652,7 +1677,7 @@
     const gps = effective.lat != null && effective.lng != null ? `${Number(effective.lat).toFixed(5)}, ${Number(effective.lng).toFixed(5)}` : 'Niet vastgelegd';
     const inherited = depth && (!location.address || location.lat == null || location.lng == null) && effective.parent;
     const count = locationTripCount(location, snapshot);
-    const canDelete = snapshot.settings.swipeDeleteEnabled !== false && snapshot.settings.locationDeleteEnabled !== false;
+    const canDelete = window.LogSwipePolicy.enabled('locations');
     const custom = depth === 0 && locationSortMode(snapshot) === 'custom';
     const dragHandle = custom ? `<button type="button" class="km-shell-location-drag-handle" data-location-drag-handle aria-label="${esc(location.name || 'Locatie')} verslepen" title="Sleep om te verplaatsen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h14"></path></svg></button>` : '';
     return `
@@ -2335,6 +2360,7 @@
         </section>
         <section class="km-shell-settings-group" aria-labelledby="kmShellAppSettingsTitle">
           <header class="km-shell-settings-group-head"><h2 id="kmShellAppSettingsTitle">App</h2><p>Bepaal per onderdeel waar het staat en in welke volgorde.</p></header>
+          ${generalSettingsAccordion('kmShellSwipeSettings', 'Bediening', 'Dezelfde swipe-acties in alle onderdelen', `<label class="log-swipe-setting"><input type="checkbox" id="logSwipeLifecycle" ${window.LogSwipePolicy.masterEnabled()?'checked':''}><span>Archiveren en verwijderen toestaan<small>Een korte veeg naar links bewerkt de regel. Veeg verder om te archiveren of verwijderen. Uitgeschakeld blijft bewerken mogelijk. Bestaande beperkingen per onderdeel blijven gelden.</small></span></label>`)}
           ${generalSettingsAccordion('kmShellModuleSettingsAccordion', 'Onderdelen en volgorde', 'Zet onderbalk en menu per onderdeel aan of uit', '<div id="kmShellModuleSettings" class="km-shell-module-settings"></div>')}
         </section>
         <section class="km-shell-settings-group" aria-labelledby="kmShellDataSettingsTitle">
@@ -2386,6 +2412,7 @@
       }
       saveModuleConfiguration(config, item.id, toggle.dataset.surface, showBottomBar);
     });
+    content.querySelector('#logSwipeLifecycle')?.addEventListener('change',event=>{window.dispatchEvent(new CustomEvent('log-swipe-policy-change',{detail:{enabled:event.target.checked}}));event.target.checked=window.LogSwipePolicy.masterEnabled();});
     content.querySelector('[data-general-action="backup-export"]')?.addEventListener('click', () => {
       const status = $('#kmShellBackupStatus');
       if (status) status.textContent = 'Back-up wordt voorbereid…';
@@ -2704,7 +2731,7 @@
       const relevant = mutations.some(mutation => {
         const target = mutation.target instanceof Element ? mutation.target : mutation.target?.parentElement;
         if (target?.closest?.('#kmShellSearch,#kmShellSearchStatus')) return false;
-        if (target?.closest?.('#timeModuleRoot')) return false;
+        if (target?.closest?.('#timeModuleRoot,.cards-module,.cards-dialog')) return false;
         if (mutation.type === 'attributes' && mutation.target === document.body && mutation.attributeName === 'class') {
           const before = new Set(String(mutation.oldValue || '').split(/\s+/).filter(Boolean));
           const after = new Set(document.body.className.split(/\s+/).filter(Boolean));

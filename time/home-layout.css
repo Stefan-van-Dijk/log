@@ -183,3 +183,5 @@
   .activity-inline-grid{grid-template-columns:1fr 1fr}
   .activity-swipe-surface.entry{grid-template-columns:54px minmax(0,1fr) auto 14px;gap:8px}
 }
+
+.activity-swipe-surface.entry{grid-template-columns:58px minmax(0,1fr) auto 34px}.activity-details-toggle{display:grid;place-items:center;width:34px;height:34px;padding:0;border:0;background:transparent;cursor:pointer}.activity-details-toggle span{display:block;transition:transform .18s ease}.activity-details-toggle[aria-expanded="true"] span{transform:rotate(90deg)}

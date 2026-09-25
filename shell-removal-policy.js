@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const BUILD='0.32.1';
+  const BUILD='0.33.0';
   const DATA_KEY='kmreg-v4-data';
   const KM_STATE_EVENT='log-km-state-change';
   const SECTION_KEY='kmreg-shell-section-v1';
