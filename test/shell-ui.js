@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const BUILD = window.LOG_TEST_BUILD || '0.31.10-test.123';
+  const BUILD = window.LOG_TEST_BUILD || '0.31.10-test.124';
   const SHELL_VERSION = (() => {
     try {
       const script = document.currentScript || [...document.scripts].find(item => item.src.includes('shell-ui.js'));
@@ -2364,7 +2364,8 @@
         <section class="km-shell-settings-group" aria-labelledby="kmShellRegistrationSettingsTitle">
           <header class="km-shell-settings-group-head"><h2 id="kmShellRegistrationSettingsTitle">Registratie</h2><p>Instellingen voor de gegevens die je in Log vastlegt.</p></header>
           ${generalSettingsAccordion('kmShellRideSettings', 'Ritten', 'Voertuig, herkenning, navigatie en bediening', '<div class="km-shell-settings-panel-host"></div>', 'rides')}
-          ${generalSettingsAccordion('kmShellTimeSettings', 'Tijd en taken', 'Afronding, collega’s en tussenstops', '<div class="km-shell-settings-panel-host"></div>', 'time')}
+          ${generalSettingsAccordion('kmShellTimeSettings', 'Tijd en taken', 'Afronding en tussenstops', '<div class="km-shell-settings-panel-host"></div>', 'time')}
+          ${generalSettingsAccordion('kmShellPeopleSettings', 'Personen', 'Contactimport en uitleg', window.LogContactImport.settingsHtml())}
           ${generalSettingsAccordion('kmShellLocationSettings', 'Locaties', 'Herkenning en verwijderen', '<div class="km-shell-settings-panel-host"></div>', 'locations')}
         </section>
         <section class="km-shell-settings-group" aria-labelledby="kmShellAppSettingsTitle">
@@ -2391,6 +2392,7 @@
       </section>`;
 
     renderModuleSettings();
+    window.LogContactImport.bindSettings(content);
     content.querySelector('#kmShellModuleSettings')?.addEventListener('change', event => {
       const toggle = event.target instanceof HTMLInputElement ? event.target : null;
       if (!toggle) return;

@@ -14,6 +14,26 @@
   }
   const emailKey=v=>clean(v).toLowerCase();
   const phoneKey=v=>clean(v).replace(/^tel:/i,'').replace(/[\s().-]/g,'').replace(/^00/,'+');
+  function preferences(){
+    const settings=window.LogPeopleModule.read().settings.contactImport||{};
+    return {copyName:settings.copyName===true,showHelp:settings.showHelp===true};
+  }
+  function settingsHtml(){
+    const prefs=preferences();
+    return `<label class="log-swipe-setting"><input type="checkbox" data-contact-setting="copyName"${prefs.copyName?' checked':''}><span>Naam kopiëren tonen<small>Kopieer de naam uit Log en plak die in het zoekveld van de contactkiezer.</small></span></label><label class="log-swipe-setting"><input type="checkbox" data-contact-setting="showHelp"${prefs.showHelp?' checked':''}><span>Uitleg bij contactimport tonen<small>Toon uitleg over zoeken, contactbestanden en het inschakelen van de iOS-contactkiezer.</small></span></label><p class="cards-notice" data-contact-settings-status role="status"></p>`;
+  }
+  function bindSettings(host){
+    host.querySelectorAll('[data-contact-setting]').forEach(toggle=>toggle.addEventListener('change',()=>{
+      try{
+        const raw=window.LogPeopleModule.read();
+        raw.settings.contactImport={...raw.settings.contactImport,[toggle.dataset.contactSetting]:toggle.checked};
+        localStorage.setItem('urenregistratie.test.pwa.v1',JSON.stringify(raw));
+        window.LogTimeModule?.reloadFromStorage?.({view:window.LogTimeModule?.getView?.()||'home'});
+        window.dispatchEvent(new CustomEvent('log-time-state-change'));
+        host.querySelector('[data-contact-settings-status]').textContent='Instelling bewaard.';
+      }catch(_){toggle.checked=preferences()[toggle.dataset.contactSetting];host.querySelector('[data-contact-settings-status]').textContent='Bewaren is niet gelukt. Probeer het opnieuw.';}
+    }));
+  }
   function normalize(contact){
     const emails=[...new Set((contact.emails||[]).map(clean).filter(Boolean))].slice(0,20);
     const phones=[...new Set((contact.phones||[]).map(v=>clean(v).replace(/^tel:/i,'')).filter(Boolean))].slice(0,20);
@@ -105,8 +125,17 @@
   }
   function open(options={}){
     const supported=typeof navigator.contacts?.select==='function';
-    const d=window.LogCardsUI.sheet('Contact toevoegen',`<div class="people-form">${supported?'<button class="btn primary full" type="button" data-contact-picker>Contact kiezen op telefoon</button>':''}<label>Contactbestand importeren<input type="file" accept=".vcf,.vcard,text/vcard,text/x-vcard" data-contact-file></label><p class="cards-notice">${supported?'Of importeer een contactbestand.':'De directe contactkiezer is in deze browser niet beschikbaar.'} Deel of exporteer één contact uit je Contacten-app als .vcf, sla het op in Bestanden en kies het hier. Je ziet eerst welke gegevens worden overgenomen.</p></div>`);
+    const prefs=preferences(),person=window.LogPeopleModule.read().colleagues.find(p=>String(p.id)===String(options.targetId));
+    const searchName=clean(options.searchName??person?.name);
+    const ios=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+    const copy=prefs.copyName&&searchName?`<div class="contact-copy-name"><span data-contact-search-name>${esc(searchName)}</span><button type="button" class="btn secondary" data-contact-copy>Naam kopiëren</button></div>`:'';
+    const help=prefs.showHelp?`<div class="cards-notice" data-contact-help>${searchName?'<p>Kopieer de naam uit Log. Open daarna de contactkiezer, tik in het zoekveld en kies Plak. Log kan het zoekveld niet automatisch invullen.</p>':''}<p>Deel of exporteer één contact uit je Contacten-app als .vcf, sla het op in Bestanden en kies het hier. Je ziet eerst welke gegevens worden overgenomen.</p>${ios?'<p>Contactkiezer op iPhone: ga naar Instellingen → Apps → Safari → Geavanceerd → Feature Flags (experimentele functies). Zet Contact Picker API aan als deze aanwezig is en open Log opnieuw. Dit is een experimentele functie; beschikbaarheid kan verschillen.</p>':''}</div>`:'';
+    const d=window.LogCardsUI.sheet('Contact toevoegen',`<div class="people-form">${copy}${supported?'<button class="btn primary full" type="button" data-contact-picker>Contact kiezen op telefoon</button>':'<p class="cards-notice">De directe contactkiezer is in deze browser niet beschikbaar.</p>'}<label>Contactbestand importeren<input type="file" accept=".vcf,.vcard,text/vcard,text/x-vcard" data-contact-file></label>${help}</div>`);
     const message=text=>{if(d.isConnected)d.querySelector('[data-card-message]').textContent=text;};
+    d.querySelector('[data-contact-copy]')?.addEventListener('click',async()=>{
+      try{await navigator.clipboard.writeText(searchName);message('Naam gekopieerd.');}
+      catch(_){message('Kopiëren is niet gelukt. Houd de naam hierboven ingedrukt om deze te kopiëren.');}
+    });
     let props=['name','email','tel'];
     if(supported&&navigator.contacts.getProperties){const b=d.querySelector('[data-contact-picker]');b.disabled=true;navigator.contacts.getProperties().then(available=>{props=props.filter(p=>available.includes(p));if(d.isConnected){b.disabled=!props.length;if(!props.length)b.hidden=true;}}).catch(()=>{if(d.isConnected)b.disabled=false;});}
     d.querySelector('[data-contact-picker]')?.addEventListener('click',async e=>{
@@ -125,5 +154,5 @@
       }catch(error){message(error.message||'Het contactbestand kon niet worden gelezen.');}finally{input.value='';input.disabled=false;}
     };
   }
-  window.LogContactImport={open,parse,preview,candidates};
+  window.LogContactImport={open,parse,preview,candidates,preferences,settingsHtml,bindSettings};
 })();
