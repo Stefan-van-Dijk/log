@@ -11,9 +11,9 @@ for(const file of scripts){
   const source=fs.readFileSync(path.join(base,file),'utf8');
   assert.doesNotMatch(source,/window\.LOG_TEST_BUILD\s*=/,`${file} must not override the main app build`);
 }
-for(const file of ['shell-gestures.js','shell-direct-actions.js']){
+for(const file of scripts.filter(file=>!['shell-ui.js','shell-ui-stable.js'].includes(file))){
   const source=fs.readFileSync(path.join(base,file),'utf8');
-  assert.doesNotMatch(source,/km-shell-version-number|function updateVersion|scheduleVersion/,'gesture scripts must not control the version label');
+  assert.doesNotMatch(source,/km-shell-version-number|function updateVersion|scheduleVersion/,`${file} must not control the version label`);
 }
 const stable=fs.readFileSync(path.join(base,'shell-ui-stable.js'),'utf8');
 const update=stable.slice(stable.indexOf('  function updateVersion(){'),stable.indexOf('\n  function byId('));

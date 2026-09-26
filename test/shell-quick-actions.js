@@ -1,7 +1,6 @@
 (function(){
   'use strict';
 
-  const BUILD='0.31.10-test.106';
   const DATA_KEY='kmreg-test-v4-data';
   const TIME_KEY='urenregistratie.test.pwa.v1';
   const POSITIVE_SWIPE_THRESHOLD=36;
@@ -271,21 +270,8 @@
     });
   }
 
-  function updateVersion(){
-    const version=$('.km-shell-version-number');
-    const badge=$('.km-shell-version');
-    const today=$('#today');
-    if(version&&version.textContent!==BUILD)version.textContent=BUILD;
-    if(badge)badge.setAttribute('aria-label',`Geladen testversie ${BUILD}`);
-    if(today){
-      const date=new Intl.DateTimeFormat('nl-NL',{weekday:'long',day:'numeric',month:'long'}).format(new Date());
-      const value=`${date} · ${BUILD}`;
-      if(today.textContent!==value)today.textContent=value;
-    }
-  }
-
   function init(){
-    updateVersion();
+
     scheduleDecorate();
     document.addEventListener('click',event=>{
       const taskButton=event.target.closest?.('[data-log-start-task]');
@@ -309,11 +295,11 @@
     if(app)new MutationObserver(scheduleDecorate).observe(app,{childList:true,subtree:true});
     const time=$('#main');
     if(time)new MutationObserver(scheduleDecorate).observe(time,{childList:true,subtree:true});
-    new MutationObserver(()=>{updateVersion();scheduleDecorate();}).observe(document.body,{attributes:true,attributeFilter:['class']});
+    new MutationObserver(()=>{scheduleDecorate();}).observe(document.body,{attributes:true,attributeFilter:['class']});
     window.addEventListener('log-shell-view-refresh',scheduleDecorate);
     window.addEventListener('log-time-state-change',scheduleDecorate);
     window.addEventListener('storage',event=>{if(event.key===DATA_KEY||event.key===TIME_KEY)scheduleDecorate();});
-    window.addEventListener('pageshow',()=>{updateVersion();scheduleDecorate();});
+    window.addEventListener('pageshow',()=>{scheduleDecorate();});
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});

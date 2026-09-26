@@ -1,7 +1,6 @@
 (function(){
   'use strict';
 
-  const BUILD='0.31.10-test.106';
   const VIEW_ID='kmShellLocationsView';
   const SECTION_KEY='kmreg-test-shell-section-v1';
   const DATA_KEY='kmreg-test-v4-data';
@@ -12,19 +11,6 @@
   let syncQueued=false;
 
   const $=(selector,root=document)=>root.querySelector(selector);
-
-  function updateVersion(){
-    const version=$('.km-shell-version-number');
-    const badge=$('.km-shell-version');
-    const today=$('#today');
-    if(version&&version.textContent!==BUILD)version.textContent=BUILD;
-    if(badge)badge.setAttribute('aria-label',`Geladen testversie ${BUILD}`);
-    if(today){
-      const date=new Intl.DateTimeFormat('nl-NL',{weekday:'long',day:'numeric',month:'long'}).format(new Date());
-      const value=`${date} · ${BUILD}`;
-      if(today.textContent!==value)today.textContent=value;
-    }
-  }
 
   function installStyles(){
     if($('#kmShellLocationStatusStyle'))return;
@@ -134,20 +120,20 @@
 
   function init(){
     installStyles();
-    updateVersion();
+
     bindViewObserver();
 
     document.addEventListener('click',event=>{
       const button=event.target.closest?.('[data-shell-current-location]');
       if(button?.classList.contains('km-location-confirmed'))showConfirmation(button.dataset.registeredLocation||'');
       setTimeout(()=>{
-        updateVersion();
+
         bindViewObserver();
       },0);
     },{passive:true});
 
     const bodyObserver=new MutationObserver(()=>{
-      updateVersion();
+
       bindViewObserver();
     });
     bodyObserver.observe(document.body,{attributes:true,attributeFilter:['class'],childList:true,subtree:false});
@@ -160,7 +146,7 @@
     window.addEventListener(KM_STATE_EVENT,queueSync);
 
     window.addEventListener('pageshow',()=>{
-      updateVersion();
+
       bindViewObserver();
     });
   }
