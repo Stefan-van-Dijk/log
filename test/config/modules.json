@@ -82,8 +82,8 @@
     },
     {
       "id": "locationactions",
-      "label": "Locatieacties",
-      "shortLabel": "Locatieacties",
+      "label": "Acties",
+      "shortLabel": "Acties",
       "subtitle": "Voorstellen op locatie",
       "icon": "locationactions",
       "available": true,

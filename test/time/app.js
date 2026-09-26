@@ -963,6 +963,34 @@ function startFromCard({themeId,subthemeId,locationName=''}) {
   return true;
 }
 
+// One persisted transaction: never stop an existing task before the new start is validated.
+function startFromLocationAction({themeId,subthemeId,locationName='',mode='start',expectedTimer}) {
+  state=loadState();
+  const timer=state.timer;
+  if(JSON.stringify(timer)!==expectedTimer)throw Error('De lopende taak is gewijzigd. Sluit dit voorstel en open het opnieuw.');
+  const theme=state.themes.find(t=>t.id===themeId),sub=subthemeId?state.subthemes.find(s=>s.id===subthemeId&&s.themeId===themeId):null;
+  if(!theme||(subthemeId&&!sub))throw Error('Het thema of subthema is niet meer beschikbaar.');
+  if(mode==='start'&&timer.status!=='inactive')throw Error('Er loopt al een taak.');
+  if(!['start','interrupt','replace'].includes(mode))throw Error('Onbekende taakactie.');
+  if(mode!=='start'&&(timer.status!=='active'||timer.interruption))throw Error('Rond eerst de openstaande taak of tussenstop af.');
+  const now=new Date().toISOString();
+  try {
+    if(mode==='interrupt') {
+      timer.interruption={id:uid(),startISO:now,themeId:theme.id,themeName:theme.name,subthemeId:sub?.id||null,subthemeName:sub?.name||'',locationName,departmentName:'',people:[]};
+    } else {
+      if(mode==='replace') {
+        const calc=calculateParentTimer({...timer,stopISO:now});
+        state.entries.push(normalizeEntry({id:timer.sessionId,activityType:'normal',parentActivityId:null,kind:'Stopwatch',dateISO:now,themeId:timer.themeId,themeName:timer.themeName,subthemeId:timer.subthemeId,subthemeName:timer.subthemeName,locationName:timer.locationName,note:timer.note,startISO:timer.startISO,endISO:now,actualMinutes:calc.span,netActualMinutes:calc.net,deductedInterruptionMinutes:calc.deducted,roundedMinutes:calc.booked,ownMinutes:calc.booked,colleagueMinutes:0,totalMinutes:calc.booked,allocations:[],roundingSnapshot:roundingSnapshot(),createdAt:now}));
+      }
+      state.timer={...defaultTimer(),status:'active',sessionId:uid(),startISO:now,themeId:theme.id,themeName:theme.name,subthemeId:sub?.id||null,subthemeName:sub?.name||'',locationName};
+      state.lastCompletion=null;
+    }
+    theme.usageCount=(theme.usageCount||0)+1;if(sub)sub.usageCount=(sub.usageCount||0)+1;
+    saveState();
+  } catch(error) {state=loadState();throw error;}
+  render();return true;
+}
+
 window.LogTimeModule = Object.freeze({
   getState: () => state,
   getPeriodEntries: () => entriesForPeriod(),
@@ -988,6 +1016,7 @@ window.LogTimeModule = Object.freeze({
   reloadFromStorage,
   startFromEntry,
   startFromCard,
+  startFromLocationAction,
   resumeEntry: entryId => reopenLastTask(entryId),
   editEntry: entryId => openEntryEdit(entryId),
   openEntry: entryId => openEntryDetail(entryId),

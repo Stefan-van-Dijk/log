@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const BUILD = window.LOG_TEST_BUILD || '0.33.3';
+  const BUILD = window.LOG_TEST_BUILD || '0.33.4';
   const SHELL_VERSION = (() => {
     try {
       const script = document.currentScript || [...document.scripts].find(item => item.src.includes('shell-ui.js'));
@@ -16,7 +16,7 @@
   const SECTION_KEY = 'kmreg-test-shell-section-v1';
   const DRAWER_KEY = 'kmreg-test-shell-drawer-v1';
   const MENU_DOCUMENT_URL = './config/modules.json';
-  const MENU_DOCUMENT_CACHE_KEY = 'log-test-menu-document-v5';
+  const MENU_DOCUMENT_CACHE_KEY = 'log-test-menu-document-v6';
   const MENU_SCHEMA_VERSION = 3;
   const THEMES_NAVIGATION_MIGRATION_KEY = 'log-test-native-themes-navigation-v1';
   const FALLBACK_MENU_DOCUMENT = {
@@ -28,7 +28,7 @@
       { id: 'themes', label: 'Thema’s', shortLabel: 'Thema’s', subtitle: 'Thema’s en subthema’s beheren', icon: 'themes', available: true, defaultPlacement: 'both', bottomOrder: 40, menuOrder: 40, view: 'themes', settingsTarget: null },
       { id: 'barcodes', label: 'Kaarten', shortLabel: 'Kaarten', subtitle: 'Barcodes en QR-codes', icon: 'barcodes', available: true, defaultPlacement: 'both', bottomOrder: 50, menuOrder: 50, view: 'barcodes', settingsTarget: null },
       { id:'people',label:'Personen',shortLabel:'Personen',subtitle:'Contacten en mijn gegevens',icon:'people',available:true,defaultPlacement:'both',bottomOrder:60,menuOrder:60,view:'people',settingsTarget:null },
-      {id:'locationactions',label:'Locatieacties',shortLabel:'Locatieacties',subtitle:'Voorstellen op locatie',icon:'locationactions',available:true,defaultPlacement:'menu',bottomOrder:70,menuOrder:70,view:'locationactions',settingsTarget:null}
+      {id:'locationactions',label:'Acties',shortLabel:'Acties',subtitle:'Voorstellen op locatie',icon:'locationactions',available:true,defaultPlacement:'menu',bottomOrder:70,menuOrder:70,view:'locationactions',settingsTarget:null}
     ]
   };
   const ROOT_SECTIONS = new Set();
@@ -1571,7 +1571,7 @@
         wantedMeta = `${count} ${count === 1 ? 'kaart' : 'kaarten'} opgeslagen`;
       } else if (section === 'locationactions') {
         const count = window.LogLocationActions?.snapshot().rules.length || 0;
-        wantedMeta = `${count} locatieacties ingesteld`;
+        wantedMeta = `${count} acties ingesteld`;
       } else if (section === 'people') {
         const count = window.LogPeopleModule?.read().colleagues.length || 0;
         wantedMeta = `${count} ${count === 1 ? 'persoon' : 'personen'} opgeslagen`;

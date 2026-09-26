@@ -1,0 +1,16 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),{JSDOM}=require('jsdom');
+const dom=new JSDOM('<body></body>',{url:'https://example.test/test/',runScripts:'outside-only'}),w=dom.window,key='urenregistratie.test.pwa.v1';
+const seed={settings:{interruptionDeductAfterMinutes:5},themes:[{id:'old',name:'Werk'},{id:'new',name:'Overleg'}],subthemes:[{id:'s',themeId:'new',name:'Team'}],entries:[],locationActions:[{id:'keep'}],timer:{status:'active',sessionId:'existing',themeId:'old',themeName:'Werk',startISO:new Date(Date.now()-3600000).toISOString(),note:'Behouden'}};
+const get=()=>JSON.parse(w.localStorage.getItem(key)),set=v=>w.localStorage.setItem(key,JSON.stringify(v));set(seed);
+// Use the real persistence, normalization, booking and task API, with only rendering stubbed.
+w.eval(fs.readFileSync(path.join(__dirname,'../time/app.js'),'utf8')+'\nrender=()=>{};toast=()=>{};window.testStopInterruption=stopInterruption;');
+const api=w.LogTimeModule,args=()=>({themeId:'new',subthemeId:'s',locationName:'Kantoor',expectedTimer:JSON.stringify(api.getState().timer)});
+api.startFromLocationAction({...args(),mode:'interrupt'});let state=get();assert.equal(state.timer.sessionId,'existing');assert.equal(state.timer.note,'Behouden');assert.equal(state.timer.interruption.themeId,'new');assert.equal(state.entries.length,0);assert.equal(state.locationActions[0].id,'keep');
+assert.throws(()=>api.startFromLocationAction({...args(),mode:'replace'}),/tussenstop/);assert.equal(get().entries.length,0);
+w.testStopInterruption();state=get();assert.equal(state.timer.sessionId,'existing');assert.equal(state.timer.interruption,null);assert.equal(state.entries[0].parentActivityId,'existing');assert.equal(state.entries[0].activityType,'interruption');
+api.startFromLocationAction({...args(),mode:'replace'});state=get();assert.equal(state.entries.length,2);assert.equal(state.entries[1].id,'existing');assert.equal(state.entries[1].note,'Behouden');assert.equal(state.entries[1].endISO,state.timer.startISO,'no gap or overlap');assert.equal(state.timer.themeId,'new');assert.equal(state.timer.subthemeId,'s');assert.notEqual(state.timer.sessionId,'existing');
+const stale=args();const modified=get();modified.timer.note='Andere tab';set(modified);assert.throws(()=>api.startFromLocationAction({...stale,mode:'replace'}),/gewijzigd/);assert.equal(get().entries.length,2);
+const before=w.localStorage.getItem(key),originalSet=w.Storage.prototype.setItem;w.Storage.prototype.setItem=function(){throw Error('quota')};assert.throws(()=>api.startFromLocationAction({...args(),mode:'replace'}),/quota/);w.Storage.prototype.setItem=originalSet;assert.equal(w.localStorage.getItem(key),before);assert.equal(api.getState().timer.note,'Andere tab');
+assert.throws(()=>api.startFromLocationAction({...args(),themeId:'missing',mode:'replace'}),/thema/);assert.equal(w.localStorage.getItem(key),before);
+state=get();state.timer={status:'inactive'};set(state);api.reloadFromStorage();api.startFromLocationAction({...args(),mode:'start'});assert.equal(get().timer.status,'active');assert.equal(get().entries.length,2);
+console.log('Action tasks: interruption/resume, atomic finish/start, preserved history and rules, stale timer, missing theme and storage rollback passed.');dom.window.close();

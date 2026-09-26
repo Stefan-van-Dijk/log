@@ -3,8 +3,10 @@
   const TIME='urenregistratie.test.pwa.v1',KM='kmreg-test-v4-data',VISITS='log-test-location-action-visits-v1';
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const read=key=>JSON.parse(localStorage.getItem(key)||'{}');
-  const types={ride:'Rit voorbereiden',task:'Taak starten',card:'Kaart tonen'};
+  const SNOOZES='log-test-action-snoozes-v1';
+  const types={ride:'Rit voorbereiden',task:'Taak voorbereiden',card:'Kaart tonen'};
   const days=['Zo','Ma','Di','Wo','Do','Vr','Za'];
+  const failed=new Set();
   let root=null,query='',watch=null,timer=null,generation=0,point=null,status='Locatieherkenning staat uit.',busy=false,signature='';
   function snapshot(){const time=read(TIME),km=read(KM);return {time,km,rules:time.locationActions||[],locations:km.locations||[],cards:km.cards||[],themes:time.themes||[],subs:time.subthemes||[]};}
   function enabled(){return read(TIME).settings?.locationActionsEnabled===true;}
@@ -43,7 +45,7 @@
     const s=snapshot(),old=s.rules.find(r=>r.id===id);if(id&&!old)return;
     const r=old||{enabled:true,radius:Math.max(25,Number(s.km.settings?.recognitionRadius)||500),days:[],type:'card'};
     const options=(list,current)=>'<option value="">Kies een item</option>'+list.map(l=>`<option value="${esc(l.id)}"${l.id===current?' selected':''}>${esc(l.name)}</option>`).join('');
-    const d=window.LogCardsUI.sheet(id?'Locatieactie bewerken':'Nieuwe locatieactie',`<form class="people-form"><label>Naam<input name="name" maxlength="120" required value="${esc(r.name||'')}"></label><label>Locatie<select name="locationId" required>${options(s.locations.map(l=>({...l,name:label(l.id,s)})),r.locationId)}</select></label><label>Herkennen binnen (meter)<input type="number" min="25" max="5000" name="radius" required value="${r.radius}"></label><p class="cards-notice">Bij aankomst of aanwezigheid terwijl Log geopend is. Een sublocatie zonder eigen GPS gebruikt de coördinaten van de hoofdlocatie.</p><label>Voorstel<select name="type">${Object.entries(types).map(([k,v])=>`<option value="${k}"${r.type===k?' selected':''}>${v}</option>`).join('')}</select></label><label>Gekoppeld item<select name="targetId" required></select></label><label data-subfield>Subthema<select name="subthemeId"></select></label><fieldset class="la-days"><legend>Dagen · geen selectie betekent elke dag</legend>${days.map((day,i)=>`<label><input type="checkbox" name="day" value="${i}"${r.days.includes(i)?' checked':''}>${day}</label>`).join('')}</fieldset><div class="la-times"><label>Vanaf (optioneel)<input type="time" name="start" value="${esc(r.start||'')}"></label><label>Tot (optioneel)<input type="time" name="end" value="${esc(r.end||'')}"></label></div><p class="cards-notice">Een tijdvak over middernacht hoort bij de dag waarop het begint. Na uitvoeren of wegklikken verschijnt dit voorstel pas weer bij een volgend waargenomen bezoek.</p><label class="contact-use"><input type="checkbox" name="enabled"${r.enabled?' checked':''}>Actief</label><button type="submit" class="btn primary full">Bewaren</button></form>`);
+    const d=window.LogCardsUI.sheet(id?'Actie bewerken':'Nieuwe actie',`<form class="people-form"><label>Naam<input name="name" maxlength="120" required value="${esc(r.name||'')}"></label><label>Locatie<select name="locationId" required>${options(s.locations.map(l=>({...l,name:label(l.id,s)})),r.locationId)}</select></label><label>Herkennen binnen (meter)<input type="number" min="25" max="5000" name="radius" required value="${r.radius}"></label><p class="cards-notice">Bij aankomst of aanwezigheid terwijl Log geopend is. Een sublocatie zonder eigen GPS gebruikt de coördinaten van de hoofdlocatie.</p><label>Voorstel<select name="type">${Object.entries(types).map(([k,v])=>`<option value="${k}"${r.type===k?' selected':''}>${v}</option>`).join('')}</select></label><label>Gekoppeld item<select name="targetId" required></select></label><label data-subfield>Subthema<select name="subthemeId"></select></label><fieldset class="la-days"><legend>Dagen · geen selectie betekent elke dag</legend>${days.map((day,i)=>`<label><input type="checkbox" name="day" value="${i}"${r.days.includes(i)?' checked':''}>${day}</label>`).join('')}</fieldset><div class="la-times"><label>Vanaf (optioneel)<input type="time" name="start" value="${esc(r.start||'')}"></label><label>Tot (optioneel)<input type="time" name="end" value="${esc(r.end||'')}"></label></div><p class="cards-notice">Een tijdvak over middernacht hoort bij de dag waarop het begint. Na sluiten verschijnt de actie pas weer bij een volgend waargenomen bezoek. Voor kaarten kun je ook een andere wachttijd kiezen.</p><label class="contact-use"><input type="checkbox" name="enabled"${r.enabled?' checked':''}>Actief</label><button type="submit" class="btn primary full">Bewaren</button></form>`);
     const f=d.querySelector('form');function sub(){f.elements.subthemeId.innerHTML='<option value="">Geen subthema</option>'+s.subs.filter(x=>x.themeId===f.elements.targetId.value).map(x=>`<option value="${esc(x.id)}"${x.id===r.subthemeId?' selected':''}>${esc(x.name)}</option>`).join('');}
     function targets(){f.elements.targetId.innerHTML=options(f.elements.type.value==='ride'?s.locations.map(l=>({...l,name:label(l.id,s)})):f.elements.type.value==='task'?s.themes:s.cards,r.targetId);d.querySelector('[data-subfield]').hidden=f.elements.type.value!=='task';sub();}
     f.elements.type.onchange=targets;f.elements.targetId.onchange=sub;targets();
@@ -64,19 +66,27 @@
       else if(v)delete v.outsideSince;
     }
     for(const key of Object.keys(state))if(!s.rules.some(r=>r.locationId===key))delete state[key];
+    const snoozes=read(SNOOZES);let changed=false;
+    for(const [id,snooze] of Object.entries(snoozes)){
+      if(snooze.mode!=='location')continue;
+      const origin=coordinates(snooze.locationId,s),rule=s.rules.find(r=>r.id===id);
+      if(origin&&distance(p,origin)-p.accuracy>(rule?.radius||500)+50&&s.locations.some(l=>{const pos=coordinates(l.id,s);return l.id!==snooze.locationId&&pos&&distance(p,pos)+p.accuracy<=Math.max(25,Number(s.km.settings?.recognitionRadius)||500);})){delete snoozes[id];changed=true;}
+    }
+    if(changed)localStorage.setItem(SNOOZES,JSON.stringify(snoozes));
     localStorage.setItem(VISITS,JSON.stringify(state));status='Locatie gecontroleerd om '+new Date(now).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'});refresh();
   }
-  function eligible(now=Date.now()){
+  function eligible(now=Date.now(),includeHandled=false){
     if(!enabled()||document.hidden||!point||now-point.time>120000)return [];
-    const s=snapshot(),state=visits();return s.rules.filter(r=>{
+    const s=snapshot(),state=visits(),snoozes=read(SNOOZES);return s.rules.filter(r=>{
       const v=state[r.locationId],pos=coordinates(r.locationId,s);
-      return r.enabled&&!problem(r,s)&&inTime(r,new Date(now))&&v?.inside&&!v.done?.includes(r.id)&&pos&&distance(point,pos)+point.accuracy<=r.radius;
+      const snooze=snoozes[r.id],suppressed=snooze&&(snooze.mode==='location'||now<snooze.until);
+      return r.enabled&&!problem(r,s)&&inTime(r,new Date(now))&&v?.inside&&(includeHandled||(!suppressed&&!v.done?.includes(r.id)))&&pos&&distance(point,pos)+point.accuracy<=r.radius;
     });
   }
   function done(rule){const state=visits(),v=state[rule.locationId];if(v){v.done=[...new Set([...(v.done||[]),rule.id])];localStorage.setItem(VISITS,JSON.stringify(state));}refresh();}
   function stop(){generation++;if(watch!==null)navigator.geolocation?.clearWatch(watch);watch=null;clearInterval(timer);timer=null;point=null;renderSuggestions();}
   function start(){
-    stop();if(!enabled()||document.hidden)return;
+    stop();failed.clear();if(!enabled()||document.hidden)return;
     if(!navigator.geolocation){status='Locatiebepaling is niet beschikbaar.';refresh();return;}
     const token=generation;status='Locatie bepalen…';refresh();
     const success=p=>{if(token!==generation)return;try{assess(p);}catch(_){status='Locatievoorstellen konden niet worden bijgewerkt.';point=null;refresh();}};
@@ -91,27 +101,60 @@
     if(host._markup!==markup){host.innerHTML=markup;host._markup=markup;}host.hidden=!rules.length;
     host.onclick=e=>{const id=e.target.closest('[data-la-propose]')?.dataset.laPropose,skip=e.target.closest('[data-la-dismiss]')?.dataset.laDismiss;if(skip){const r=eligible().find(r=>r.id===skip);if(r)done(r);}if(id)propose(id);};
   }
-  function propose(id){
-    const rule=eligible().find(r=>r.id===id);if(!rule)return;
-    const original=JSON.stringify(rule);
-    const d=window.LogCardsUI.sheet(rule.name,`<p>${esc(types[rule.type])}: <strong>${esc(targetName(rule))}</strong></p><p class="cards-notice">${esc(label(rule.locationId))}</p><button type="button" class="btn primary full" data-la-confirm>${esc(types[rule.type])}</button>`);
-    d.querySelector('[data-la-confirm]').onclick=async e=>{if(busy)return;const button=e.currentTarget;try{
-      const current=eligible().find(r=>r.id===id);if(!current||JSON.stringify(current)!==original)throw Error('Dit voorstel is niet meer actueel. Controleer de locatie opnieuw.');
-      busy=true;button.disabled=true;
-      if(rule.type==='ride'){const km=read(KM);if(km.activeTrip)throw Error('Rond eerst de actieve rit af.');await window.LogRideStarter.prepare(rule.targetId);}
-      else if(rule.type==='task'){window.LogTimeModule.startFromCard({themeId:rule.targetId,subthemeId:rule.subthemeId,locationName:label(rule.locationId)});window.dispatchEvent(new CustomEvent('kmreg-test-shell-select-section',{detail:{section:'time'}}));}
-      else {if(!snapshot().cards.some(c=>c.id===rule.targetId))throw Error('Kaart ontbreekt.');}
-      done(rule);window.LogCardsUI.close();if(rule.type==='card')window.LogCardsModule.show(rule.targetId);
-    }catch(error){if(d.isConnected)d.querySelector('[data-card-message]').textContent=error.message||'Actie kon niet worden uitgevoerd.';}finally{busy=false;button.disabled=false;}};
+  function snoozeCard(id,mode,now=Date.now()) {
+    if(!['halfHour','location','day'].includes(mode))throw Error('Onbekende keuze.');
+    const s=snapshot(),rules=s.rules.filter(r=>r.type==='card'&&r.targetId===id),snoozes=read(SNOOZES),state=visits();
+    const end=new Date(now);end.setHours(24,0,0,0);
+    for(const r of rules){snoozes[r.id]={mode,until:mode==='halfHour'?now+1800000:mode==='day'?end.getTime():null,locationId:r.locationId};const v=state[r.locationId];if(v)v.done=(v.done||[]).filter(x=>x!==r.id);}
+    // Save suppression first, so a storage failure cannot accidentally rearm the action.
+    localStorage.setItem(SNOOZES,JSON.stringify(snoozes));localStorage.setItem(VISITS,JSON.stringify(state));refresh();
   }
+  function decorateCard(panel,id){
+    if(!snapshot().rules.some(r=>r.type==='card'&&r.targetId===id))return;
+    const details=document.createElement('section');details.className='cards-content-details';
+    details.innerHTML='<p class="cards-notice">Niet opnieuw tonen…</p><div class="la-snooze"><button type="button" class="btn secondary" data-la-snooze="halfHour">30 minuten</button><button type="button" class="btn secondary" data-la-snooze="location">Tot locatiewisseling</button><button type="button" class="btn secondary" data-la-snooze="day">Vandaag</button></div><p class="cards-notice">Handmatig openen blijft mogelijk.</p>';
+    panel.querySelector('.cards-dialog-body').append(details);
+    details.onclick=e=>{const mode=e.target.closest('[data-la-snooze]')?.dataset.laSnooze;if(!mode)return;try{snoozeCard(id,mode);window.LogCardsUI.close();}catch(error){panel.querySelector('[data-card-message]').textContent='Keuze kon niet worden bewaard. Probeer opnieuw.';}};
+  }
+  async function propose(id){
+    if(busy)return;const rule=eligible().find(r=>r.id===id);if(!rule)return;
+    busy=true;
+    try {
+      if(rule.type==='ride'){
+        if(read(KM).activeTrip)throw Error('Rond eerst de actieve rit af.');
+        await window.LogRideStarter.prepare(rule.targetId);done(rule);return;
+      }
+      if(rule.type==='card'){window.LogCardsModule.show(rule.targetId);eligible().filter(r=>r.type==='card'&&r.targetId===rule.targetId).forEach(done);return;}
+      window.LogTimeModule.reloadFromStorage?.({view:'home'});
+      const timer=window.LogTimeModule.getState().timer,expectedTimer=JSON.stringify(timer),original=JSON.stringify(rule);
+      const active=timer.status==='active'&&!timer.interruption,inactive=timer.status==='inactive';
+      const buttons=inactive?'<button type="button" class="btn primary full" data-la-start="start">Start taak</button>':active?'<button type="button" class="btn primary full" data-la-start="interrupt">Start als tussenstop</button><button type="button" class="btn secondary full" data-la-start="replace">Huidige afronden en nieuwe starten</button>':'<p class="cards-notice">Rond eerst de openstaande taak of tussenstop af. Er wordt niets gewijzigd.</p>';
+      const d=window.LogCardsUI.sheet(rule.name,`<p>Taak: <strong>${esc(targetName(rule))}</strong></p><p class="cards-notice">${esc(label(rule.locationId))}</p>${active?`<p>Er loopt: <strong>${esc(timer.themeName)}</strong></p><p class="cards-notice">Een tussenstop gebruikt je ingestelde aftrek en afronding. Daarna ga je verder met de huidige taak. Bij afronden wordt de huidige taak met de ingestelde afronding opgeslagen, zonder inzet van anderen.</p>`:''}<div class="la-task-actions">${buttons}</div>`);
+      done(rule);
+      d.querySelectorAll('[data-la-start]').forEach(button=>button.onclick=()=>{
+        if(busy)return;busy=true;button.disabled=true;
+        try{const current=eligible(Date.now(),true).find(r=>r.id===id);if(!current||JSON.stringify(current)!==original)throw Error('Dit voorstel is niet meer actueel. Sluit het en controleer de actie opnieuw.');
+          window.LogTimeModule.startFromLocationAction({themeId:rule.targetId,subthemeId:rule.subthemeId,locationName:label(rule.locationId),mode:button.dataset.laStart,expectedTimer});
+          window.LogCardsUI.close();window.dispatchEvent(new CustomEvent('kmreg-test-shell-select-section',{detail:{section:'time'}}));
+        }catch(error){d.querySelector('[data-card-message]').textContent=error.message;}finally{busy=false;button.disabled=false;}
+      });
+    }catch(error){status=error.message;failed.add(rule.id);try{done(rule);}catch(_){}window.LogCardsUI.sheet(rule.name,`<p>${esc(error.message||'Actie kon niet worden voorbereid.')}</p>`);}
+    finally{busy=false;}
+  }
+  // Never replace an open editor, scanner, start form or another modal.
+  function drain(){
+    if(busy||document.hidden||!enabled()||document.querySelector('dialog[open],.modal:not([hidden]),[data-action="cancel-start"],[data-action="cancel-arrival"],#cancelInlineInterruption,#inlineTaskTheme')||document.body.matches('.editor-view,.km-shell-settings-open,.km-shell-drawer-open,.km-shell-drawer-peek')||document.activeElement?.matches('input,textarea,select,[contenteditable="true"]'))return;
+    const rule=eligible().find(r=>!failed.has(r.id)&&!(r.type==='ride'&&read(KM).activeTrip));if(rule)propose(rule.id);
+  }
+  setInterval(drain,1000);
   function render(){
     if(!root)return;const s=snapshot(),allowed=window.LogSwipePolicy?.enabled('locationactions')!==false;
     const rules=s.rules.filter(r=>(r.name+' '+label(r.locationId,s)+' '+targetName(r,s)).toLocaleLowerCase('nl').includes(query));
-    root.innerHTML=`<section class="cards-module"><label class="log-swipe-setting"><input type="checkbox" data-la-enabled${enabled()?' checked':''}><span>Locatievoorstellen aan<small>Controleert je locatie zolang Log geopend en zichtbaar is.</small></span></label><p class="cards-notice" data-la-status role="status">${esc(status)}</p><button type="button" class="btn secondary full" data-la-check>Opnieuw controleren</button><button type="button" class="btn primary full contact-update" data-la-new>＋ Locatieactie toevoegen</button><p class="cards-notice">Voorstellen starten niets automatisch. Een volgend bezoek wordt herkend wanneer Log je eerst duidelijk buiten de locatie en daarna weer binnen ziet.</p>${rules.map(r=>`<div class="code-card-swipe" data-la-row style="--card-color:var(--accent);--card-action-count:${allowed?2:1}"><div class="code-card-actions" inert aria-hidden="true">${allowed?`<button type="button" class="swipe-delete" data-la-delete="${esc(r.id)}">Verwijder</button>`:''}<button type="button" class="swipe-edit" data-la-edit="${esc(r.id)}">Bewerk</button></div><div class="code-card-surface"><button type="button" class="code-card" data-la-open="${esc(r.id)}"><span class="code-card-copy"><strong>${esc(r.name)}${r.enabled?'':' · uit'}</strong><small>${esc(label(r.locationId,s))} · ${esc(types[r.type])}</small><small>${esc(problem(r,s)||targetName(r,s))}</small><small>${r.days.length?r.days.map(i=>days[i]).join(', '):'Elke dag'} · ${r.start?r.start+'–'+r.end:'hele dag'}</small></span></button></div></div>`).join('')||'<p class="cards-empty">Nog geen locatieacties voor deze selectie.</p>'}</section>`;
+    root.innerHTML=`<section class="cards-module"><label class="log-swipe-setting"><input type="checkbox" data-la-enabled${enabled()?' checked':''}><span>Acties op locatie aan<small>Controleert je locatie zolang Log geopend en zichtbaar is.</small></span></label><p class="cards-notice" data-la-status role="status">${esc(status)}</p><button type="button" class="btn secondary full" data-la-check>Opnieuw controleren</button><button type="button" class="btn primary full contact-update" data-la-new>＋ Actie toevoegen</button><p class="cards-notice">Kaarten verschijnen direct; ritten en taken worden voorbereid. Je start ze zelf. Een volgend bezoek wordt herkend wanneer Log je eerst duidelijk buiten de locatie en daarna weer binnen ziet.</p>${rules.map(r=>`<div class="code-card-swipe" data-la-row style="--card-color:var(--accent);--card-action-count:${allowed?2:1}"><div class="code-card-actions" inert aria-hidden="true">${allowed?`<button type="button" class="swipe-delete" data-la-delete="${esc(r.id)}">Verwijder</button>`:''}<button type="button" class="swipe-edit" data-la-edit="${esc(r.id)}">Bewerk</button></div><div class="code-card-surface"><button type="button" class="code-card" data-la-open="${esc(r.id)}"><span class="code-card-copy"><strong>${esc(r.name)}${r.enabled?'':' · uit'}</strong><small>${esc(label(r.locationId,s))} · ${esc(types[r.type])}</small><small>${esc(problem(r,s)||targetName(r,s))}</small><small>${r.days.length?r.days.map(i=>days[i]).join(', '):'Elke dag'} · ${r.start?r.start+'–'+r.end:'hele dag'}</small></span></button></div></div>`).join('')||'<p class="cards-empty">Nog geen acties voor deze selectie.</p>'}</section>`;
   }
   function refresh(){if(!enabled()&&watch!==null)stop();renderSuggestions();if(!root)return;const next=JSON.stringify([snapshot(),query,status,window.LogSwipePolicy?.enabled('locationactions')]);if(next!==signature){signature=next;render();}}
-  function mount(target){if(root===target&&root.querySelector('[data-la-new]'))return;root=target;signature='';root.onclick=e=>{const b=e.target.closest('button');if(!b)return;if(b.hasAttribute('data-la-open')&&Date.now()<Number(b.closest('[data-la-row]')?.dataset.suppressUntil||0))return;try{if(b.hasAttribute('data-la-new'))edit();if(b.dataset.laEdit||b.dataset.laOpen)edit(b.dataset.laEdit||b.dataset.laOpen);if(b.dataset.laDelete&&window.LogSwipePolicy?.enabled('locationactions')!==false&&confirm('Deze locatieactie verwijderen?'))write(raw=>{raw.locationActions=(raw.locationActions||[]).filter(r=>r.id!==b.dataset.laDelete);});if(b.hasAttribute('data-la-check')){if(enabled())start();else {status='Zet Locatievoorstellen aan om je locatie te controleren.';refresh();}}}catch(error){status=error.message;refresh();}};root.onchange=e=>{if(!e.target.matches('[data-la-enabled]'))return;try{const value=e.target.checked;write(raw=>{raw.settings={...raw.settings,locationActionsEnabled:value};});if(value)start();else {stop();status='Locatieherkenning staat uit.';refresh();}}catch(error){status='Instelling kon niet worden bewaard.';signature='';refresh();}};refresh();}
-  window.LogLocationActions={mount,refresh,edit,inTime,coordinates,assess,eligible,propose,snapshot,validate,unmount(){if(root){window.LogCardsUI.close();root.onclick=null;root.onchange=null;root=null;query='';}},search(value){const next=String(value||'').toLocaleLowerCase('nl');if(next!==query){query=next;signature='';refresh();}return root?.querySelectorAll('[data-la-row]').length||0;}};
+  function mount(target){if(root===target&&root.querySelector('[data-la-new]'))return;root=target;signature='';root.onclick=e=>{const b=e.target.closest('button');if(!b)return;if(b.hasAttribute('data-la-open')&&Date.now()<Number(b.closest('[data-la-row]')?.dataset.suppressUntil||0))return;try{if(b.hasAttribute('data-la-new'))edit();if(b.dataset.laEdit||b.dataset.laOpen)edit(b.dataset.laEdit||b.dataset.laOpen);if(b.dataset.laDelete&&window.LogSwipePolicy?.enabled('locationactions')!==false&&confirm('Deze actie verwijderen?'))write(raw=>{raw.locationActions=(raw.locationActions||[]).filter(r=>r.id!==b.dataset.laDelete);});if(b.hasAttribute('data-la-check')){if(enabled())start();else {status='Zet Acties op locatie aan om je locatie te controleren.';refresh();}}}catch(error){status=error.message;refresh();}};root.onchange=e=>{if(!e.target.matches('[data-la-enabled]'))return;try{const value=e.target.checked;write(raw=>{raw.settings={...raw.settings,locationActionsEnabled:value};});if(value)start();else {stop();status='Locatieherkenning staat uit.';refresh();}}catch(error){status='Instelling kon niet worden bewaard.';signature='';refresh();}};refresh();}
+  window.LogLocationActions={mount,refresh,edit,drain,snoozeCard,decorateCard,inTime,coordinates,assess,eligible,propose,snapshot,validate,unmount(){if(root){window.LogCardsUI.close();root.onclick=null;root.onchange=null;root=null;query='';}},search(value){const next=String(value||'').toLocaleLowerCase('nl');if(next!==query){query=next;signature='';refresh();}return root?.querySelectorAll('[data-la-row]').length||0;}};
   document.addEventListener('visibilitychange',()=>{if(document.hidden)stop();else start();});
   window.addEventListener('pagehide',stop);window.addEventListener('pageshow',start);
   for(const event of ['log-time-state-change','log-km-state-change','log-shell-view-refresh'])window.addEventListener(event,refresh);

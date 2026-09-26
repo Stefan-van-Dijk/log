@@ -206,6 +206,8 @@
     try{const payload=window.LogCode?.parse(card.value);if(payload){const button=document.createElement('button');button.type='button';button.className='btn full cards-scan-action';button.textContent='Gegevens en starters openen';button.onclick=()=>{try{window.LogCode.preview(payload)}catch(error){message(error.message)}};$('.cards-dialog-body',panel).appendChild(button);}}catch(error){message(error.message);}
     try{renderCode($('[data-code-display]',panel),card)}catch(error){message(error.message || 'Code kan niet worden weergegeven. De inhoud is nog beschikbaar.')}
     $('[data-card-copy]',panel).onclick=async()=>{try{await navigator.clipboard.writeText(card.value);if(dialog===panel)message('Inhoud gekopieerd.')}catch(_){if(dialog===panel)message('Kopiëren is niet gelukt. Selecteer de inhoud hierboven om deze te kopiëren.')}};
+    window.LogLocationActions?.decorateCard?.(panel,id);
+    return panel;
   }
   function reader() {
     const hints=new Map();hints.set(window.ZXing.DecodeHintType.POSSIBLE_FORMATS,Object.keys(SCAN_FORMATS).map(key=>window.ZXing.BarcodeFormat[key]));
