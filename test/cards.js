@@ -290,7 +290,7 @@
     },()=>{if(root!==target)return;button.disabled=false;notice='Locatie niet beschikbaar. Kies zelf een locatie.';renderList()}, {enableHighAccuracy:true,timeout:10000,maximumAge:30000});
   }
   window.LogCardsUI={sheet,close,edit};
-  window.LogCardsModule={mount,closeSwipe:row=>setSwipe(row,false),unmount(){if(root){close();root=null;}},search(value){query=String(value||'').toLocaleLowerCase('nl');return renderList()},refresh};
+  window.LogCardsModule={mount,show,closeSwipe:row=>setSwipe(row,false),unmount(){if(root){close();root=null;}},search(value){query=String(value||'').toLocaleLowerCase('nl');return renderList()},refresh};
   window.addEventListener('log-km-state-change',refresh);
   window.addEventListener('storage',event=>{if(event.key==='kmreg-test-v4-data')refresh()});
   window.addEventListener('pagehide',stopScanner);

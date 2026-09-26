@@ -61,7 +61,8 @@
               "locations",
               "themes",
               "barcodes",
-              "people"
+              "people",
+              "locationactions"
             ]
           },
           "available": {
@@ -89,7 +90,8 @@
               "themes",
               "placeholder",
               "barcodes",
-              "people"
+              "people",
+              "locationactions"
             ]
           },
           "settingsTarget": {

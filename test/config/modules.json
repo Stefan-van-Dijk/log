@@ -1,6 +1,6 @@
 {
   "schemaVersion": 3,
-  "updatedAt": "2026-09-25",
+  "updatedAt": "2026-09-26",
   "modules": [
     {
       "id": "rides",
@@ -78,6 +78,19 @@
       "bottomOrder": 60,
       "menuOrder": 60,
       "view": "people",
+      "settingsTarget": null
+    },
+    {
+      "id": "locationactions",
+      "label": "Locatieacties",
+      "shortLabel": "Locatieacties",
+      "subtitle": "Voorstellen op locatie",
+      "icon": "locationactions",
+      "available": true,
+      "defaultPlacement": "menu",
+      "bottomOrder": 70,
+      "menuOrder": 70,
+      "view": "locationactions",
       "settingsTarget": null
     }
   ]

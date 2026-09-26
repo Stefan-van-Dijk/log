@@ -4,13 +4,14 @@
   function settings(key){try{return JSON.parse(localStorage.getItem(key)||'{}').settings||{};}catch(_){return {};}}
   function enabled(module){
     const km=settings(KM);if(km.swipeLifecycleEnabled===false)return false;
-    if(module==='cards')return true;
+    if(module==='cards'||module==='locationactions')return true;
     if(module==='time'||module==='themes'||module==='people')return settings(TIME).swipeDeleteEnabled!==false;
     if(module==='locations')return km.swipeDeleteEnabled!==false&&km.locationDeleteEnabled!==false;
     return km.swipeDeleteEnabled!==false;
   }
   const selectors={
     cards:'[data-card-delete]',
+    locationactions:'[data-la-delete]',
     themes:'[data-log-delete-theme],[data-del-sub],[data-del-theme]',
     locations:'[data-shell-location-swipe-action="delete"],[data-action="delete-location"]',
     time:'[data-swipe-action="delete"],#deleteEntry,[data-del-entry],[data-delete-colleague]',
