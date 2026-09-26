@@ -18,6 +18,15 @@ Bij iedere nieuwe ontwikkeling of wijziging:
 10. Problemen of regressies worden als apart item toegevoegd in plaats van stilzwijgend meegenomen.
 11. Nieuwe ideeën worden eerst als **Nieuw** toegevoegd en pas daarna ingepland.
 
+## Versienummering vanaf 26 september 2026
+
+- Gebruik normale versienummers zonder `-test` in het nummer. De omgeving wordt afzonderlijk aangeduid als TEST of LIVE.
+- Live is 0.33.0. De testreeks begint nu bij **0.33.1**, als opvolger van 0.31.10-test.124; daarna 0.33.2, 0.33.3, enzovoort.
+- Wanneer de testversie wordt goedgekeurd voor de volgende livegang, wordt deze **0.34.0**. Zet bij die promotie test en live op dezelfde release; volgende testontwikkeling begint bij **0.34.1**.
+- Herhaal dit patroon bij volgende releases: live 0.N.0, verdere testontwikkeling 0.N.1 en hoger, volgende goedgekeurde livegang 0.(N+1).0.
+- Een ander versienummer publiceert niet automatisch naar live. Bewaar de gescheiden omgevingen en bestaande opslagcodes.
+- Werk per release de hoofdversie, assetversies, serviceworkercache en shell-fallbacks samen bij. Oude releaseverwijzingen in deze backlog blijven als historie behouden.
+
 ## Statussen
 
 - **Nieuw** — wens vastgelegd, nog niet beoordeeld.
@@ -32,6 +41,7 @@ Bij iedere nieuwe ontwikkeling of wijziging:
 
 | ID | Onderwerp | Status | Omschrijving | Implementatie / notitie |
 |---|---|---|---|---|
+| VERSION-001 | Eenvoudige doorlopende versiereeks | Geïmplementeerd | Gebruik 0.33.volgnummer tijdens testontwikkeling en verhoog bij een goedgekeurde livegang het middelste nummer. | Test 0.33.1 vervangt 0.31.10-test.124. Versielabel en asset/cacheversies gecontroleerd. Omgevingsbadge TEST blijft zichtbaar; live 0.33.0 en opslagcodes behouden. |
 | PEOPLE-003 | Naam kopiëren en importuitleg instelbaar | Testen | Onder Instellingen → Personen twee onafhankelijke schakelaars voor Naam kopiëren en uitleg bij contactimport. | Test .124: beide standaard uit; kopieerknop gebruikt de opgeslagen of zojuist ingevulde naam. Klembord alleen na tik, met handmatige terugval bij weigering. Uitleg omvat plakken, vCard en op iOS de experimentele contactkiezer. Voorkeuren blijven bij tijdinstellingen in de bestaande back-up. Gerichte regressies geslaagd. |
 | PEOPLE-002 | Eén telefooncontact overnemen | Testen | Contact kiezen waar ondersteund of .vcf importeren; koppelen aan een vaste Log-ID met gecontroleerd bijwerken. | Test .123: vCard 2.1/3.0/4.0, één contact per import, controlescherm met veldkeuze en meerdere nummers/e-mails. Overeenkomsten voorstellen; bron-UID apart bewaren indien aanwezig; herhaalde import behoudt identifier, profiel, historie, eigen notities en kleur. Geen automatische synchronisatie. Parser, browserkiezer, annuleren, opslagfouten en bestaande Personen-functies getest met synthetische gegevens; echte iPhone/Android-controle volgt. |
 | PEOPLE-001 | Personen als eigen module | Testen | Collega-beheer uit instellingen verplaatsen naar Personen, met eigen gegevenskaart en bredere contacten. | Test .122: naam, relatie, organisatie, e-mail, telefoon, kleur en notitie; bestaande persoon hergebruiken als eigen profiel. Bestaande identifiers, QR-bronvelden, historie en timers behouden. Gedeelde swipeacties en archief/herstel; zoeken en moduleconfiguratie. Gerichte regressies en volledige shell in jsdom gecontroleerd; iPhone-PWA-controle volgt. |
