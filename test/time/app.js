@@ -1017,6 +1017,7 @@ window.LogTimeModule = Object.freeze({
   startFromEntry,
   startFromCard,
   startFromLocationAction,
+  suggestForAction: () => {state=loadState();const s=suggestion();return s?{themeId:s.theme.id,subthemeId:s.sub?.id||'',themeName:s.theme.name,subthemeName:s.sub?.name||''}:null;},
   resumeEntry: entryId => reopenLastTask(entryId),
   editEntry: entryId => openEntryEdit(entryId),
   openEntry: entryId => openEntryDetail(entryId),

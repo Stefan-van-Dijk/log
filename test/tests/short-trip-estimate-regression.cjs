@@ -5,6 +5,7 @@ const ctx={data:{settings:{},trips:[],events:[],locations:[],trackPoints:[]},Num
  distance:(a,b)=>Math.abs(a.lat-b.lat)*1000,sameLoc:(a,b)=>a?.id===b?.id,
  arrivalEstimateContext:()=>({gpsKm:null,zeroLikely:false,confidence:'low'}),inferLast:()=>null};
 vm.createContext(ctx);vm.runInContext(extract('function tripRouteFactor(','function trackedDistanceKm('),ctx);
+vm.runInContext(extract('function completedRideEndpoint(','async function openStart('),ctx);
 const a={id:'a',lat:0,lng:0},b={id:'b',lat:.5/1.3,lng:0};
 const factor=ctx.learnedRouteFactor(a,b);assert.equal(factor.scope,'standaard');assert.equal(factor.factor,1.3);assert.ok(Math.abs(factor.estimate-.5)<1e-9);
 assert.equal(ctx.learnedRouteFactor({id:'x'},b).estimate,null,'no invented distance without coordinates');
