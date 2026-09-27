@@ -17,7 +17,7 @@
   function contextFor(surface){
     if(surface.matches('.code-card-surface')){
       const row=surface.closest('.code-card-swipe');
-      if(row.hasAttribute('data-la-row'))return {row,surface,edit:$('[data-la-edit]',row),lifecycle:$('[data-la-delete]',row),module:'locationactions'};
+      if(row.hasAttribute('data-la-row'))return {row,surface,reset:$('[data-la-reset]',row),edit:$('[data-la-edit]',row),lifecycle:$('[data-la-delete]',row),module:'locationactions'};
       if(row.hasAttribute('data-person-row'))return {row,surface,edit:$('[data-person-edit]',row),lifecycle:$('[data-delete-colleague]',row),module:'people'};
       return {row,surface,edit:$('[data-card-edit]',row),lifecycle:$('[data-card-delete]',row),module:'cards'};
     }
@@ -67,7 +67,8 @@
     ctx.surface.style.transform='translateX(0)';
     delete ctx.surface.dataset.swipeOpen;
     ctx.row?.classList.remove('swipe-open','delete-armed');
-    ctx.row?.classList.remove('swipe-edit-armed');
+    ctx.row?.classList.remove('swipe-edit-armed','la-reset-armed');
+    const reset=ctx.row?.querySelector('.la-reset-actions');if(reset){reset.setAttribute('inert','');reset.setAttribute('aria-hidden','true');}
     if(ctx.module==='cards')window.LogCardsModule?.closeSwipe(ctx.row);
   }
 
@@ -97,6 +98,7 @@
       else if(absY>=AXIS_LOCK_DISTANCE&&absY>=absX*VERTICAL_DOMINANCE){g.cancelled=true;return;}
       else return;
     }
+    g.ctx.row.classList.toggle('la-reset-armed',Boolean(g.ctx.reset&&g.dx>=36));
     g.peakLeft=Math.max(g.peakLeft,Math.max(0,-g.dx));
     const lifecycleAllowed=g.ctx.lifecycle&&(window.LogSwipePolicy?.enabled(g.ctx.module)??true);
     const lifeArmed=lifecycleAllowed&&g.peakLeft>=actionWidth()+LIFECYCLE_EXTRA&&-g.dx>=actionWidth()+LIFECYCLE_EXTRA-LIFECYCLE_RELEASE_BUFFER;
@@ -107,7 +109,7 @@
       try{g.ctx.surface.setPointerCapture(event.pointerId);}catch(_){}
       const width=actionWidth()*(lifecycleAllowed?2:1);
       g.ctx.surface.style.transition='none';
-      g.ctx.surface.style.transform=`translateX(${Math.max(-width,Math.min(0,g.dx))}px)`;
+      g.ctx.surface.style.transform=`translateX(${Math.max(-width,Math.min(g.ctx.reset?actionWidth():0,g.dx))}px)`;
     }
   }
 
@@ -120,7 +122,7 @@
     const lifecycleThreshold=actionWidth()+LIFECYCLE_EXTRA;
     const lifecycleArmed=g.peakLeft>=lifecycleThreshold&&distance>=lifecycleThreshold-LIFECYCLE_RELEASE_BUFFER;
     const editArmed=g.peakLeft>=EDIT_THRESHOLD&&distance>=EDIT_RELEASE_THRESHOLD;
-    const action=g.ctx.lifecycle&&lifecycleArmed&&(window.LogSwipePolicy?.enabled(g.ctx.module)??true)
+    const action=g.ctx.reset&&g.dx>=36?g.ctx.reset:g.ctx.lifecycle&&lifecycleArmed&&(window.LogSwipePolicy?.enabled(g.ctx.module)??true)
       ?g.ctx.lifecycle
       :(g.ctx.edit&&editArmed?g.ctx.edit:null);
     if(['cards','people','locationactions'].includes(g.ctx.module)){
@@ -151,3 +153,4 @@
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});
   else init();
 })();
+

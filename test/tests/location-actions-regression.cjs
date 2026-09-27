@@ -14,8 +14,9 @@ for(const file of ['cards.js','swipe-policy.js','location-actions.js','shell-dir
 w.LogCardsModule.show=()=>{shown++;const panel=w.LogCardsUI.sheet('Pas','');api.decorateCard(panel,'c');return panel;};d.dispatchEvent(new w.Event('DOMContentLoaded'));
 const api=w.LogLocationActions,tick=()=>new Promise(r=>setTimeout(r,10));
 const rule=(id,type='card')=>({id,name:id,enabled:true,locationId:'l',type,targetId:type==='card'?'c':type==='task'?'t':'dest',subthemeId:'',radius:100,days:[],start:'',end:''});
-const put=rules=>{const raw=get(TIME);raw.locationActions=rules;set(TIME,raw);w.dispatchEvent(new w.Event('log-time-state-change'))};
+const put=rules=>{const raw=get(TIME);raw.locationActions=rules;set(TIME,raw);w.dispatchEvent(new w.Event('log-time-state-change'));arrival();};
 const position=(lat=52,lng=6,accuracy=10,time=Date.now())=>({coords:{latitude:lat,longitude:lng,accuracy},timestamp:time});
+const arrival=()=>{const t=Date.now();api.assess(position(53,7,5,t-22000),t-22000);api.assess(position(53,7,5,t-1000),t-1000);api.assess(position());};
 const submit=()=>q('form').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));
 (async()=>{
  await tick();
@@ -47,3 +48,4 @@ const submit=()=>q('form').dispatchEvent(new w.Event('submit',{bubbles:true,canc
  put([rule('visible-form-card')]);hidden.hidden=false;api.drain();await tick();assert.equal(shown,count+1,'visible form still protects input');assert.match(q('[data-la-reason]').textContent,/geopende scherm/);hidden.remove();api.assess(position(52,6,500));api.drain();assert.match(q('[data-la-reason]').textContent,/onnauwkeurig/);api.assess(position());api.drain();await tick();assert.equal(shown,count+2);api.drain();assert.match(q('[data-la-reason]').textContent,/al getoond/);
  console.log('Location actions: automatic cards ignore hidden forms, protect visible input, explain waiting, and preserve timing/visit guards.');dom.window.close();
 })().catch(error=>{console.error(error);dom.window.close();process.exitCode=1});
+
