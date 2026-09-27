@@ -29,7 +29,7 @@ const tick=()=>new Promise(r=>setTimeout(r,5));
  put([{...rule('task'),type:'task',targetId:'t',repeatMode:'duration',repeatMinutes:2}]);arrive();
  let state=get(TIME);state.timer={status:'active',interruption:{id:'busy'}};set(TIME,state);
  await api.propose('task');assert.equal(get('log-test-action-snoozes-v1').task,undefined,'unstartable task not handled');w.LogCardsUI.close();
- state.timer={status:'inactive'};set(TIME,state);api.reset('task');arrive();await api.propose('task');
+ state.timer={status:'inactive'};set(TIME,state);api.reset('task');now+=120000;gps();await api.propose('task');
  w.LogTimeModule.startFromLocationAction=()=>{throw Error('Opslag mislukt')};
  d.querySelector('[data-la-start]').click();
  assert.equal(get('log-test-action-snoozes-v1').task,undefined,'failed confirmation clears prepared status');
