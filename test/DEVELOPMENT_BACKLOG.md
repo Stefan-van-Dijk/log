@@ -148,6 +148,8 @@ Bij iedere nieuwe ontwikkeling of wijziging:
 
 # Controle acties en sublocaties — 27 september 2026
 
+- Log-QR aanmaak (r9): alleen relevante nieuwe invoervelden, subthema afhankelijk van hoofdthema, starters afhankelijk van thema/locatie, contextafhankelijke uitleg. Verborgen invoer uitgeschakeld en niet meegenomen; irrelevante starters gewist. Gerichte Log-code-regressie inclusief aanmaak/import/starters geslaagd. Versie en opslag ongewijzigd.
+
 - Aanpassing reset (r8): bij een ingestelde wachttijd start swipe-reset de volledige termijn opnieuw. Verplaatsen is niet nodig; afloop telt als verandering. Geen directe uitvoering bij reset. Locatie/dagen/tijdvak blijven vereist. Dit vervangt voor tijdgestuurde acties de eerdere resetdefinitie hieronder; overige herhaalmodi behouden hun bestaande werking. Gerichte herhaal- en overgangstests bijgewerkt.
 
 - Typefilter toegevoegd bij Acties: alle typen, ritten, taken en kaarten. Combineert met locatiefilter en bestaande zoekselectie; selectie blijft bij opnieuw renderen behouden. Lege selectie geeft één melding. Gerichte DOM-controle geslaagd. Cache r7; versie 0.33.10 behouden.

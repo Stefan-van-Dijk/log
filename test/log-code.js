@@ -109,9 +109,34 @@
   function builder(){
     const km=read(KM),time=read(TIME),options=(items)=>'<option value="">Niet opnemen</option><option value="new">Nieuw invullen</option>'+items.map(x=>`<option value="${esc(x.id)}">${esc(x.name)}</option>`).join('');
     const groups=[['theme','Thema',list(time,'themes')],['subtheme','Subthema',list(time,'subthemes')],['location','Locatie',list(km,'locations')],['person','Persoon',list(time,'colleagues')]];
-    const panel=window.LogCardsUI.sheet('Log-code maken',`<form data-log-builder><label>Titel<input name="title" maxlength="80" required></label>${groups.map(([type,label,items])=>`<div class="form-group"><label>${label}<select name="${type}">${options(items)}</select></label><div data-new="${type}" hidden><label>Naam<input name="${type}Name" maxlength="160"></label>${type==='location'?'<label>Adres<input name="address" maxlength="160"></label>':type==='person'?'<label>E-mail<input name="email" type="email" maxlength="160"></label><label>Telefoon<input name="phone" maxlength="80"></label>':''}</div></div>`).join('')}<label><input type="checkbox" name="task"> Starter: taak starten</label><label><input type="checkbox" name="ride"> Starter: rit voorbereiden</label><p>Een subthema hoort bij het gekozen thema. Bij bestaande sublocaties gaat de hoofdlocatie mee.</p><p>Iedereen die deze QR leest kan de opgenomen persoonsgegevens zien. Neem alleen gegevens op die je wilt delen.</p><label><input type="checkbox" name="consent" required> Ik wil deze gegevens in de code opnemen.</label><button class="btn full" type="submit">QR-kaart maken</button><p data-log-status role="status"></p></form>`);
+    const panel=window.LogCardsUI.sheet('Log-code maken',`<form data-log-builder><label>Titel<input name="title" maxlength="80" required></label>${groups.map(([type,label,items])=>`<div class="form-group" data-group="${type}"><label>${label}<select name="${type}">${options(items)}</select></label><div data-new="${type}" hidden><label>Naam<input name="${type}Name" maxlength="160"></label>${type==='location'?'<label>Adres<input name="address" maxlength="160"></label>':type==='person'?'<label>E-mail<input name="email" type="email" maxlength="160"></label><label>Telefoon<input name="phone" maxlength="80"></label>':''}</div></div>`).join('')}<label data-task-starter hidden><input type="checkbox" name="task"> Starter: taak starten</label><label data-ride-starter hidden><input type="checkbox" name="ride"> Starter: rit voorbereiden</label><p data-subtheme-help hidden>Het subthema hoort bij het gekozen thema.</p><p data-location-help hidden>De hoofdlocatie wordt samen met deze sublocatie opgenomen.</p><p data-person-help hidden>Iedereen die deze QR leest kan de opgenomen persoonsgegevens zien. Neem alleen gegevens op die je wilt delen.</p><label><input type="checkbox" name="consent" required> Ik wil deze gegevens in de code opnemen.</label><button class="btn full" type="submit">QR-kaart maken</button><p data-log-status role="status"></p></form>`);
     const form=panel.querySelector('form');
-    for(const [type] of groups)form.elements[type].onchange=()=>{panel.querySelector(`[data-new="${type}"]`).hidden=form.elements[type].value!=='new';};
+    function show(selector,visible){
+      const node=panel.querySelector(selector);node.hidden=!visible;node.style.display=visible?'':'none';
+      node.querySelectorAll('input,select').forEach(input=>{input.disabled=!visible;});
+    }
+    function fields(){
+      const theme=form.elements.theme.value,location=form.elements.location.value,person=form.elements.person.value;
+      const sub=form.elements.subtheme,previous=sub.value;
+      sub.innerHTML=options(theme&&theme!=='new'?list(time,'subthemes').filter(item=>String(item.themeId)===theme):[]);
+      sub.value=[...sub.options].some(option=>option.value===previous)?previous:'';
+      if(!theme)sub.value='';
+      show('[data-group="subtheme"]',Boolean(theme));
+      for(const [type] of groups){
+        const input=form.elements[type],isNew=!input.disabled&&input.value==='new';
+        show('[data-new="'+type+'"]',isNew);
+        form.elements[type+'Name'].required=isNew;
+      }
+      show('[data-task-starter]',Boolean(theme));
+      show('[data-ride-starter]',Boolean(location));
+      if(!theme)form.elements.task.checked=false;
+      if(!location)form.elements.ride.checked=false;
+      show('[data-subtheme-help]',Boolean(sub.value));
+      show('[data-location-help]',Boolean(list(km,'locations').find(item=>String(item.id)===location)?.parentId));
+      show('[data-person-help]',Boolean(person));
+    }
+    for(const [type] of groups)form.elements[type].onchange=fields;
+    fields();
     form.onsubmit=event=>{
       event.preventDefault();try{
         if(!form.elements.consent.checked)throw Error('Bevestig welke gegevens je wilt delen.');
@@ -124,7 +149,7 @@
           entities.push(e);visiting.delete(id);return id;
         };
         for(const [type,,items] of groups){
-          const value=form.elements[type].value;if(!value)continue;
+          const value=form.elements[type].value;if(form.elements[type].disabled||!value)continue;
           if(value==='new'){
             const e={type,id:crypto.randomUUID(),name:form.elements[type+'Name'].value.trim()};
             if(type==='subtheme'){if(!selected.theme)throw Error('Kies eerst een thema.');e.themeId=selected.theme;}

@@ -21,6 +21,24 @@ api.preview(valid);d.querySelector('[data-import-code]').click();d.querySelector
 w.localStorage.clear();const set=w.Storage.prototype.setItem;w.Storage.prototype.setItem=function(key,value){if(key===time)throw Error('quota');return set.call(this,key,value)};assert.throws(()=>api.commit(valid),/Opslaan niet voltooid/);assert.equal(get(km).locations.length,2);w.Storage.prototype.setItem=set;api.commit(valid);assert.equal(get(km).locations.length,2);assert.equal(get(time).colleagues.length,1);
 // Form creates a portable payload; generating it does not import it.
 api.builder();const form=d.querySelector('form');form.elements.title.value='Nieuwe werkplek';for(const type of ['theme','location','person']){form.elements[type].value='new';form.elements[type].onchange();form.elements[type+'Name'].value=type+' nieuw'}form.elements.address.value='Straat 2';form.elements.email.value='new@example.test';form.elements.task.checked=true;form.elements.ride.checked=true;form.elements.consent.checked=true;form.dispatchEvent(new w.Event('submit',{cancelable:true}));assert.ok(generated);const built=api.parse(generated.value);assert.equal(built.actions.length,2);assert.equal(built.entities.length,3);assert.equal(get(time).themes.length,1);
+// Conditional builder fields and discarded irrelevant inputs.
+api.builder();const conditional=d.querySelector('form'),pick=(name,value)=>{conditional.elements[name].value=value;conditional.elements[name].onchange();};
+assert.equal(d.querySelector('[data-group="subtheme"]').hidden,true);
+assert.equal(conditional.elements.email.disabled,true);
+assert.equal(d.querySelector('[data-task-starter]').hidden,true);
+assert.equal(d.querySelector('[data-ride-starter]').hidden,true);
+pick('theme',get(time).themes[0].id);assert.equal(d.querySelector('[data-group="subtheme"]').hidden,false);
+assert.equal(conditional.elements.subtheme.options.length,3);assert.equal(d.querySelector('[data-task-starter]').hidden,false);
+pick('subtheme','new');conditional.elements.subthemeName.value='Temporary';assert.equal(conditional.elements.subthemeName.required,true);
+pick('theme','');assert.equal(conditional.elements.subtheme.value,'');assert.equal(conditional.elements.subthemeName.disabled,true);assert.equal(conditional.elements.subthemeName.required,false);
+pick('person','new');conditional.elements.email.value='not-an-email';assert.equal(d.querySelector('[data-person-help]').hidden,false);
+pick('person','');assert.equal(conditional.elements.email.disabled,true);assert.equal(d.querySelector('[data-person-help]').hidden,true);
+pick('location',get(km).locations.find(x=>x.name==='Entree').id);assert.equal(d.querySelector('[data-location-help]').hidden,false);
+conditional.elements.ride.checked=true;pick('location','');assert.equal(conditional.elements.ride.checked,false);
+pick('theme',get(time).themes[0].id);conditional.elements.title.value='Alleen thema';conditional.elements.consent.checked=true;
+assert.equal(conditional.checkValidity(),true,'hidden invalid email must not block generation');
+conditional.dispatchEvent(new w.Event('submit',{cancelable:true}));
+const minimal=api.parse(generated.value);assert.equal(minimal.entities.length,1);assert.equal(minimal.entities[0].type,'theme');assert.equal(minimal.actions.length,0);
 // Real ride bridge: no replacement; destination passed to normal confirmation flow.
 const source=fs.readFileSync(path.join(base,'index.html'),'utf8');const bridge=source.slice(source.indexOf('window.LogRideStarter='),source.indexOf('async function openStart('));let destination=null,section=null;
 const ctx={window:{},data:{activeTrip:{id:'running'},locations:[{id:'l'}]},reloadKilometerData(){},openStart:async id=>{destination=id},requestShellSection:s=>{section=s}};vm.createContext(ctx);vm.runInContext(bridge,ctx);
