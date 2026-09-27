@@ -12,6 +12,7 @@
   let syncQueued=false;
   let enhancementQueued=false;
   let actionLocationFilter='';
+  let actionTypeFilter='';
 
   const $=(selector,root=document)=>root.querySelector(selector);
   const html=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
@@ -211,10 +212,12 @@
       wrap=document.createElement('div');
       wrap.className='cards-filter km-location-action-filter';
       wrap.dataset.laLocationFilterWrap='1';
-      wrap.innerHTML='<label><span>Locatie</span><select data-la-location-filter aria-label="Filter acties op locatie"></select></label>';
+      wrap.innerHTML='<label><span>Type</span><select data-la-type-filter aria-label="Filter acties op type"><option value="">Alle typen</option><option value="ride">Ritten</option><option value="task">Taken</option><option value="card">Kaarten</option></select></label><label><span>Locatie</span><select data-la-location-filter aria-label="Filter acties op locatie"></select></label>';
       addButton.insertAdjacentElement('afterend',wrap);
     }
 
+    const typeSelect=$('[data-la-type-filter]',wrap);
+    if(typeSelect&&typeSelect.value!==actionTypeFilter)typeSelect.value=actionTypeFilter;
     const select=$('[data-la-location-filter]',wrap);
     if(!select)return;
     const optionSignature=JSON.stringify(snapshot.locations.map(location=>[location.id,location.name,location.parentId||'']));
@@ -228,7 +231,7 @@
     module.querySelectorAll('[data-la-row]').forEach(row=>{
       const id=row.querySelector('[data-la-open]')?.dataset.laOpen||'';
       const rule=snapshot.rules.find(item=>item.id===id);
-      const show=!!rule&&actionLocationRelated(rule.locationId,actionLocationFilter,snapshot.locations);
+      const show=!!rule&&(!actionTypeFilter||rule.type===actionTypeFilter)&&actionLocationRelated(rule.locationId,actionLocationFilter,snapshot.locations);
       if(row.hidden===show)row.hidden=!show;
       if(show)visible++;
     });
@@ -238,10 +241,13 @@
       empty=document.createElement('p');
       empty.className='cards-empty';
       empty.dataset.laLocationFilterEmpty='1';
-      empty.textContent='Geen acties voor deze locatie.';
+      empty.textContent='Geen acties voor deze selectie.';
       module.appendChild(empty);
     }
-    const shouldHide=!actionLocationFilter||visible>0;
+    const shouldHide=(!actionLocationFilter&&!actionTypeFilter)||visible>0;
+    module.querySelectorAll('.cards-empty:not([data-la-location-filter-empty])').forEach(node=>{
+      const hidden=Boolean(actionLocationFilter||actionTypeFilter);if(node.hidden!==hidden)node.hidden=hidden;
+    });
     if(empty.hidden!==shouldHide)empty.hidden=shouldHide;
   }
 
@@ -290,6 +296,10 @@
 
     document.addEventListener('change',event=>{
       if(event.target.matches?.('#kmShellParentId'))queueEnhancements();
+      if(event.target.matches?.('[data-la-type-filter]')){
+        actionTypeFilter=String(event.target.value||'');
+        syncActionLocationFilter();
+      }
       if(event.target.matches?.('[data-la-location-filter]')){
         actionLocationFilter=String(event.target.value||'');
         syncActionLocationFilter();

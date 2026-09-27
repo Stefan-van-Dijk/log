@@ -148,6 +148,8 @@ Bij iedere nieuwe ontwikkeling of wijziging:
 
 # Controle acties en sublocaties — 27 september 2026
 
+- Typefilter toegevoegd bij Acties: alle typen, ritten, taken en kaarten. Combineert met locatiefilter en bestaande zoekselectie; selectie blijft bij opnieuw renderen behouden. Lege selectie geeft één melding. Gerichte DOM-controle geslaagd. Cache r7; versie 0.33.10 behouden.
+
 - Statusverduidelijking (cache r6): vóór eerste uitvoering en na swipe-reset blijft de ingestelde herhaaltermijn zichtbaar, naast de vereiste aankomst/tijdvakovergang. Een verstreken wachttijd wordt expliciet benoemd. Geen wijziging aan uitvoerlogica of opslag; action-repeat, action-transitions en action-state-review slagen.
 
 - Afgerond (alleen test, applicatieversie 0.33.10): sublocaties slaan geen eigen adres of automatisch afgeleide GPS op; expliciet ingevulde GPS blijft behouden. Late geocode-antwoorden na omschakelen naar sublocatie worden genegeerd.
