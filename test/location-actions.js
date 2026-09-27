@@ -140,12 +140,13 @@
       const arrival=edge.inside===false&&inside===true;
       const timeStarted=edge.time===false&&time;
       const snooze=snoozes[r.id],expired=edge.until&&now>=edge.until;
-      if(!fresh&&r.enabled&&inside===true&&time&&(arrival||timeStarted||expired)){
+      const blocked=snooze&&(snooze.mode==='location'||now<snooze.until);
+      if(!fresh&&!blocked&&r.enabled&&inside===true&&time&&(arrival||timeStarted||expired)){
         edge.ready=true;
         const v=state[r.locationId];if(v)v.done=(v.done||[]).filter(id=>id!==r.id);
         failed.delete(r.id);
       }
-      if(inside===false||!time||!r.enabled||(r.type==='ride'&&s.km.activeTrip))edge.ready=false;
+      if(blocked||inside===false||!time||!r.enabled||(r.type==='ride'&&s.km.activeTrip))edge.ready=false;
       Object.assign(edge,{inside,time,until:snooze?.until>now?snooze.until:null});edges[r.id]=edge;
     }
     for(const id of Object.keys(edges))if(!s.rules.some(r=>r.id===id))delete edges[id];
@@ -226,6 +227,14 @@
   function decorateCard(){
     // Alleen een actie die de kaart zelf opent mag zijn eigen herhaalstatus wijzigen.
   }
+  function recordFailure(rule,error){
+    const state=visits(),snoozes=read(SNOOZES),edges=read(EDGES);
+    for(const visit of Object.values(state))if(visit.done)visit.done=visit.done.filter(id=>id!==rule.id);
+    delete snoozes[rule.id];
+    if(edges[rule.id]){edges[rule.id].ready=false;edges[rule.id].until=null;}
+    saveState(VISITS,state);saveState(SNOOZES,snoozes);saveState(EDGES,edges);
+    status=error.message||'Actie kon niet worden voorbereid.';failed.add(rule.id);refresh();
+  }
   async function propose(id){
     if(busy)return;const rule=eligible().find(r=>r.id===id);if(!rule)return;
     busy=true;
@@ -234,13 +243,14 @@
         if(read(KM).activeTrip)throw Error('Rond eerst de actieve rit af.');
         await window.LogRideStarter.prepare(rule.selection==='smart'?null:rule.targetId);done(rule);return;
       }
-      if(rule.type==='card'){window.LogCardsModule.show(rule.targetId);done(rule);return;}
+      if(rule.type==='card'){if(window.LogCardsModule.show(rule.targetId)===false)throw Error('Kaart kon niet worden geopend.');done(rule);return;}
       window.LogTimeModule.reloadFromStorage?.({view:'home'});
       const suggested=rule.selection==='smart'?window.LogTimeModule.suggestForAction():{themeId:rule.targetId,subthemeId:rule.subthemeId};
       if(!suggested)throw Error('Er is nog geen thema beschikbaar voor een slim voorstel.');
       const chosen={...rule,targetId:suggested.themeId,subthemeId:suggested.subthemeId,selection:'fixed'};
       const timer=window.LogTimeModule.getState().timer,expectedTimer=JSON.stringify(timer),original=JSON.stringify(rule);
       const active=timer.status==='active'&&!timer.interruption,inactive=timer.status==='inactive';
+      if(!inactive&&!active)throw Error('Rond eerst de openstaande taak of tussenstop af.');
       const buttons=inactive?'<button type="button" class="btn primary full" data-la-start="start">Start taak</button>':active?'<button type="button" class="btn primary full" data-la-start="interrupt">Start als tussenstop</button><button type="button" class="btn secondary full" data-la-start="replace">Huidige afronden en nieuwe starten</button>':'<p class="cards-notice">Rond eerst de openstaande taak of tussenstop af. Er wordt niets gewijzigd.</p>';
       const d=window.LogCardsUI.sheet(rule.name,`<p>Taak: <strong>${esc(targetName(chosen))}</strong></p><p class="cards-notice">${esc(label(rule.locationId))}</p>${active?`<p>Er loopt: <strong>${esc(timer.themeName)}</strong></p><p class="cards-notice">Een tussenstop gebruikt je ingestelde aftrek en afronding. Daarna ga je verder met de huidige taak. Bij afronden wordt de huidige taak met de ingestelde afronding opgeslagen, zonder inzet van anderen.</p>`:''}<div class="la-task-actions">${buttons}</div>`);
       done(rule);
@@ -249,9 +259,9 @@
         try{const current=eligible(Date.now(),true).find(r=>r.id===id);if(!current||JSON.stringify(current)!==original)throw Error('Dit voorstel is niet meer actueel. Sluit het en controleer de actie opnieuw.');
           window.LogTimeModule.startFromLocationAction({themeId:chosen.targetId,subthemeId:chosen.subthemeId,locationName:label(rule.locationId),mode:button.dataset.laStart,expectedTimer});
           window.LogCardsUI.close();window.dispatchEvent(new CustomEvent('kmreg-test-shell-select-section',{detail:{section:'time'}}));
-        }catch(error){d.querySelector('[data-card-message]').textContent=error.message;}finally{busy=false;button.disabled=false;}
+        }catch(error){recordFailure(rule,error);d.querySelector('[data-card-message]').textContent=error.message;}finally{busy=false;button.disabled=false;}
       });
-    }catch(error){status=error.message;failed.add(rule.id);refresh();window.LogCardsUI.sheet(rule.name,`<p>${esc(error.message||'Actie kon niet worden voorbereid.')}</p>`);}
+    }catch(error){recordFailure(rule,error);window.LogCardsUI.sheet(rule.name,`<p>${esc(error.message||'Actie kon niet worden voorbereid.')}</p>`);}
     finally{busy=false;}
   }
   function smartRideState(s=snapshot()){
@@ -263,7 +273,7 @@
     if(!point||Date.now()-point.time>120000||departure.token!==smart.token||!departure.ready)return;
     if(busy||!smart.available||!smart.enabled||!smart.last?.destination||s.km.activeTrip||localStorage.getItem('kmreg-test-shell-section-v1')!=='rides'||!window.LogRideStarter||localStorage.getItem('log-test-smart-ride-handled-v1')===smart.token)return;
     busy=true;
-    try{localStorage.setItem('log-test-smart-ride-handled-v1',smart.token);await window.LogRideStarter.prepare();const panel=document.getElementById('startInlinePanel');if(panel){panel.dataset.laAutoPrepared='true';const touched=()=>{delete panel.dataset.laAutoPrepared;};panel.addEventListener('input',touched,{once:true});panel.addEventListener('change',touched,{once:true});panel.addEventListener('pointerdown',touched,{once:true});}}
+    try{await window.LogRideStarter.prepare();localStorage.setItem('log-test-smart-ride-handled-v1',smart.token);const panel=document.getElementById('startInlinePanel');if(panel){panel.dataset.laAutoPrepared='true';const touched=()=>{delete panel.dataset.laAutoPrepared;};panel.addEventListener('input',touched,{once:true});panel.addEventListener('change',touched,{once:true});panel.addEventListener('pointerdown',touched,{once:true});}}
     catch(error){status=error.message;refresh();}
     finally{busy=false;}
   }
@@ -280,6 +290,7 @@
     if(!rule.enabled)return 'Uitgeschakeld';
     if(rule.type==='ride'&&!rideModuleEnabled())return 'Ritten staat uit';
     const error=problem(rule);if(error)return error;
+    if(failed.has(rule.id))return 'Kon niet worden geopend · controleer de instelling of reset';
     if(!inTime(rule))return 'Buiten de ingestelde dagen of tijden';
     if(!point||Date.now()-point.time>120000)return permissionState==='denied'?'Locatietoestemming nodig':'Wacht op een actuele GPS-locatie';
     const delta=distance(point,coordinates(rule.locationId));
@@ -303,6 +314,7 @@
   }
   function availability(rule,now=Date.now()){
     if(!rule.enabled)return 'Uitgeschakeld';
+    if(failed.has(rule.id))return 'Kon niet worden geopend · controleer de instelling of reset';
     if(rule.type==='ride'&&!rideModuleEnabled())return 'Ritten staat uit';
     const error=problem(rule);if(error)return error;
     const snooze=read(SNOOZES)[rule.id];

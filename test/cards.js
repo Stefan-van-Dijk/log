@@ -198,7 +198,7 @@
     }catch(error){message(error.message || 'Opslaan is niet gelukt. Je invoer blijft staan.')}};
   }
   function show(id, recognized = false) {
-    const card=records().find(item=>item.id===id);if(!card)return;
+    const card=records().find(item=>item.id===id);if(!card)return false;
     const panel=sheet(card.name,`${recognized?'<p class="cards-recognized" role="status">✓ Code herkend · bestaande kaart</p>':''}<p class="cards-location-label">${esc(locationLabel(card.locationId))}</p><div class="code-surface" data-code-display></div><details class="cards-content-details"><summary>Inhoud bekijken</summary><pre class="cards-value">${esc(card.value)}</pre><button type="button" class="btn secondary full" data-card-copy>Inhoud kopiëren</button></details>${recognized&&actionLabel(card)?`<button type="button" class="btn full cards-scan-action" data-run-card-action>${esc(actionLabel(card))}</button>${card.scanAction.type==='task'?'<p class="cards-notice">De taak start pas als je op deze knop tikt.</p>':''}`:''}`);
     $('[data-run-card-action]',panel)?.addEventListener('click',()=>runAction(id));
     panel.style.setProperty('--card-color',color(card.color));

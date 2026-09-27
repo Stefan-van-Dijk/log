@@ -153,7 +153,7 @@
       if(address.dataset.kmSubLocation!=='1')address.dataset.kmOwnAddress=address.value||'';
       address.dataset.kmSubLocation='1';
       address.disabled=true;
-      const inheritedAddress=parent?.address||parent?.name||'sublocatie';
+      const inheritedAddress='';
       if(address.value!==inheritedAddress)address.value=inheritedAddress;
       if(group&&group.hidden!==true)group.hidden=true;
       setHtml(hint,`<strong>Sublocatie van ${html(parent?.name||'hoofdlocatie')}</strong><br>Geen eigen adres nodig. Log gebruikt eigen GPS als die is ingevuld; anders de GPS van de hoofdlocatie.`);
@@ -195,7 +195,7 @@
     if(ruleLocation===filterLocation)return true;
     const ruleLoc=locations.find(item=>item.id===ruleLocation);
     const filterLoc=locations.find(item=>item.id===filterLocation);
-    return ruleLoc?.parentId===filterLocation||filterLoc?.parentId===ruleLocation||(ruleLoc?.parentId&&ruleLoc.parentId===filterLoc?.parentId);
+    return ruleLoc?.parentId===filterLocation||filterLoc?.parentId===ruleLocation;
   }
 
   function syncActionLocationFilter(){
