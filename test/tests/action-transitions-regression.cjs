@@ -20,7 +20,7 @@ const tick=()=>new Promise(r=>setTimeout(r,5));
 (async()=>{
  api.mount(d.querySelector('#root'));gps();put([rule()]);api.drain();assert.equal(cards,0,'creating in matching situation waits');gps();api.drain();assert.equal(cards,0,'repeat GPS is not a change');
  arrive();api.drain();assert.equal(cards,1,'next observed arrival opens card');api.drain();assert.equal(cards,1,'shown only once');
- api.reset('r');assert.equal(api.eligible().length,0);api.drain();assert.equal(cards,1,'reset does not execute');assert.match(d.querySelector('[data-la-reason]').textContent,/volgende verandering/);
+ api.reset('r');assert.equal(api.eligible().length,0);api.drain();assert.equal(cards,1,'reset does not execute');assert.match(d.querySelector('#laResetNotice').textContent,/volgende verandering/);
  arrive();api.drain();assert.equal(cards,2,'reset rearms next arrival');
  api.snoozeCard('c','halfHour',now);api.reset('r');assert.equal(get('log-test-action-snoozes-v1').r,undefined);assert.equal(get('log-test-location-action-visits-v1').l.done.includes('r'),false);now+=1800001;gps();api.drain();assert.equal(cards,2,'reset clears timeout without later phantom event');
  api.edit('r');let f=d.querySelector('form');f.elements.name.value='Changed';f.dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));api.drain();assert.equal(cards,2,'saving edit does not execute');

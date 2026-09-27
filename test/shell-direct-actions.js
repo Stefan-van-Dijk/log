@@ -79,6 +79,7 @@
     if(!surface)return;
     const ctx=contextFor(surface);
     if(!ctx||(!ctx.edit&&!ctx.lifecycle))return;
+    if(ctx.module==='locationactions'&&event.pointerType==='touch')return;
     if(ctx.module==='cards'){
       document.querySelectorAll('.code-card-swipe.actions-open').forEach(row=>window.LogCardsModule?.closeSwipe(row));
     }
@@ -130,6 +131,11 @@
       resetRow(g.ctx);
     }
     if(!action)return;
+    if(action===g.ctx.reset){
+      try{window.LogLocationActions.reset(action.dataset.laReset);}
+      catch(error){window.LogCardsUI.sheet('Actie niet gereset', '<p>Opnieuw klaarzetten is niet gelukt. Probeer het opnieuw.</p>');}
+      return;
+    }
     setTimeout(()=>{
       if(!action.isConnected)return;
       resetRow(g.ctx);
@@ -143,7 +149,29 @@
     gesture=null;
   }
 
+  // iOS touch input uses the same thresholds without relying on a synthetic
+  // click on an inert button or on pointer capture surviving a list refresh.
+  function touchEvent(event,point){return {target:event.target,pointerId:'la-touch',button:0,clientX:point.clientX,clientY:point.clientY,cancelable:event.cancelable,preventDefault:()=>event.preventDefault()};}
+  function touchStart(event){
+    if(!event.target.closest?.('[data-la-row] .code-card-surface'))return;
+    if(event.touches.length!==1){pointerCancel({pointerId:'la-touch'});return;}
+    pointerDown(touchEvent(event,event.touches[0]));
+  }
+  function touchMove(event){
+    if(gesture?.pointerId!=='la-touch')return;
+    if(event.touches.length!==1){pointerCancel({pointerId:'la-touch'});return;}
+    pointerMove(touchEvent(event,event.touches[0]));
+  }
+  function touchEnd(event){
+    if(gesture?.pointerId!=='la-touch')return;
+    if(event.changedTouches[0])pointerMove(touchEvent(event,event.changedTouches[0]));
+    pointerUp({pointerId:'la-touch'});
+  }
   function init(){
+    document.addEventListener('touchstart',touchStart,{capture:true,passive:true});
+    document.addEventListener('touchmove',touchMove,{capture:true,passive:false});
+    document.addEventListener('touchend',touchEnd,{capture:true,passive:false});
+    document.addEventListener('touchcancel',()=>pointerCancel({pointerId:'la-touch'}),true);
     document.addEventListener('pointerdown',pointerDown,true);
     document.addEventListener('pointermove',pointerMove,true);
     document.addEventListener('pointerup',pointerUp,true);
