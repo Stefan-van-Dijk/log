@@ -58,7 +58,8 @@
   function validate(rule){
     if(!rule.name?.trim())throw Error('Vul een naam in.');
     if(rule.selection&&!['fixed','smart'].includes(rule.selection))throw Error('Kies een vast of slim voorstel.');
-    if(rule.type==='card'&&rule.repeatMode&&!['visit','halfHour','location','day'].includes(rule.repeatMode))throw Error('Kies wanneer de kaart opnieuw mag verschijnen.');
+    if(rule.repeatMode&&!['visit','halfHour','duration','location','day'].includes(rule.repeatMode))throw Error('Kies wanneer de actie opnieuw mag gelden.');
+    if(rule.repeatMode==='duration'&&(!Number.isInteger(rule.repeatMinutes)||rule.repeatMinutes<1||rule.repeatMinutes>525600))throw Error('Kies een wachttijd van 1 minuut tot 365 dagen.');
     const error=problem(rule);if(error)throw Error(error);
     if(rule.radius<25||rule.radius>5000||!Number.isFinite(rule.radius))throw Error('Kies een straal van 25 tot 5000 meter.');
     if(Boolean(rule.start)!==Boolean(rule.end))throw Error('Vul zowel begin- als eindtijd in.');
@@ -67,14 +68,18 @@
   function edit(id=''){
     const s=snapshot(),old=s.rules.find(r=>r.id===id);if(id&&!old)return;
     const r=old||{enabled:true,radius:Math.max(25,Number(s.km.settings?.recognitionRadius)||500),days:[],type:'card'};
+    const repeatMinutes=r.repeatMode==='halfHour'?30:Number(r.repeatMinutes)||30;
+    const repeatUnit=repeatMinutes%1440===0?'days':repeatMinutes%60===0?'hours':'minutes';
+    const repeatValue=repeatMinutes/({minutes:1,hours:60,days:1440}[repeatUnit]);
     const options=(list,current)=>'<option value="">Kies een item</option>'+list.map(l=>`<option value="${esc(l.id)}"${l.id===current?' selected':''}>${esc(l.name)}</option>`).join('');
-    const d=window.LogCardsUI.sheet(id?'Actie bewerken':'Nieuwe actie',`<form class="people-form la-form"><label>Naam<input name="name" maxlength="120" required value="${esc(r.name||'')}"></label><label>Locatie<select name="locationId" required>${options(s.locations.map(l=>({...l,name:label(l.id,s)})),r.locationId)}</select></label><label>Herkennen binnen (meter)<input type="number" min="25" max="5000" name="radius" required value="${r.radius}"></label><p class="cards-notice">Wacht na bewaren op een volgende aankomst of het ingaan van het tijdvak terwijl Log geopend is. Een sublocatie zonder eigen GPS gebruikt de coördinaten van de hoofdlocatie.</p><label>Voorstel<select name="type">${Object.entries(types).map(([k,v])=>`<option value="${k}"${r.type===k?' selected':''}>${v}</option>`).join('')}</select></label><label data-selection>Voorstel bepalen<select name="selection"><option value="fixed">Vast item</option><option value="smart"${r.selection==='smart'?' selected':''}>Slim · bestaand algoritme</option></select></label><label data-target><span data-target-label>Gekoppeld item</span><select name="targetId" required></select></label><label data-repeat>Opnieuw tonen<select name="repeatMode">${Object.entries({visit:'Bij een volgend bezoek',halfHour:'Na 30 minuten',location:'Na locatiewisseling',day:'De volgende dag'}).map(([k,v])=>`<option value="${k}"${(r.repeatMode||'visit')===k?' selected':''}>${v}</option>`).join('')}</select></label><label data-subfield>Subthema<select name="subthemeId"></select></label><label>Dagen<select name="dayMode"><option value="all">Elke dag</option><option value="selected"${r.days?.length?' selected':''}>Bepaalde dagen</option></select></label><fieldset class="la-days" data-day-fields><legend>Kies de dagen</legend>${days.map((day,i)=>`<label><input type="checkbox" name="day" value="${i}"${r.days.includes(i)?' checked':''}>${day}</label>`).join('')}</fieldset><label>Tijd<select name="timeMode"><option value="all">Hele dag</option><option value="window"${r.start?' selected':''}>Binnen een tijdvak</option></select></label><div class="la-times" data-time-fields><label>Vanaf<input type="time" name="start" value="${esc(r.start||'')}"></label><label>Tot<input type="time" name="end" value="${esc(r.end||'')}"></label></div><p class="cards-notice" data-time-help>Een tijdvak over middernacht hoort bij de dag waarop het begint.</p><p class="cards-notice" data-la-editor-status></p><label class="contact-use"><input type="checkbox" name="enabled"${r.enabled?' checked':''}>Actief</label><button type="submit" class="btn primary full">Bewaren</button></form>`);
+    const d=window.LogCardsUI.sheet(id?'Actie bewerken':'Nieuwe actie',`<form class="people-form la-form"><label>Naam<input name="name" maxlength="120" required value="${esc(r.name||'')}"></label><label>Locatie<select name="locationId" required>${options(s.locations.map(l=>({...l,name:label(l.id,s)})),r.locationId)}</select></label><label>Herkennen binnen (meter)<input type="number" min="25" max="5000" name="radius" required value="${r.radius}"></label><p class="cards-notice">Wacht na bewaren op een volgende aankomst of het ingaan van het tijdvak terwijl Log geopend is. Een sublocatie zonder eigen GPS gebruikt de coördinaten van de hoofdlocatie.</p><label>Voorstel<select name="type">${Object.entries(types).map(([k,v])=>`<option value="${k}"${r.type===k?' selected':''}>${v}</option>`).join('')}</select></label><label data-selection>Voorstel bepalen<select name="selection"><option value="fixed">Vast item</option><option value="smart"${r.selection==='smart'?' selected':''}>Slim · bestaand algoritme</option></select></label><label data-target><span data-target-label>Gekoppeld item</span><select name="targetId" required></select></label><label data-repeat>Opnieuw toestaan<select name="repeatMode">${Object.entries({visit:'Bij een volgend bezoek',duration:'Na een zelfgekozen wachttijd',location:'Na locatiewisseling',day:'De volgende dag'}).map(([k,v])=>`<option value="${k}"${(r.repeatMode==='halfHour'?'duration':r.repeatMode||'visit')===k?' selected':''}>${v}</option>`).join('')}</select></label><div class="la-times" data-repeat-duration><label>Wachttijd<input name="repeatValue" type="number" min="1" max="525600" step="1" value="${repeatValue}"></label><label>Eenheid<select name="repeatUnit">${Object.entries({minutes:'Minuten',hours:'Uren',days:'Dagen (24 uur)'}).map(([k,v])=>`<option value="${k}"${repeatUnit===k?' selected':''}>${v}</option>`).join('')}</select></label></div><p class="cards-notice" data-repeat-help>De wachttijd begint na tonen of voorbereiden. Locatie, dagen en tijdvak blijven gelden.</p><label data-subfield>Subthema<select name="subthemeId"></select></label><label>Dagen<select name="dayMode"><option value="all">Elke dag</option><option value="selected"${r.days?.length?' selected':''}>Bepaalde dagen</option></select></label><fieldset class="la-days" data-day-fields><legend>Kies de dagen</legend>${days.map((day,i)=>`<label><input type="checkbox" name="day" value="${i}"${r.days.includes(i)?' checked':''}>${day}</label>`).join('')}</fieldset><label>Tijd<select name="timeMode"><option value="all">Hele dag</option><option value="window"${r.start?' selected':''}>Binnen een tijdvak</option></select></label><div class="la-times" data-time-fields><label>Vanaf<input type="time" name="start" value="${esc(r.start||'')}"></label><label>Tot<input type="time" name="end" value="${esc(r.end||'')}"></label></div><p class="cards-notice" data-time-help>Een tijdvak over middernacht hoort bij de dag waarop het begint.</p><p class="cards-notice" data-la-editor-status></p><label class="contact-use"><input type="checkbox" name="enabled"${r.enabled?' checked':''}>Actief</label><button type="submit" class="btn primary full">Bewaren</button></form>`);
     const f=d.querySelector('form');function sub(){f.elements.subthemeId.innerHTML='<option value="">Geen subthema</option>'+s.subs.filter(x=>x.themeId===f.elements.targetId.value).map(x=>`<option value="${esc(x.id)}"${x.id===r.subthemeId?' selected':''}>${esc(x.name)}</option>`).join('');}
     function targets(){f.elements.targetId.innerHTML=options(f.elements.type.value==='ride'?s.locations.map(l=>({...l,name:label(l.id,s)})):f.elements.type.value==='task'?s.themes:s.cards,r.targetId);d.querySelector('[data-subfield]').hidden=f.elements.type.value!=='task';sub();}
     function field(selector,show){const el=d.querySelector(selector);el.hidden=!show;el.querySelectorAll('input,select').forEach(input=>input.disabled=!show);}
     function fields(){
       const type=f.elements.type.value,card=type==='card',smart=!card&&f.elements.selection.value==='smart';
-      field('[data-selection]',!card);field('[data-repeat]',card);field('[data-target]',!smart);
+      field('[data-selection]',!card);field('[data-target]',!smart);
+      const duration=f.elements.repeatMode.value==='duration';field('[data-repeat-duration]',duration);f.elements.repeatValue.required=duration;f.elements.repeatValue.max=String(525600/({minutes:1,hours:60,days:1440}[f.elements.repeatUnit.value]));d.querySelector('[data-repeat-help]').hidden=!duration;
       f.elements.targetId.required=!smart;
       field('[data-subfield]',type==='task'&&!smart&&s.subs.some(x=>x.themeId===f.elements.targetId.value));
       d.querySelector('[data-target-label]').textContent=card?'Kaart':type==='ride'?'Bestemming':'Thema';
@@ -82,10 +87,10 @@
       const timed=f.elements.timeMode.value==='window';field('[data-time-fields]',timed);d.querySelector('[data-time-help]').hidden=!timed;
       f.elements.start.required=timed;f.elements.end.required=timed;
     }
-    f.elements.type.onchange=()=>{targets();fields();};f.elements.selection.onchange=fields;
+    f.elements.repeatUnit.onchange=fields;f.elements.repeatMode.onchange=fields;f.elements.type.onchange=()=>{targets();fields();};f.elements.selection.onchange=fields;
     f.elements.targetId.onchange=()=>{sub();fields();};f.elements.dayMode.onchange=fields;f.elements.timeMode.onchange=fields;targets();fields();
-    const info=d.querySelector('[data-la-editor-status]');info.textContent=old?ruleStatus(old):'Na bewaren wacht de actie op een volgende verandering.';
-    f.onsubmit=e=>{e.preventDefault();try{const fd=new FormData(f),rule={id:old?.id||crypto.randomUUID(),name:String(fd.get('name')).trim(),locationId:fd.get('locationId'),type:fd.get('type'),selection:fd.get('type')==='card'?'fixed':fd.get('selection'),repeatMode:fd.get('repeatMode'),targetId:fd.get('targetId')||'',subthemeId:fd.get('subthemeId')||'',radius:Number(fd.get('radius')),start:fd.get('start')||'',end:fd.get('end')||'',days:fd.getAll('day').map(Number),enabled:fd.has('enabled')};if(fd.get('dayMode')==='selected'&&!rule.days.length)throw Error('Kies minimaal één dag.');validate(rule);write(raw=>{const rules=raw.locationActions||[];if(id&&!rules.some(x=>x.id===id))throw Error('Deze actie is intussen verwijderd.');raw.locationActions=id?rules.map(x=>x.id===id?rule:x):[...rules,rule];});if(old?.repeatMode!==rule.repeatMode){const snoozes=read(SNOOZES);delete snoozes[rule.id];localStorage.setItem(SNOOZES,JSON.stringify(snoozes));const state=visits();for(const v of Object.values(state))if(v.done)v.done=v.done.filter(x=>x!==rule.id);localStorage.setItem(VISITS,JSON.stringify(state));refresh();}observeTransitions(Date.now(),rule.id);refresh();window.LogCardsUI.close();}catch(error){d.querySelector('[data-card-message]').textContent=error.message;}};
+    const info=d.querySelector('[data-la-editor-status]');if(old)info.dataset.ruleId=old.id;info.textContent=old?availability(old):'Na bewaren wacht de actie op een volgende verandering.';
+    f.onsubmit=e=>{e.preventDefault();try{const fd=new FormData(f),rule={id:old?.id||crypto.randomUUID(),name:String(fd.get('name')).trim(),locationId:fd.get('locationId'),type:fd.get('type'),selection:fd.get('type')==='card'?'fixed':fd.get('selection'),repeatMode:fd.get('repeatMode'),...(fd.get('repeatMode')==='duration'?{repeatMinutes:Number(fd.get('repeatValue'))*({minutes:1,hours:60,days:1440}[fd.get('repeatUnit')])}:{}),targetId:fd.get('targetId')||'',subthemeId:fd.get('subthemeId')||'',radius:Number(fd.get('radius')),start:fd.get('start')||'',end:fd.get('end')||'',days:fd.getAll('day').map(Number),enabled:fd.has('enabled')};if(fd.get('dayMode')==='selected'&&!rule.days.length)throw Error('Kies minimaal één dag.');validate(rule);write(raw=>{const rules=raw.locationActions||[];if(id&&!rules.some(x=>x.id===id))throw Error('Deze actie is intussen verwijderd.');raw.locationActions=id?rules.map(x=>x.id===id?rule:x):[...rules,rule];});if(old?.repeatMode!==rule.repeatMode||old?.repeatMinutes!==rule.repeatMinutes){const snoozes=read(SNOOZES);delete snoozes[rule.id];localStorage.setItem(SNOOZES,JSON.stringify(snoozes));const state=visits();for(const v of Object.values(state))if(v.done)v.done=v.done.filter(x=>x!==rule.id);localStorage.setItem(VISITS,JSON.stringify(state));refresh();}observeTransitions(Date.now(),rule.id);refresh();window.LogCardsUI.close();}catch(error){d.querySelector('[data-card-message]').textContent=error.message;}};
   }
   function visits(){return Object.assign(Object.create(null),read(VISITS));}
   function assess(position,now=Date.now()){
@@ -183,7 +188,7 @@
       return (includeHandled||edges[r.id]?.ready)&&r.enabled&&(r.type!=='ride'||rideModuleEnabled())&&!problem(r,s)&&inTime(r,new Date(now))&&v?.inside&&(includeHandled||(!suppressed&&!v.done?.includes(r.id)))&&pos&&distance(point,pos)+point.accuracy<=r.radius;
     });
   }
-  function done(rule){const edges=read(EDGES);if(edges[rule.id]){edges[rule.id].ready=false;saveState(EDGES,edges);}const state=visits(),v=state[rule.locationId];if(v){v.done=[...new Set([...(v.done||[]),rule.id])];localStorage.setItem(VISITS,JSON.stringify(state));}refresh();}
+  function done(rule){if(rule.repeatMode&&rule.repeatMode!=='visit'){suppressRules([rule],rule.repeatMode);return;}const edges=read(EDGES);if(edges[rule.id]){edges[rule.id].ready=false;saveState(EDGES,edges);}const state=visits(),v=state[rule.locationId];if(v){v.done=[...new Set([...(v.done||[]),rule.id])];localStorage.setItem(VISITS,JSON.stringify(state));}refresh();}
   function stop(){generation++;if(watch!==null)navigator.geolocation?.clearWatch(watch);watch=null;clearInterval(timer);timer=null;point=null;renderSuggestions();}
   function start(){
     stop();failed.clear();if(document.hidden)return;
@@ -201,13 +206,19 @@
     if(host._markup!==markup){host.innerHTML=markup;host._markup=markup;}host.hidden=!rules.length;
     host.onclick=e=>{const id=e.target.closest('[data-la-propose]')?.dataset.laPropose,skip=e.target.closest('[data-la-dismiss]')?.dataset.laDismiss;if(skip){const r=eligible().find(r=>r.id===skip);if(r)done(r);}if(id)propose(id);};
   }
-  function snoozeCard(id,mode,now=Date.now(),ruleIds=null) {
-    if(!['halfHour','location','day'].includes(mode))throw Error('Onbekende keuze.');
-    const s=snapshot(),rules=s.rules.filter(r=>r.type==='card'&&r.targetId===id&&(!ruleIds||ruleIds.includes(r.id))),snoozes=read(SNOOZES),state=visits();
-    const end=new Date(now);end.setHours(24,0,0,0);
-    for(const r of rules){snoozes[r.id]={mode,until:mode==='halfHour'?now+1800000:mode==='day'?end.getTime():null,locationId:r.locationId};const v=state[r.locationId];if(v)v.done=(v.done||[]).filter(x=>x!==r.id);}
-    // Save suppression first, so a storage failure cannot accidentally rearm the action.
+  function suppressRules(rules,mode,now=Date.now()){
+    if(!['halfHour','duration','location','day'].includes(mode))throw Error('Onbekende keuze.');
+    const snoozes=read(SNOOZES),state=visits(),end=new Date(now);end.setHours(24,0,0,0);
+    for(const r of rules){
+      if(mode==='duration'&&(!Number.isInteger(r.repeatMinutes)||r.repeatMinutes<1||r.repeatMinutes>525600))throw Error('Ongeldige wachttijd. Bewerk de actie.');
+      const until=mode==='halfHour'?now+1800000:mode==='duration'?now+r.repeatMinutes*60000:mode==='day'?end.getTime():null;
+      snoozes[r.id]={mode,until,locationId:r.locationId};const v=state[r.locationId];if(v)v.done=(v.done||[]).filter(x=>x!==r.id);
+    }
     localStorage.setItem(SNOOZES,JSON.stringify(snoozes));localStorage.setItem(VISITS,JSON.stringify(state));refresh();
+  }
+  function snoozeCard(id,mode,now=Date.now(),ruleIds=null) {
+    const rules=snapshot().rules.filter(r=>r.type==='card'&&r.targetId===id&&(!ruleIds||ruleIds.includes(r.id)));
+    suppressRules(rules,mode,now);
   }
   function decorateCard(panel,id){
     // Showing or recognizing a card applies each action's configured repeat policy silently.
@@ -283,7 +294,36 @@
     if(failed.has(rule.id))return 'Kon niet worden geopend · controleer de instelling';
     return uiBlocked(rule.type==='card')?'Wacht tot het geopende scherm gesloten is':'Klaar om te tonen';
   }
-  function updateRuleStatus(){if(!root)return;const rules=snapshot().rules;root.querySelectorAll('[data-la-reason]').forEach(el=>{const rule=rules.find(r=>r.id===el.dataset.laReason);if(rule){const text=ruleStatus(rule);if(el.textContent!==text)el.textContent=text;}});}
+  function nextWindow(rule,after=Date.now()){
+    if(inTime(rule,new Date(after)))return after;
+    const start=rule.start?rule.start.split(':').map(Number):[0,0];
+    for(let offset=0;offset<=7;offset++){
+      const day=new Date(after);day.setDate(day.getDate()+offset);day.setHours(start[0],start[1],0,0);
+      if(day.getTime()>after&&inTime(rule,day))return day.getTime();
+    }
+    return null;
+  }
+  function availability(rule,now=Date.now()){
+    if(!rule.enabled)return 'Uitgeschakeld';
+    if(rule.type==='ride'&&!rideModuleEnabled())return 'Ritten staat uit';
+    const error=problem(rule);if(error)return error;
+    const snooze=read(SNOOZES)[rule.id];
+    if(snooze?.mode==='location')return 'Weer na een herkende locatiewisseling en terugkeer';
+    const next=nextWindow(rule,Math.max(now,snooze?.until||0));
+    if(next&&next>now){
+      const at=new Date(next),today=new Date(now),sameDay=at.toDateString()===today.toDateString();
+      const when=(sameDay?'vandaag ':at.toLocaleDateString('nl-NL',{weekday:'short',day:'numeric',month:'short'})+' ')+at.toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'});
+      return `Weer vanaf ${when} · op de ingestelde locatie`;
+    }
+    if(visits()[rule.locationId]?.done?.includes(rule.id))return rule.start||rule.days?.length?'Weer bij een volgend bezoek of tijdvak':'Weer bij een volgend bezoek';
+    if(!read(EDGES)[rule.id]?.ready)return rule.start?'Wacht op aankomst of het volgende tijdvak':'Wacht op een volgende aankomst';
+    return ruleStatus(rule);
+  }
+  function updateRuleStatus(){
+    const rules=snapshot().rules;
+    root?.querySelectorAll('[data-la-next]').forEach(el=>{const rule=rules.find(r=>r.id===el.dataset.laNext);if(rule){const text=availability(rule);if(el.textContent!==text)el.textContent=text;}});
+    document.querySelectorAll('[data-la-editor-status][data-rule-id]').forEach(el=>{const rule=rules.find(r=>r.id===el.dataset.ruleId);if(rule){const text=availability(rule);if(el.textContent!==text)el.textContent=text;}});
+  }
   function drain(){
     observeTransitions();updateRuleStatus();
     const rules=eligible().filter(r=>!failed.has(r.id)&&!(r.type==='ride'&&read(KM).activeTrip));
@@ -307,9 +347,9 @@
   function render(){
     if(!root)return;const s=snapshot(),allowed=window.LogSwipePolicy?.enabled('locationactions')!==false;
     const rules=s.rules.filter(r=>(r.name+' '+label(r.locationId,s)+' '+targetName(r,s)).toLocaleLowerCase('nl').includes(query));
-    root.innerHTML=`<section class="cards-module"><button type="button" class="btn primary full contact-update" data-la-new>＋ Actie toevoegen</button>${rules.map(r=>`<div class="code-card-swipe" data-la-row data-la-type="${esc(r.type)}" style="--card-color:${(typeUI[r.type]||typeUI.card).color};--card-action-count:${allowed?2:1}"><div class="la-reset-actions" inert aria-hidden="true"><button type="button" class="swipe-reopen" data-la-reset="${esc(r.id)}" aria-label="Actie opnieuw klaarzetten">Reset</button></div><div class="code-card-actions" inert aria-hidden="true">${allowed?`<button type="button" class="swipe-delete" data-la-delete="${esc(r.id)}">Verwijder</button>`:''}<button type="button" class="swipe-edit" data-la-edit="${esc(r.id)}">Bewerk</button></div><div class="code-card-surface"><button type="button" class="code-card" data-la-open="${esc(r.id)}" aria-label="${esc(r.name)}${r.enabled?'':' · uitgeschakeld'}"><span class="code-card-icon" role="img" aria-label="${(typeUI[r.type]||typeUI.card).label}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${(typeUI[r.type]||typeUI.card).path}"/></svg></span><span class="code-card-copy"><strong>${esc(r.name)}</strong><small>${esc(description(r,s))}</small></span></button></div></div>`).join('')||'<p class="cards-empty">Nog geen acties voor deze selectie. Voeg een actie toe en kies Kaart tonen om een kaart op locatie te openen.</p>'}</section>`;
+    root.innerHTML=`<section class="cards-module"><button type="button" class="btn primary full contact-update" data-la-new>＋ Actie toevoegen</button>${rules.map(r=>`<div class="code-card-swipe" data-la-row data-la-type="${esc(r.type)}" style="--card-color:${(typeUI[r.type]||typeUI.card).color};--card-action-count:${allowed?2:1}"><div class="la-reset-actions" inert aria-hidden="true"><button type="button" class="swipe-reopen" data-la-reset="${esc(r.id)}" aria-label="Actie opnieuw klaarzetten">Reset</button></div><div class="code-card-actions" inert aria-hidden="true">${allowed?`<button type="button" class="swipe-delete" data-la-delete="${esc(r.id)}">Verwijder</button>`:''}<button type="button" class="swipe-edit" data-la-edit="${esc(r.id)}">Bewerk</button></div><div class="code-card-surface"><button type="button" class="code-card" data-la-open="${esc(r.id)}" aria-label="${esc(r.name)}${r.enabled?'':' · uitgeschakeld'}"><span class="code-card-icon" role="img" aria-label="${(typeUI[r.type]||typeUI.card).label}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${(typeUI[r.type]||typeUI.card).path}"/></svg></span><span class="code-card-copy"><strong>${esc(r.name)}</strong><small>${esc(description(r,s))}</small><small class="la-next" data-la-next="${esc(r.id)}">${esc(availability(r))}</small></span></button></div></div>`).join('')||'<p class="cards-empty">Nog geen acties voor deze selectie. Voeg een actie toe en kies Kaart tonen om een kaart op locatie te openen.</p>'}</section>`;
   }
-  function refresh(){observeTransitions();updateSettings();renderSuggestions();if(!root)return;const next=JSON.stringify([snapshot(),query,window.LogSwipePolicy?.enabled('locationactions')]);if(next!==signature){signature=next;render();}}
+  function refresh(){observeTransitions();updateRuleStatus();updateSettings();renderSuggestions();if(!root)return;const next=JSON.stringify([snapshot(),query,window.LogSwipePolicy?.enabled('locationactions')]);if(next!==signature){signature=next;render();}}
   function mount(target){
     if(root===target&&root.querySelector('[data-la-new]'))return;root=target;signature='';
     root.onclick=e=>{const b=e.target.closest('button');if(!b)return;if(b.hasAttribute('data-la-open')&&Date.now()<Math.max(suppressOpenUntil,Number(b.closest('[data-la-row]')?.dataset.suppressUntil||0)))return;
@@ -318,7 +358,7 @@
       }catch(error){window.LogCardsUI.sheet('Actie niet bijgewerkt',`<p>${esc(error.message)}</p>`);}
     };root.onchange=null;refresh();
   }
-  window.LogLocationActions={mount,refresh,edit,reset,settingsHtml,bindSettings,drain,snoozeCard,decorateCard,smartRideState,prepareSmartRide,inTime,coordinates,assess,eligible,propose,snapshot,validate,unmount(){if(root){window.LogCardsUI.close();root.onclick=null;root.onchange=null;root=null;query='';}},search(value){const next=String(value||'').toLocaleLowerCase('nl');if(next!==query){query=next;signature='';refresh();}return root?.querySelectorAll('[data-la-row]').length||0;}};
+  window.LogLocationActions={mount,refresh,edit,reset,settingsHtml,bindSettings,drain,snoozeCard,decorateCard,smartRideState,prepareSmartRide,inTime,nextWindow,availability,coordinates,assess,eligible,propose,snapshot,validate,unmount(){if(root){window.LogCardsUI.close();root.onclick=null;root.onchange=null;root=null;query='';}},search(value){const next=String(value||'').toLocaleLowerCase('nl');if(next!==query){query=next;signature='';refresh();}return root?.querySelectorAll('[data-la-row]').length||0;}};
   document.addEventListener('visibilitychange',()=>{if(document.hidden)stop();else start();});
   window.addEventListener('pagehide',stop);window.addEventListener('pageshow',start);
   for(const event of ['log-time-state-change','log-km-state-change','log-shell-view-refresh'])window.addEventListener(event,refresh);

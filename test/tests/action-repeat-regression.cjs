@@ -1,0 +1,40 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),{JSDOM}=require('jsdom');
+const base=path.resolve(__dirname,'..'),TIME='urenregistratie.test.pwa.v1',KM='kmreg-test-v4-data';
+const dom=new JSDOM('<div class="shell"><main id="app"></main><main id="root"></main></div>',{url:'https://example.test/test/',runScripts:'outside-only',pretendToBeVisual:true}),w=dom.window,d=w.document;
+let now=new Date(2026,8,28,8,0).getTime(),rides=0,cards=0;
+const RealDate=w.Date;w.Date=class extends RealDate{constructor(...args){super(...(args.length?args:[now]));}static now(){return now;}};
+w.setInterval=()=>0;w.confirm=()=>true;w.HTMLDialogElement.prototype.showModal=function(){this.open=true};w.HTMLDialogElement.prototype.close=function(){this.open=false};
+const get=k=>JSON.parse(w.localStorage.getItem(k)||'{}'),set=(k,v)=>w.localStorage.setItem(k,JSON.stringify(v));
+const loc={id:'l',name:'Kantoor',lat:52,lng:6},dest={id:'dest',name:'Thuis',lat:53,lng:7};
+set(KM,{settings:{recognitionRadius:100},locations:[loc,dest],cards:[{id:'c',name:'Pas',value:'abc',format:'QR_CODE'}],trips:[]});set(TIME,{locationActions:[],themes:[{id:'t',name:'Werk'}],subthemes:[],entries:[{id:'keep'}],timer:{status:'inactive'}});
+w.LogModuleVisibility={enabled:()=>true};w.LogTimeModule={reloadFromStorage(){},getView:()=> 'home',getState:()=>get(TIME)};w.LogRideStarter={async prepare(){rides++;}};
+w.navigator.geolocation={watchPosition(){return 1},clearWatch(){},getCurrentPosition(){}};
+for(const file of ['cards.js','swipe-policy.js','location-actions.js','shell-direct-actions.js'])w.eval(fs.readFileSync(path.join(base,file),'utf8'));
+d.dispatchEvent(new w.Event('DOMContentLoaded'));const api=w.LogLocationActions;
+w.LogCardsModule.show=()=>{cards++;api.decorateCard(null,'c')};
+const rule=(id='r')=>({id,name:id,enabled:true,locationId:'l',type:'card',targetId:'c',radius:100,days:[],start:'',end:''});
+const put=rules=>{const raw=get(TIME);raw.locationActions=rules;set(TIME,raw);w.dispatchEvent(new w.Event('log-time-state-change'));};
+const gps=(lat=52,lng=6,accuracy=5)=>api.assess({coords:{latitude:lat,longitude:lng,accuracy},timestamp:now},now);
+const arrive=()=>{gps(53,7);now+=21000;gps(53,7);now+=1000;gps();};
+const tick=()=>new Promise(r=>setTimeout(r,5));
+(async()=>{
+ api.mount(d.querySelector('#root'));gps();put([{...rule(),repeatMode:'duration',repeatMinutes:90}]);
+ api.edit('r');let f=d.querySelector('form');assert.equal(f.elements.repeatMode.value,'duration');assert.equal(f.elements.repeatValue.value,'90');assert.equal(f.elements.repeatUnit.value,'minutes');
+ f.elements.repeatValue.value='2';f.elements.repeatUnit.value='hours';f.dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));let r=get(TIME).locationActions[0];assert.equal(r.repeatMinutes,120);api.drain();assert.equal(cards,0,'saving duration waits for transition');
+ arrive();api.drain();assert.equal(cards,1);const until=now+120*60000;assert.equal(get('log-test-action-snoozes-v1').r.until,until);assert.match(api.availability(r),/Weer vanaf vandaag 10:00/);assert.match(d.querySelector('[data-la-next]').textContent,/10:00/);
+ now=until-1000;gps();api.drain();assert.equal(cards,1);now=until;gps();api.drain();assert.equal(cards,2,'custom interval executes on expiry with matching location');
+ api.reset('r');api.drain();assert.equal(cards,2);assert.equal(get('log-test-action-snoozes-v1').r,undefined);assert.match(api.availability(r),/volgende aankomst/);
+ for(const value of [0,-1,1.5,525601,NaN])assert.throws(()=>api.validate({...r,repeatMinutes:value}),/wachttijd/);
+ // Legacy 30 minute cards open as a 30-minute custom period, without changing persisted rules until save.
+ put([{...rule('legacy'),repeatMode:'halfHour'}]);api.edit('legacy');f=d.querySelector('form');assert.equal(f.elements.repeatMode.value,'duration');assert.equal(f.elements.repeatValue.value,'30');assert.equal(get(TIME).locationActions[0].repeatMode,'halfHour');w.LogCardsUI.close();
+ // All action types use the selected repeat policy, without starting trips or task timers.
+ put([{...rule('ride'),type:'ride',targetId:'dest',repeatMode:'duration',repeatMinutes:15}]);arrive();await api.propose('ride');assert.equal(rides,1);assert.equal(get('log-test-action-snoozes-v1').ride.until,now+900000);assert.equal(get(KM).activeTrip,undefined);
+ put([{...rule('task'),type:'task',targetId:'t',repeatMode:'duration',repeatMinutes:60}]);arrive();await api.propose('task');assert.equal(get('log-test-action-snoozes-v1').task.until,now+3600000);assert.equal(get(TIME).timer.status,'inactive');w.LogCardsUI.close();
+ const monday=new RealDate(2026,8,28,8).getTime(),windowRule={...rule(),days:[1,3],start:'09:00',end:'17:00'};
+ assert.equal(api.nextWindow(windowRule,monday),new RealDate(2026,8,28,9).getTime());assert.equal(api.nextWindow(windowRule,new RealDate(2026,8,28,17).getTime()),new RealDate(2026,8,30,9).getTime());
+ const night={...rule(),days:[1],start:'22:00',end:'02:00'};assert.equal(api.nextWindow(night,new RealDate(2026,8,29,1).getTime()),new RealDate(2026,8,29,1).getTime());assert.equal(api.nextWindow(night,new RealDate(2026,8,29,2).getTime()),new RealDate(2026,9,5,22).getTime());
+ now=monday;put([windowRule]);set('log-test-action-snoozes-v1',{r:{mode:'duration',until:new RealDate(2026,8,28,18).getTime()}});assert.match(api.availability(windowRule),/wo 30 sep.*09:00/,'deadline outside allowed window advances to next allowed day');
+ set('log-test-action-snoozes-v1',{r:{mode:'location',until:null}});assert.match(api.availability(windowRule),/locatiewisseling/);assert.equal(api.availability({...windowRule,enabled:false}),'Uitgeschakeld');
+ const shell=fs.readFileSync(base+'/shell-ui.js','utf8'),actions=fs.readFileSync(base+'/location-actions.js','utf8');const clipboard='M8 5H5v16h14V5h-3M8 3h8v4H8zM8 14l3 3 5-6';assert.ok(shell.includes("time: '<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\""+clipboard));assert.ok(actions.includes(clipboard));
+ assert.deepEqual(get(TIME).entries,[{id:'keep'}]);console.log('Repeat controls passed: duration, exact expiry, reset, legacy cards, rides/tasks, weekday/overnight scheduling, status and shared clipboard icon.');w.close();
+})().catch(e=>{console.error(e);w.close();process.exitCode=1});

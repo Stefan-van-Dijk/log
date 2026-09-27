@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const BUILD = window.LOG_TEST_BUILD || '0.33.9';
+  const BUILD = window.LOG_TEST_BUILD || '0.33.10';
   const SHELL_VERSION = (() => {
     try {
       const script = document.currentScript || [...document.scripts].find(item => item.src.includes('shell-ui.js'));
@@ -334,7 +334,7 @@
       locationactions: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6 7-12a7 7 0 0 0-14 0c0 6 7 12 7 12Z"/><path d="m13 5-4 5h3l-1 4 4-6h-3Z"/></svg>',
       people: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M16 5a3 3 0 0 1 0 6m2 3a5 5 0 0 1 3 5v2"/></svg>',
       rides: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17.5h16M6.5 17.5l1.2-6.2h8.6l1.2 6.2M8.8 11.3l1-3h4.4l1 3"/><circle cx="8" cy="18" r="1.5"/><circle cx="16" cy="18" r="1.5"/></svg>',
-      time: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v5l3.3 2"/></svg>',
+      time: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5H5v16h14V5h-3M8 3h8v4H8zM8 14l3 3 5-6"/></svg>',
       locations: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s6-5.8 6-11a6 6 0 1 0-12 0c0 5.2 6 11 6 11Z"/><circle cx="12" cy="10" r="2.2"/></svg>',
       themes: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="8" r="3"/><circle cx="16" cy="8" r="3"/><circle cx="8" cy="16" r="3"/><circle cx="16" cy="16" r="3"/></svg>',
       barcodes: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5v14M7 5v14M11 5v14M14 5v14M19 5v14M17 5v14"/></svg>'
