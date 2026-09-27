@@ -14,6 +14,7 @@
   let actionLocationFilter='';
 
   const $=(selector,root=document)=>root.querySelector(selector);
+  const html=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 
   function installStyles(){
     if($('#kmShellLocationStatusStyle'))return;
@@ -137,6 +138,7 @@
     const group=address.closest('.form-group');
     const hint=$('.location-link-hint',form);
     const attribution=$('.osm-attribution',form);
+    const parentHint=$('#kmShellParentHint',form);
 
     if(parentId){
       if(address.dataset.kmSubLocation!=='1')address.dataset.kmOwnAddress=address.value||'';
@@ -144,7 +146,8 @@
       address.disabled=true;
       address.value=parent?.address||parent?.name||'sublocatie';
       if(group)group.hidden=true;
-      if(hint)hint.innerHTML=`<strong>Sublocatie van ${parent?.name||'hoofdlocatie'}</strong><br>Geen eigen adres nodig. Log gebruikt eigen GPS als die is ingevuld; anders de GPS van de hoofdlocatie.`;
+      if(hint)hint.innerHTML=`<strong>Sublocatie van ${html(parent?.name||'hoofdlocatie')}</strong><br>Geen eigen adres nodig. Log gebruikt eigen GPS als die is ingevuld; anders de GPS van de hoofdlocatie.`;
+      if(parentHint)parentHint.textContent=`Sublocatie van ${parent?.name||'hoofdlocatie'}. Het adres komt van de hoofdlocatie; eigen GPS is alleen nodig voor preciezere herkenning.`;
       if(attribution)attribution.hidden=true;
     }else{
       address.disabled=false;
@@ -152,8 +155,19 @@
       delete address.dataset.kmSubLocation;
       if(group)group.hidden=false;
       if(hint)hint.innerHTML='<strong>Adres ↔ GPS</strong><br>Ontbrekende gegevens worden automatisch aangevuld; huidige GPS vervangt alleen de coördinaten.';
+      if(parentHint)parentHint.textContent='Als hoofdlocatie kan deze plek zelf sublocaties bevatten.';
       if(attribution)attribution.hidden=false;
     }
+  }
+
+  function syncSubLocationList(){
+    const snapshot=readData();
+    document.querySelectorAll(`#${VIEW_ID} .km-shell-location-node[data-depth="1"]`).forEach(node=>{
+      const location=snapshot.locations.find(item=>String(item.id)===String(node.dataset.shellLocationNode||''));
+      const parent=location?.parentId?snapshot.locations.find(item=>item.id===location.parentId):null;
+      const subtitle=$('.km-shell-location-copy small',node);
+      if(subtitle)subtitle.textContent=parent?`Onder ${parent.name}`:'Sublocatie';
+    });
   }
 
   function actionLocationLabel(location,locations){
@@ -192,7 +206,7 @@
     if(!select)return;
     const optionSignature=JSON.stringify(snapshot.locations.map(location=>[location.id,location.name,location.parentId||'']));
     if(select.dataset.locationSignature!==optionSignature){
-      select.innerHTML='<option value="">Alle locaties</option>'+snapshot.locations.map(location=>`<option value="${String(location.id).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]))}">${actionLocationLabel(location,snapshot.locations).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]))}</option>`).join('');
+      select.innerHTML='<option value="">Alle locaties</option>'+snapshot.locations.map(location=>`<option value="${html(location.id)}">${html(actionLocationLabel(location,snapshot.locations))}</option>`).join('');
       select.dataset.locationSignature=optionSignature;
     }
     select.value=actionLocationFilter;
@@ -220,6 +234,7 @@
   function syncEnhancements(){
     enhancementQueued=false;
     syncSubLocationEditor();
+    syncSubLocationList();
     syncActionLocationFilter();
   }
 
