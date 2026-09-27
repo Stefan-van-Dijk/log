@@ -148,6 +148,8 @@ Bij iedere nieuwe ontwikkeling of wijziging:
 
 # Controle acties en sublocaties — 27 september 2026
 
+- Statusverduidelijking (cache r6): vóór eerste uitvoering en na swipe-reset blijft de ingestelde herhaaltermijn zichtbaar, naast de vereiste aankomst/tijdvakovergang. Een verstreken wachttijd wordt expliciet benoemd. Geen wijziging aan uitvoerlogica of opslag; action-repeat, action-transitions en action-state-review slagen.
+
 - Afgerond (alleen test, applicatieversie 0.33.10): sublocaties slaan geen eigen adres of automatisch afgeleide GPS op; expliciet ingevulde GPS blijft behouden. Late geocode-antwoorden na omschakelen naar sublocatie worden genegeerd.
 - Afgerond: actiefilter toont hoofdlocatie en bijbehorende sublocaties; bij selectie van een sublocatie ook hoofdlocatie-acties, geen zustersublocaties.
 - Afgerond: wachtvoorwaarden houden ready=false; niet-startbare taken en mislukte bevestigingen krijgen geen succesvolle herhaalstatus. Handmatig kaartopenen blijft onafhankelijk. Mislukte slimme ritvoorbereiding wordt niet als afgehandeld opgeslagen.
@@ -155,4 +157,3 @@ Bij iedere nieuwe ontwikkeling of wijziging:
 - Herhaaldefinitie: aankomst of begin toegestaan tijdvak activeert; expliciet gekozen wachttijd/dagmodus telt het verstrijken als verandering bij geldige locatie/tijd. Reset verwijdert deze termijn en wacht opnieuw op aankomst/tijdvak. Vertrek alleen triggert geen locatieactie; wel het afzonderlijke slimme ritvoorstel.
 - Gerichte regressies: action-transitions, action-repeat, action-task, action-ui, location-actions, action-state-review, sublocation-review. Fysieke GPS/iPhone-praktijkcontrole nog open.
 - Cache: kmreg-test-shell-0.33.10-r5. Geen productiebestanden of opslagsleutels gewijzigd.
-

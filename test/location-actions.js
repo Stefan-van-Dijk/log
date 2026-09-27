@@ -326,7 +326,19 @@
       return `Weer vanaf ${when} · op de ingestelde locatie`;
     }
     if(visits()[rule.locationId]?.done?.includes(rule.id))return rule.start||rule.days?.length?'Weer bij een volgend bezoek of tijdvak':'Weer bij een volgend bezoek';
-    if(!read(EDGES)[rule.id]?.ready)return rule.start?'Wacht op aankomst of het volgende tijdvak':'Wacht op een volgende aankomst';
+    if(!read(EDGES)[rule.id]?.ready){
+      const waiting=rule.start||rule.days?.length?'wacht op aankomst of het volgende tijdvak':'wacht op een volgende aankomst';
+      if(['duration','halfHour'].includes(rule.repeatMode)){
+        if(snooze?.until&&snooze.until<=now)return `Wachttijd verstreken · ${waiting}`;
+        const minutes=rule.repeatMode==='halfHour'?30:Number(rule.repeatMinutes);
+        const amount=minutes%1440===0?minutes/1440:minutes%60===0?minutes/60:minutes;
+        const unit=minutes%1440===0?(amount===1?'dag':'dagen'):minutes%60===0?'uur':amount===1?'minuut':'minuten';
+        return `Na uitvoering: opnieuw na ${amount} ${unit} · ${waiting}`;
+      }
+      if(rule.repeatMode==='day')return `Na uitvoering: opnieuw de volgende dag · ${waiting}`;
+      if(rule.repeatMode==='location')return `Na uitvoering: opnieuw na locatiewisseling · ${waiting}`;
+      return waiting.charAt(0).toUpperCase()+waiting.slice(1);
+    }
     return ruleStatus(rule);
   }
   function updateRuleStatus(){

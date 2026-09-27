@@ -19,11 +19,16 @@ const arrive=()=>{gps(53,7);now+=21000;gps(53,7);now+=1000;gps();};
 const tick=()=>new Promise(r=>setTimeout(r,5));
 (async()=>{
  api.mount(d.querySelector('#root'));gps();put([{...rule(),repeatMode:'duration',repeatMinutes:90}]);
+ assert.match(api.availability(get(TIME).locationActions[0]),/Na uitvoering: opnieuw na 90 minuten.*volgende aankomst/,'initial status distinguishes repeat setting from first trigger');
  api.edit('r');let f=d.querySelector('form');assert.equal(f.elements.repeatMode.value,'duration');assert.equal(f.elements.repeatValue.value,'90');assert.equal(f.elements.repeatUnit.value,'minutes');
  f.elements.repeatValue.value='2';f.elements.repeatUnit.value='hours';f.dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));let r=get(TIME).locationActions[0];assert.equal(r.repeatMinutes,120);api.drain();assert.equal(cards,0,'saving duration waits for transition');
  arrive();api.drain();assert.equal(cards,1);const until=now+120*60000;assert.equal(get('log-test-action-snoozes-v1').r.until,until);assert.match(api.availability(r),/Weer vanaf vandaag 10:00/);assert.match(d.querySelector('[data-la-next]').textContent,/10:00/);
  now=until-1000;gps();api.drain();assert.equal(cards,1);now=until;gps();api.drain();assert.equal(cards,2,'custom interval executes on expiry with matching location');
  api.reset('r');api.drain();assert.equal(cards,2);assert.equal(get('log-test-action-snoozes-v1').r,undefined);assert.match(api.availability(r),/volgende aankomst/);
+ assert.match(api.availability(r),/Na uitvoering: opnieuw na 2 uur/,'reset keeps repetition visible without inventing a deadline');
+ assert.match(api.availability({...r,repeatMinutes:1}),/na 1 minuut/);
+ assert.match(api.availability({...r,repeatMinutes:1440}),/na 1 dag/);
+ assert.match(api.availability({...r,repeatMinutes:2880}),/na 2 dagen/);
  for(const value of [0,-1,1.5,525601,NaN])assert.throws(()=>api.validate({...r,repeatMinutes:value}),/wachttijd/);
  // Legacy 30 minute cards open as a 30-minute custom period, without changing persisted rules until save.
  put([{...rule('legacy'),repeatMode:'halfHour'}]);api.edit('legacy');f=d.querySelector('form');assert.equal(f.elements.repeatMode.value,'duration');assert.equal(f.elements.repeatValue.value,'30');assert.equal(get(TIME).locationActions[0].repeatMode,'halfHour');w.LogCardsUI.close();
