@@ -1,4 +1,4 @@
-const CACHE='kmreg-test-shell-0.33.10';
+const CACHE='kmreg-test-shell-0.33.10-r1';
 const SHELL=[
   './',
   './index.html',
@@ -118,4 +118,3 @@ self.addEventListener('fetch',event=>{
     return resp;
   })));
 });
-
