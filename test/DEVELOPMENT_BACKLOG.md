@@ -148,6 +148,8 @@ Bij iedere nieuwe ontwikkeling of wijziging:
 
 # Controle acties en sublocaties — 27 september 2026
 
+- 0.33.13: direct pauzeren/hervatten van acties (geen onmiddellijke uitvoering bij hervatten); Log-QR inhoudsvoorbeeld met terugkeer naar behouden invoer vóór kaartaanmaak; samenvatting van actieve type-/locatie-/zoekfilters en één wisknop. Gerichte actie-UI/overgangs-, Log-code- en filtercontroles geslaagd. Geen nieuwe opslagsleutels; productie ongewijzigd.
+
 - 0.33.12: compacte actiestatussen en detailweergave via aantikken. Details tonen reden, GPS-herkenning/nauwkeurigheid, straal, dagen, tijdvak, volgende mogelijkheid en laatste weergave/voorbereiding binnen de huidige sessie (geen nieuwe opslagsleutels). Swipe-bewerken/reset behouden. Detailvenster beschermt tegen automatisch openen van een andere actie. Actie-UI, overgangs- en herhaalcontroles geslaagd.
 
 - Versiebeleid gewijzigd op verzoek: zichtbare testversie 0.33.11; cache kmreg-test-shell-0.33.11 zonder aparte r-suffix. Hoofdapp, assetreferenties en shell-fallbacks lopen gelijk. Volgende updates verhogen het applicatienummer. Productie ongemoeid; versielabelcontrole geslaagd (ongewijzigde vendorbestanden buiten controle).

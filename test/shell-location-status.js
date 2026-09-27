@@ -227,6 +227,24 @@
     }
     if(select.value!==actionLocationFilter)select.value=actionLocationFilter;
 
+    let summary=$('[data-la-filter-summary]',module);
+    if(!summary){
+      summary=document.createElement('div');summary.dataset.laFilterSummary='1';
+      summary.className='cards-filter';summary.style.margin='8px 0';
+      summary.innerHTML='<span data-la-filter-text style="flex:1;font-size:13px"></span><button type="button" data-la-clear-filters>Filters wissen</button>';
+      wrap.insertAdjacentElement('afterend',summary);
+    }
+    const search=window.LogLocationActions?.getSearch?.()||'';
+    const filters=[actionTypeFilter?({ride:'Ritten',task:'Taken',card:'Kaarten'})[actionTypeFilter]:'',
+      actionLocationFilter?actionLocationLabel(snapshot.locations.find(l=>l.id===actionLocationFilter),snapshot.locations):'',
+      search?'Zoeken: '+search:''].filter(Boolean);
+    setText($('[data-la-filter-text]',summary),filters.join(' · '));
+    if(summary.hidden!==!filters.length)summary.hidden=!filters.length;
+    $('[data-la-clear-filters]',summary).onclick=()=>{
+      actionTypeFilter='';actionLocationFilter='';
+      const input=$('#kmShellSearchInput');if(input){input.value='';input.dispatchEvent(new Event('input',{bubbles:true}));}
+      window.LogLocationActions?.search?.('');syncActionLocationFilter();
+    };
     let visible=0;
     module.querySelectorAll('[data-la-row]').forEach(row=>{
       const id=row.querySelector('[data-la-open]')?.dataset.laOpen||'';

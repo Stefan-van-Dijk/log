@@ -170,6 +170,12 @@
     }
     saveState(DEPARTURE,edge);
   }
+  function toggle(id){
+    const rule=snapshot().rules.find(r=>r.id===id);if(!rule)return;
+    write(raw=>{raw.locationActions=(raw.locationActions||[]).map(r=>r.id===id?{...r,enabled:!r.enabled}:r);});
+    // Hervatten legt de huidige situatie opnieuw vast; lopende wachttijden blijven behouden.
+    observeTransitions(Date.now(),id);refresh();
+  }
   function reset(id){
     const s=snapshot(),rule=s.rules.find(r=>r.id===id);if(!rule)return;
     const now=Date.now();
@@ -419,18 +425,18 @@
   function render(){
     if(!root)return;const s=snapshot(),allowed=window.LogSwipePolicy?.enabled('locationactions')!==false;
     const rules=s.rules.filter(r=>(r.name+' '+label(r.locationId,s)+' '+targetName(r,s)).toLocaleLowerCase('nl').includes(query));
-    root.innerHTML=`<section class="cards-module"><button type="button" class="btn primary full contact-update" data-la-new>＋ Actie toevoegen</button>${rules.map(r=>`<div class="code-card-swipe" data-la-row data-la-type="${esc(r.type)}" style="--card-color:${(typeUI[r.type]||typeUI.card).color};--card-action-count:${allowed?2:1}"><div class="la-reset-actions" inert aria-hidden="true"><button type="button" class="swipe-reopen" data-la-reset="${esc(r.id)}" aria-label="Actie opnieuw klaarzetten">Reset</button></div><div class="code-card-actions" inert aria-hidden="true">${allowed?`<button type="button" class="swipe-delete" data-la-delete="${esc(r.id)}">Verwijder</button>`:''}<button type="button" class="swipe-edit" data-la-edit="${esc(r.id)}">Bewerk</button></div><div class="code-card-surface"><button type="button" class="code-card" data-la-open="${esc(r.id)}" aria-label="${esc(r.name)}${r.enabled?'':' · uitgeschakeld'}"><span class="code-card-icon" role="img" aria-label="${(typeUI[r.type]||typeUI.card).label}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${(typeUI[r.type]||typeUI.card).path}"/></svg></span><span class="code-card-copy"><strong>${esc(r.name)}</strong><small>${esc(description(r,s))}</small><small class="la-next" data-la-next="${esc(r.id)}">${esc(compactStatus(r))}</small></span></button></div></div>`).join('')||'<p class="cards-empty">Nog geen acties voor deze selectie. Voeg een actie toe en kies Kaart tonen om een kaart op locatie te openen.</p>'}</section>`;
+    root.innerHTML=`<section class="cards-module"><button type="button" class="btn primary full contact-update" data-la-new>＋ Actie toevoegen</button>${rules.map(r=>`<div class="code-card-swipe" data-la-row data-la-type="${esc(r.type)}" style="--card-color:${(typeUI[r.type]||typeUI.card).color};--card-action-count:${allowed?2:1}"><div class="la-reset-actions" inert aria-hidden="true"><button type="button" class="swipe-reopen" data-la-reset="${esc(r.id)}" aria-label="Actie opnieuw klaarzetten">Reset</button></div><div class="code-card-actions" inert aria-hidden="true">${allowed?`<button type="button" class="swipe-delete" data-la-delete="${esc(r.id)}">Verwijder</button>`:''}<button type="button" class="swipe-edit" data-la-edit="${esc(r.id)}">Bewerk</button></div><div class="code-card-surface"><button type="button" class="code-card" data-la-open="${esc(r.id)}" aria-label="${esc(r.name)}${r.enabled?'':' · uitgeschakeld'}"><span class="code-card-icon" role="img" aria-label="${(typeUI[r.type]||typeUI.card).label}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${(typeUI[r.type]||typeUI.card).path}"/></svg></span><span class="code-card-copy"><strong>${esc(r.name)}</strong><small>${esc(description(r,s))}</small><small class="la-next" data-la-next="${esc(r.id)}">${esc(compactStatus(r))}</small></span></button><button type="button" class="btn secondary" style="margin:0 0 10px 44px;min-height:36px;padding:6px 12px" data-la-toggle="${esc(r.id)}" aria-label="${esc(r.name)} ${r.enabled?'pauzeren':'hervatten'}" aria-pressed="${!r.enabled}">${r.enabled?'Pauzeren':'Hervatten'}</button></div></div>`).join('')||'<p class="cards-empty">Nog geen acties voor deze selectie. Voeg een actie toe en kies Kaart tonen om een kaart op locatie te openen.</p>'}</section>`;
   }
   function refresh(){observeTransitions();updateRuleStatus();updateSettings();renderSuggestions();if(!root)return;const next=JSON.stringify([snapshot(),query,window.LogSwipePolicy?.enabled('locationactions')]);if(next!==signature){signature=next;render();}}
   function mount(target){
     if(root===target&&root.querySelector('[data-la-new]'))return;root=target;signature='';
     root.onclick=e=>{const b=e.target.closest('button');if(!b)return;if(b.hasAttribute('data-la-open')&&Date.now()<Math.max(suppressOpenUntil,Number(b.closest('[data-la-row]')?.dataset.suppressUntil||0)))return;
-      try{if(b.dataset.laReset)reset(b.dataset.laReset);if(b.hasAttribute('data-la-new'))edit();if(b.dataset.laEdit)edit(b.dataset.laEdit);if(b.dataset.laOpen)details(b.dataset.laOpen);
+      try{if(b.dataset.laToggle)toggle(b.dataset.laToggle);if(b.dataset.laReset)reset(b.dataset.laReset);if(b.hasAttribute('data-la-new'))edit();if(b.dataset.laEdit)edit(b.dataset.laEdit);if(b.dataset.laOpen)details(b.dataset.laOpen);
         if(b.dataset.laDelete&&window.LogSwipePolicy?.enabled('locationactions')!==false&&confirm('Deze actie verwijderen?'))write(raw=>{raw.locationActions=(raw.locationActions||[]).filter(r=>r.id!==b.dataset.laDelete);});
       }catch(error){window.LogCardsUI.sheet('Actie niet bijgewerkt',`<p>${esc(error.message)}</p>`);}
     };root.onchange=null;refresh();
   }
-  window.LogLocationActions={mount,refresh,edit,reset,details,compactStatus,settingsHtml,bindSettings,drain,snoozeCard,decorateCard,smartRideState,prepareSmartRide,inTime,nextWindow,availability,coordinates,assess,eligible,propose,snapshot,validate,unmount(){if(root){window.LogCardsUI.close();root.onclick=null;root.onchange=null;root=null;query='';}},search(value){const next=String(value||'').toLocaleLowerCase('nl');if(next!==query){query=next;signature='';refresh();}return root?.querySelectorAll('[data-la-row]').length||0;}};
+  window.LogLocationActions={mount,refresh,edit,reset,toggle,getSearch:()=>query,details,compactStatus,settingsHtml,bindSettings,drain,snoozeCard,decorateCard,smartRideState,prepareSmartRide,inTime,nextWindow,availability,coordinates,assess,eligible,propose,snapshot,validate,unmount(){if(root){window.LogCardsUI.close();root.onclick=null;root.onchange=null;root=null;query='';}},search(value){const next=String(value||'').toLocaleLowerCase('nl');if(next!==query){query=next;signature='';refresh();}return root?.querySelectorAll('[data-la-row]').length||0;}};
   document.addEventListener('visibilitychange',()=>{if(document.hidden)stop();else start();});
   window.addEventListener('pagehide',stop);window.addEventListener('pageshow',start);
   for(const event of ['log-time-state-change','log-km-state-change','log-shell-view-refresh'])window.addEventListener(event,refresh);
