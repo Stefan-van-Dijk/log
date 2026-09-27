@@ -7,9 +7,28 @@
   const types={ride:'Rit voorbereiden',task:'Taak voorbereiden',card:'Kaart tonen'};
   const days=['Zo','Ma','Di','Wo','Do','Vr','Za'];
   const failed=new Set();
-  let root=null,query='',watch=null,timer=null,generation=0,point=null,status='Locatieherkenning staat uit.',busy=false,signature='';
+  let permissionState='unknown',permissionHandle=null;
+  function permissionText(){return !navigator.geolocation?'Locatiebepaling niet beschikbaar':({granted:'Toegestaan',denied:'Niet toegestaan · pas locatietoegang aan in je browser- of telefooninstellingen',prompt:'Nog toestemming nodig · kies Opnieuw controleren',unknown:'Toestemmingsstatus niet beschikbaar in deze browser'})[permissionState]||'Onbekend';}
+  function settingsHtml(kind){
+    if(kind==='ride')return `<div data-la-ride-settings><label class="log-swipe-setting"><input type="checkbox" data-la-smart-ride><span><span aria-hidden="true">🚗</span> Slimme ritvoorstellen<small>Bereidt in Ritten een voorstel voor vanaf het laatst afgeronde eindpunt, met de bestemming uit je historie. Je bevestigt zelf de start.</small></span></label></div>`;
+    return `<section><h3>Locatiegebruik</h3><p class="cards-notice">Log controleert je locatie zolang de app geopend en zichtbaar is en locatietoestemming heeft. Er is geen aparte hoofdschakelaar. Per actie bepaal je of die actief is. Dit geeft geen locatieherkenning wanneer Log gesloten is.</p><p class="cards-notice">Kaarten kunnen direct verschijnen; ritten en taken worden voorbereid. Een nieuw bezoek wordt herkend als Log je eerst duidelijk buiten en daarna weer binnen de locatie ziet.</p><p>Locatietoestemming: <span data-la-permission role="status"></span></p><p class="cards-notice" data-la-status role="status"></p><button type="button" class="btn secondary full" data-la-check>Opnieuw controleren</button></section>`;
+  }
+  function updateSettings(){
+    document.querySelectorAll('[data-la-permission]').forEach(el=>{if(el.textContent!==permissionText())el.textContent=permissionText();});
+    document.querySelectorAll('[data-la-status]').forEach(el=>{if(el.textContent!==status)el.textContent=status;});
+    const smart=smartRideState();document.querySelectorAll('[data-la-ride-settings]').forEach(el=>{if(el.hidden!==!smart.available)el.hidden=!smart.available;const input=el.querySelector('[data-la-smart-ride]');input.checked=smart.enabled;if(input.disabled!==!smart.available)input.disabled=!smart.available;});
+  }
+  async function queryPermission(){
+    try{if(!navigator.permissions?.query)return;const p=await navigator.permissions.query({name:'geolocation'});if(permissionHandle)permissionHandle.onchange=null;permissionHandle=p;permissionState=p.state;if(p.state==='denied'){stop();status='Geen locatietoestemming.';}p.onchange=()=>{permissionState=p.state;if(p.state==='denied'){stop();status='Geen locatietoestemming.';}else start();updateSettings();};}catch(_){}finally{updateSettings();}
+  }
+  function bindSettings(host){
+    updateSettings();queryPermission();
+    host.querySelector('[data-la-check]')?.addEventListener('click',()=>{start();queryPermission();});
+    host.querySelector('[data-la-smart-ride]')?.addEventListener('change',e=>{if(!smartRideState().available){updateSettings();return;}try{write(raw=>{raw.settings={...raw.settings,smartRideEnabled:e.target.checked};});}catch(error){updateSettings();window.LogCardsUI.sheet('Instelling niet bewaard',`<p>${esc(error.message)}</p>`);}});
+  }
+  let root=null,query='',watch=null,timer=null,generation=0,point=null,status='Locatie wordt gecontroleerd zodra Log zichtbaar is.',busy=false,signature='';
   function snapshot(){const time=read(TIME),km=read(KM);return {time,km,rules:time.locationActions||[],locations:km.locations||[],cards:km.cards||[],themes:time.themes||[],subs:time.subthemes||[]};}
-  function enabled(){return read(TIME).settings?.locationActionsEnabled===true;}
+  function rideModuleEnabled(){return window.LogModuleVisibility?.enabled('rides')===true;}
   function write(mutator){const raw=read(TIME);mutator(raw);localStorage.setItem(TIME,JSON.stringify(raw));window.LogTimeModule?.reloadFromStorage?.({view:window.LogTimeModule.getView?.()||'home'});window.dispatchEvent(new CustomEvent('log-time-state-change'));refresh();}
   function label(id,s=snapshot()){const l=s.locations.find(l=>l.id===id),parent=s.locations.find(p=>p.id===l?.parentId);return l?(parent?parent.name+' › ':'')+l.name:'Locatie ontbreekt';}
   function coordinates(id,s=snapshot(),seen=new Set()){
@@ -78,21 +97,21 @@
     localStorage.setItem(VISITS,JSON.stringify(state));status='Locatie gecontroleerd om '+new Date(now).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'});refresh();
   }
   function eligible(now=Date.now(),includeHandled=false){
-    if(!enabled()||document.hidden||!point||now-point.time>120000)return [];
+    if(document.hidden||!point||now-point.time>120000)return [];
     const s=snapshot(),state=visits(),snoozes=read(SNOOZES);return s.rules.filter(r=>{
       const v=state[r.locationId],pos=coordinates(r.locationId,s);
       const snooze=snoozes[r.id],suppressed=snooze&&(snooze.mode==='location'||now<snooze.until);
-      return r.enabled&&!problem(r,s)&&inTime(r,new Date(now))&&v?.inside&&(includeHandled||(!suppressed&&!v.done?.includes(r.id)))&&pos&&distance(point,pos)+point.accuracy<=r.radius;
+      return r.enabled&&(r.type!=='ride'||rideModuleEnabled())&&!problem(r,s)&&inTime(r,new Date(now))&&v?.inside&&(includeHandled||(!suppressed&&!v.done?.includes(r.id)))&&pos&&distance(point,pos)+point.accuracy<=r.radius;
     });
   }
   function done(rule){const state=visits(),v=state[rule.locationId];if(v){v.done=[...new Set([...(v.done||[]),rule.id])];localStorage.setItem(VISITS,JSON.stringify(state));}refresh();}
   function stop(){generation++;if(watch!==null)navigator.geolocation?.clearWatch(watch);watch=null;clearInterval(timer);timer=null;point=null;renderSuggestions();}
   function start(){
-    stop();failed.clear();if(!enabled()||document.hidden)return;
+    stop();failed.clear();if(document.hidden)return;
     if(!navigator.geolocation){status='Locatiebepaling is niet beschikbaar.';refresh();return;}
     const token=generation;status='Locatie bepalen…';refresh();
-    const success=p=>{if(token!==generation)return;try{assess(p);}catch(_){status='Locatievoorstellen konden niet worden bijgewerkt.';point=null;refresh();}};
-    const failure=e=>{if(token!==generation)return;point=null;status=e.code===1?'Geen locatietoestemming. Sta locatie toe en tik op Opnieuw controleren.':'Geen betrouwbare locatie beschikbaar. Probeer opnieuw.';if(e.code===1)stop();refresh();};
+    const success=p=>{if(token!==generation)return;try{permissionState='granted';assess(p);}catch(_){status='Locatievoorstellen konden niet worden bijgewerkt.';point=null;refresh();}};
+    const failure=e=>{if(token!==generation)return;point=null;status=e.code===1?'Geen locatietoestemming. Sta locatie toe en tik op Opnieuw controleren.':'Geen betrouwbare locatie beschikbaar. Probeer opnieuw.';if(e.code===1){permissionState='denied';stop();}refresh();};
     const options={enableHighAccuracy:true,maximumAge:15000,timeout:15000};
     watch=navigator.geolocation.watchPosition(success,failure,options);
     timer=setInterval(()=>{if(!document.hidden){renderSuggestions();navigator.geolocation.getCurrentPosition(success,failure,options);}},60000);
@@ -149,9 +168,8 @@
   // Never replace an open editor, scanner, start form or another modal.
   function smartRideState(s=snapshot()){
     const trips=s.km.trips||[],last=[...trips].sort((a,b)=>new Date(b.arrivalTime||b.departureTime)-new Date(a.arrivalTime||a.departureTime))[0];
-    return {available:trips.length>0||!!s.km.activeTrip,enabled:s.time.settings?.smartRideEnabled!==false,last,token:last?JSON.stringify([last.id,last.arrivalTime,last.destination,last.endOdometer]):null};
+    return {available:rideModuleEnabled()&&(trips.length>0||!!s.km.activeTrip),enabled:s.time.settings?.smartRideEnabled!==false,last,token:last?JSON.stringify([last.id,last.arrivalTime,last.destination,last.endOdometer]):null};
   }
-  function smartRideSettings(s){const smart=smartRideState(s);return smart.available?`<label class="log-swipe-setting"><input type="checkbox" data-la-smart-ride${smart.enabled?' checked':''}><span>Slimme ritactie<small>In Ritten: vertrek vanaf het laatst afgeronde eindpunt en stel de bestemming voor uit je historie. Starten bevestig je zelf.</small></span></label>`:'';}
   async function prepareSmartRide(){
     const s=snapshot(),smart=smartRideState(s);
     if(busy||!smart.available||!smart.enabled||!smart.last?.destination||s.km.activeTrip||localStorage.getItem('kmreg-test-shell-section-v1')!=='rides'||!window.LogRideStarter||localStorage.getItem('log-test-smart-ride-handled-v1')===smart.token)return;
@@ -168,13 +186,21 @@
   function render(){
     if(!root)return;const s=snapshot(),allowed=window.LogSwipePolicy?.enabled('locationactions')!==false;
     const rules=s.rules.filter(r=>(r.name+' '+label(r.locationId,s)+' '+targetName(r,s)).toLocaleLowerCase('nl').includes(query));
-    root.innerHTML=`<section class="cards-module">${smartRideSettings(s)}<label class="log-swipe-setting"><input type="checkbox" data-la-enabled${enabled()?' checked':''}><span>Acties op locatie aan<small>Controleert je locatie zolang Log geopend en zichtbaar is.</small></span></label><p class="cards-notice" data-la-status role="status">${esc(status)}</p><button type="button" class="btn secondary full" data-la-check>Opnieuw controleren</button><button type="button" class="btn primary full contact-update" data-la-new>＋ Actie toevoegen</button><p class="cards-notice">Kaarten verschijnen direct; ritten en taken worden voorbereid. Je start ze zelf. Een volgend bezoek wordt herkend wanneer Log je eerst duidelijk buiten de locatie en daarna weer binnen ziet.</p>${rules.map(r=>`<div class="code-card-swipe" data-la-row style="--card-color:var(--accent);--card-action-count:${allowed?2:1}"><div class="code-card-actions" inert aria-hidden="true">${allowed?`<button type="button" class="swipe-delete" data-la-delete="${esc(r.id)}">Verwijder</button>`:''}<button type="button" class="swipe-edit" data-la-edit="${esc(r.id)}">Bewerk</button></div><div class="code-card-surface"><button type="button" class="code-card" data-la-open="${esc(r.id)}"><span class="code-card-copy"><strong>${esc(r.name)}${r.enabled?'':' · uit'}</strong><small>${esc(label(r.locationId,s))} · ${esc(types[r.type])}</small><small>${esc(problem(r,s)||targetName(r,s))}</small><small>${r.days.length?r.days.map(i=>days[i]).join(', '):'Elke dag'} · ${r.start?r.start+'–'+r.end:'hele dag'}</small></span></button></div></div>`).join('')||'<p class="cards-empty">Nog geen acties voor deze selectie.</p>'}</section>`;
+    root.innerHTML=`<section class="cards-module"><button type="button" class="btn primary full contact-update" data-la-new>＋ Actie toevoegen</button>${rules.map(r=>`<div class="code-card-swipe" data-la-row style="--card-color:var(--accent);--card-action-count:${allowed?2:1}"><div class="code-card-actions" inert aria-hidden="true">${allowed?`<button type="button" class="swipe-delete" data-la-delete="${esc(r.id)}">Verwijder</button>`:''}<button type="button" class="swipe-edit" data-la-edit="${esc(r.id)}">Bewerk</button></div><div class="code-card-surface"><button type="button" class="code-card" data-la-open="${esc(r.id)}"><span class="code-card-copy"><strong>${esc(r.name)}${r.enabled?'':' · uit'}</strong><small>${esc(label(r.locationId,s))} · ${esc(types[r.type])}</small><small>${esc(problem(r,s)||targetName(r,s))}</small><small>${r.days.length?r.days.map(i=>days[i]).join(', '):'Elke dag'} · ${r.start?r.start+'–'+r.end:'hele dag'}</small></span></button></div></div>`).join('')||'<p class="cards-empty">Nog geen acties voor deze selectie.</p>'}</section>`;
   }
-  function refresh(){if(!enabled()&&watch!==null)stop();renderSuggestions();if(!root)return;const next=JSON.stringify([snapshot(),query,status,window.LogSwipePolicy?.enabled('locationactions')]);if(next!==signature){signature=next;render();}}
-  function mount(target){if(root===target&&root.querySelector('[data-la-new]'))return;root=target;signature='';root.onclick=e=>{const b=e.target.closest('button');if(!b)return;if(b.hasAttribute('data-la-open')&&Date.now()<Number(b.closest('[data-la-row]')?.dataset.suppressUntil||0))return;try{if(b.hasAttribute('data-la-new'))edit();if(b.dataset.laEdit||b.dataset.laOpen)edit(b.dataset.laEdit||b.dataset.laOpen);if(b.dataset.laDelete&&window.LogSwipePolicy?.enabled('locationactions')!==false&&confirm('Deze actie verwijderen?'))write(raw=>{raw.locationActions=(raw.locationActions||[]).filter(r=>r.id!==b.dataset.laDelete);});if(b.hasAttribute('data-la-check')){if(enabled())start();else {status='Zet Acties op locatie aan om je locatie te controleren.';refresh();}}}catch(error){status=error.message;refresh();}};root.onchange=e=>{if(e.target.matches('[data-la-smart-ride]')){try{write(raw=>{raw.settings={...raw.settings,smartRideEnabled:e.target.checked};});}catch(error){status=error.message;refresh();}return;}if(!e.target.matches('[data-la-enabled]'))return;try{const value=e.target.checked;write(raw=>{raw.settings={...raw.settings,locationActionsEnabled:value};});if(value)start();else {stop();status='Locatieherkenning staat uit.';refresh();}}catch(error){status='Instelling kon niet worden bewaard.';signature='';refresh();}};refresh();}
-  window.LogLocationActions={mount,refresh,edit,drain,snoozeCard,decorateCard,smartRideState,prepareSmartRide,inTime,coordinates,assess,eligible,propose,snapshot,validate,unmount(){if(root){window.LogCardsUI.close();root.onclick=null;root.onchange=null;root=null;query='';}},search(value){const next=String(value||'').toLocaleLowerCase('nl');if(next!==query){query=next;signature='';refresh();}return root?.querySelectorAll('[data-la-row]').length||0;}};
+  function refresh(){updateSettings();renderSuggestions();if(!root)return;const next=JSON.stringify([snapshot(),query,status,window.LogSwipePolicy?.enabled('locationactions')]);if(next!==signature){signature=next;render();}}
+  function mount(target){
+    if(root===target&&root.querySelector('[data-la-new]'))return;root=target;signature='';
+    root.onclick=e=>{const b=e.target.closest('button');if(!b)return;if(b.hasAttribute('data-la-open')&&Date.now()<Number(b.closest('[data-la-row]')?.dataset.suppressUntil||0))return;
+      try{if(b.hasAttribute('data-la-new'))edit();if(b.dataset.laEdit||b.dataset.laOpen)edit(b.dataset.laEdit||b.dataset.laOpen);
+        if(b.dataset.laDelete&&window.LogSwipePolicy?.enabled('locationactions')!==false&&confirm('Deze actie verwijderen?'))write(raw=>{raw.locationActions=(raw.locationActions||[]).filter(r=>r.id!==b.dataset.laDelete);});
+      }catch(error){window.LogCardsUI.sheet('Actie niet bijgewerkt',`<p>${esc(error.message)}</p>`);}
+    };root.onchange=null;refresh();
+  }
+  window.LogLocationActions={mount,refresh,edit,settingsHtml,bindSettings,drain,snoozeCard,decorateCard,smartRideState,prepareSmartRide,inTime,coordinates,assess,eligible,propose,snapshot,validate,unmount(){if(root){window.LogCardsUI.close();root.onclick=null;root.onchange=null;root=null;query='';}},search(value){const next=String(value||'').toLocaleLowerCase('nl');if(next!==query){query=next;signature='';refresh();}return root?.querySelectorAll('[data-la-row]').length||0;}};
   document.addEventListener('visibilitychange',()=>{if(document.hidden)stop();else start();});
   window.addEventListener('pagehide',stop);window.addEventListener('pageshow',start);
   for(const event of ['log-time-state-change','log-km-state-change','log-shell-view-refresh'])window.addEventListener(event,refresh);
-  window.addEventListener('storage',()=>{refresh();if(!enabled())stop();});
+  window.addEventListener('storage',refresh);
+  window.addEventListener('log-navigation-modules-change',refresh);
 })();

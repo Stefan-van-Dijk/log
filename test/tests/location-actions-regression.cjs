@@ -2,9 +2,10 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const base=path.resolve(__dirname,'..'),TIME='urenregistratie.test.pwa.v1',KM='kmreg-test-v4-data';
 const dom=new JSDOM('<div class="shell"><main id="app"></main><main id="root"></main></div>',{url:'https://example.test/test/',runScripts:'outside-only',pretendToBeVisual:true}),w=dom.window,d=w.document,q=s=>d.querySelector(s);
 w.HTMLDialogElement.prototype.showModal=function(){this.open=true};w.HTMLDialogElement.prototype.close=function(){this.open=false};w.confirm=()=>true;
-const initial={settings:{locationActionsEnabled:true},themes:[{id:'t',name:'Werk'}],subthemes:[{id:'st',themeId:'t',name:'Overleg'}],timer:{status:'inactive'},entries:[{id:'history'}],colleagues:[{id:'p',name:'Keep'}]};
+const initial={settings:{locationActionsEnabled:false},themes:[{id:'t',name:'Werk'}],subthemes:[{id:'st',themeId:'t',name:'Overleg'}],timer:{status:'inactive'},entries:[{id:'history'}],colleagues:[{id:'p',name:'Keep'}]};
 w.localStorage.setItem(TIME,JSON.stringify(initial));w.localStorage.setItem(KM,JSON.stringify({settings:{},locations:[{id:'l',name:'Kantoor',lat:52,lng:6},{id:'sub',parentId:'l',name:'Entree'},{id:'dest',name:'Thuis',lat:53,lng:7}],cards:[{id:'c',name:'Pas',value:'abc',format:'QR_CODE'}]}));
 const get=k=>JSON.parse(w.localStorage.getItem(k)),set=(k,v)=>w.localStorage.setItem(k,JSON.stringify(v));
+let moduleOn=true;w.LogModuleVisibility={enabled:()=>moduleOn};
 let watched=0,cleared=0,onPosition,rides=0,tasks=0,shown=0;
 w.navigator.geolocation={watchPosition(success){watched++;onPosition=success;return watched;},clearWatch(){cleared++},getCurrentPosition(success){}};
 w.LogTimeModule={reloadFromStorage(){},getView:()=> 'home',getState:()=>get(TIME),startFromLocationAction(args){assert.equal(args.themeId,'t');if(get(TIME).timer.status!=='inactive')throw Error('Taak actief');tasks++}};
@@ -38,6 +39,9 @@ const submit=()=>q('form').dispatchEvent(new w.Event('submit',{bubbles:true,canc
  api.edit();f=q('form');f.elements.name.value='Rustige pas';f.elements.locationId.value='l';f.elements.targetId.value='c';f.elements.repeatMode.value='day';submit();assert.equal(get(TIME).locationActions.at(-1).repeatMode,'day');
  w.LogTimeModule.suggestForAction=()=>({themeId:'t',subthemeId:'st'});put([{...rule('smart','task'),selection:'smart',targetId:'missing'}]);api.assess(position());await api.propose('smart');assert.match(q('.cards-dialog-body').textContent,/Werk.*Overleg/);assert.equal(tasks,1);q('[data-la-start="start"]').click();assert.equal(tasks,2,'smart selected theme used only after confirmation');
  const checksBefore=watched;Object.defineProperty(d,'hidden',{configurable:true,value:true});d.dispatchEvent(new w.Event('visibilitychange'));assert.ok(cleared);assert.equal(api.eligible().length,0);Object.defineProperty(d,'hidden',{configurable:true,value:false});d.dispatchEvent(new w.Event('visibilitychange'));assert.ok(watched>checksBefore);onPosition(position());
- const toggle=q('[data-la-enabled]');toggle.checked=false;toggle.dispatchEvent(new w.Event('change',{bubbles:true}));assert.equal(get(TIME).settings.locationActionsEnabled,false);assert.equal(api.eligible().length,0);assert.ok(q('#logLocationSuggestions').hidden);
+ assert.equal(q('[data-la-enabled]'),null);assert.equal(q('[data-la-smart-ride]'),null);assert.ok(watched,'location starts even with old global setting false');
+ put([rule('visible-ride','ride')]);api.assess(position());assert.equal(api.eligible().length,1);moduleOn=false;assert.equal(api.eligible().length,0,'hidden rides cannot propose');moduleOn=true;
+ const host=d.createElement('section');host.innerHTML=api.settingsHtml('ride')+api.settingsHtml('location');d.body.append(host);const permission={state:'denied',onchange:null};w.navigator.permissions={query:async()=>permission};api.bindSettings(host);await tick();assert.match(q('[data-la-permission]').textContent,/Niet toegestaan/);permission.state='granted';permission.onchange();assert.match(q('[data-la-permission]').textContent,/Toegestaan/);
+
  console.log('Location actions: editor, preserved records, time windows/overnight, sublocation GPS, uncertainty, visits, direct cards, prepared tasks, snoozes, active guards, stale rules, visibility and disabling passed.');dom.window.close();
 })().catch(error=>{console.error(error);dom.window.close();process.exitCode=1});
