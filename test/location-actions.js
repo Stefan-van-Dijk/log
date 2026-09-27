@@ -99,11 +99,10 @@
     point=p;const state=visits(),s=snapshot();
     for(const locationId of new Set(s.rules.map(r=>r.locationId))){
       const target=coordinates(locationId,s);if(!target)continue;
-      // A shared visit radius prevents overlapping rules from resetting one another.
       const radius=Math.max(...s.rules.filter(r=>r.locationId===locationId).map(r=>r.radius));
       const delta=distance(p,target),v=state[locationId];
-      if(delta+p.accuracy<=radius){if(!v?.inside)state[locationId]={inside:true,token:crypto.randomUUID(),done:[]};else delete v.outsideSince;}
-      else if(v?.inside&&delta-p.accuracy>radius+50){if(!v.outsideSince)v.outsideSince=now;else if(now-v.outsideSince>=20000)state[locationId]={inside:false};}
+      if(delta+p.accuracy<=radius){if(!v?.inside)state[locationId]={inside:true,token:crypto.randomUUID(),done:v?.done||[]};else delete v.outsideSince;}
+      else if(v?.inside&&delta-p.accuracy>radius+50){if(!v.outsideSince)v.outsideSince=now;else if(now-v.outsideSince>=20000)state[locationId]={...v,inside:false};}
       else if(v)delete v.outsideSince;
     }
     for(const key of Object.keys(state))if(!s.rules.some(r=>r.locationId===key))delete state[key];
@@ -116,7 +115,6 @@
     if(changed)localStorage.setItem(SNOOZES,JSON.stringify(snoozes));
     localStorage.setItem(VISITS,JSON.stringify(state));status='Locatie gecontroleerd om '+new Date(now).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'});refresh();
   }
-  // Persist observed transitions separately: existing action/registration data stays intact.
   function saveState(key,value){const text=JSON.stringify(value);if(localStorage.getItem(key)!==text)localStorage.setItem(key,text);}
   function observedInside(rule,s,previous,now){
     if(!point||now-point.time>120000)return previous?.inside??null;
@@ -172,23 +170,27 @@
     saveState(DEPARTURE,edge);
   }
   function reset(id){
-    if(!snapshot().rules.some(r=>r.id===id))return;
-    // Baseline first; clearing the old suppression must never execute the action.
-    observeTransitions(Date.now(),id);
+    const s=snapshot(),rule=s.rules.find(r=>r.id===id);if(!rule)return;
+    const now=Date.now();
     const snoozes=read(SNOOZES);delete snoozes[id];saveState(SNOOZES,snoozes);
-    const edges=read(EDGES);edges[id].until=null;saveState(EDGES,edges);
     const state=visits();for(const v of Object.values(state))if(v.done)v.done=v.done.filter(x=>x!==id);saveState(VISITS,state);
-    failed.delete(id);suppressOpenUntil=Date.now()+500;signature='';refresh();showResetNotice();
+    const edges=read(EDGES),edge={fingerprint:JSON.stringify(rule),inside:null,ready:false};
+    edge.inside=observedInside(rule,s,edge,now);edge.time=inTime(rule,new Date(now));edge.until=null;edges[id]=edge;saveState(EDGES,edges);
+    failed.delete(id);suppressOpenUntil=now+500;signature='';refresh();showResetNotice();
   }
   function eligible(now=Date.now(),includeHandled=false){
     if(document.hidden||!point||now-point.time>120000)return [];
     const edges=observeTransitions(now),s=snapshot(),state=visits(),snoozes=read(SNOOZES);return s.rules.filter(r=>{
-      const v=state[r.locationId],pos=coordinates(r.locationId,s);
+      const v=state[r.locationId],edge=edges[r.id],pos=coordinates(r.locationId,s);
       const snooze=snoozes[r.id],suppressed=snooze&&(snooze.mode==='location'||now<snooze.until);
-      return (includeHandled||edges[r.id]?.ready)&&r.enabled&&(r.type!=='ride'||rideModuleEnabled())&&!problem(r,s)&&inTime(r,new Date(now))&&v?.inside&&(includeHandled||(!suppressed&&!v.done?.includes(r.id)))&&pos&&distance(point,pos)+point.accuracy<=r.radius;
+      return (includeHandled||edge?.ready)&&edge?.inside===true&&r.enabled&&(r.type!=='ride'||rideModuleEnabled())&&!problem(r,s)&&inTime(r,new Date(now))&&(includeHandled||(!suppressed&&!v?.done?.includes(r.id)))&&pos&&distance(point,pos)+point.accuracy<=r.radius;
     });
   }
-  function done(rule){if(rule.repeatMode&&rule.repeatMode!=='visit'){suppressRules([rule],rule.repeatMode);return;}const edges=read(EDGES);if(edges[rule.id]){edges[rule.id].ready=false;saveState(EDGES,edges);}const state=visits(),v=state[rule.locationId];if(v){v.done=[...new Set([...(v.done||[]),rule.id])];localStorage.setItem(VISITS,JSON.stringify(state));}refresh();}
+  function done(rule){
+    const edges=read(EDGES);if(edges[rule.id]){edges[rule.id].ready=false;saveState(EDGES,edges);}
+    if(rule.repeatMode&&rule.repeatMode!=='visit'){suppressRules([rule],rule.repeatMode);return;}
+    const state=visits(),v=state[rule.locationId];if(v){v.done=[...new Set([...(v.done||[]),rule.id])];localStorage.setItem(VISITS,JSON.stringify(state));}refresh();
+  }
   function stop(){generation++;if(watch!==null)navigator.geolocation?.clearWatch(watch);watch=null;clearInterval(timer);timer=null;point=null;renderSuggestions();}
   function start(){
     stop();failed.clear();if(document.hidden)return;
@@ -208,24 +210,21 @@
   }
   function suppressRules(rules,mode,now=Date.now()){
     if(!['halfHour','duration','location','day'].includes(mode))throw Error('Onbekende keuze.');
-    const snoozes=read(SNOOZES),state=visits(),end=new Date(now);end.setHours(24,0,0,0);
+    const snoozes=read(SNOOZES),state=visits(),edges=read(EDGES),end=new Date(now);end.setHours(24,0,0,0);
     for(const r of rules){
       if(mode==='duration'&&(!Number.isInteger(r.repeatMinutes)||r.repeatMinutes<1||r.repeatMinutes>525600))throw Error('Ongeldige wachttijd. Bewerk de actie.');
       const until=mode==='halfHour'?now+1800000:mode==='duration'?now+r.repeatMinutes*60000:mode==='day'?end.getTime():null;
       snoozes[r.id]={mode,until,locationId:r.locationId};const v=state[r.locationId];if(v)v.done=(v.done||[]).filter(x=>x!==r.id);
+      if(edges[r.id]){edges[r.id].ready=false;edges[r.id].until=until;}
     }
-    localStorage.setItem(SNOOZES,JSON.stringify(snoozes));localStorage.setItem(VISITS,JSON.stringify(state));refresh();
+    localStorage.setItem(SNOOZES,JSON.stringify(snoozes));localStorage.setItem(VISITS,JSON.stringify(state));saveState(EDGES,edges);refresh();
   }
   function snoozeCard(id,mode,now=Date.now(),ruleIds=null) {
     const rules=snapshot().rules.filter(r=>r.type==='card'&&r.targetId===id&&(!ruleIds||ruleIds.includes(r.id)));
     suppressRules(rules,mode,now);
   }
-  function decorateCard(panel,id){
-    // Showing or recognizing a card applies each action's configured repeat policy silently.
-    for(const rule of snapshot().rules.filter(r=>r.enabled&&r.type==='card'&&r.targetId===id)){
-      if(!rule.repeatMode||rule.repeatMode==='visit')done(rule);
-      else snoozeCard(id,rule.repeatMode,Date.now(),[rule.id]);
-    }
+  function decorateCard(){
+    // Alleen een actie die de kaart zelf opent mag zijn eigen herhaalstatus wijzigen.
   }
   async function propose(id){
     if(busy)return;const rule=eligible().find(r=>r.id===id);if(!rule)return;
@@ -235,7 +234,7 @@
         if(read(KM).activeTrip)throw Error('Rond eerst de actieve rit af.');
         await window.LogRideStarter.prepare(rule.selection==='smart'?null:rule.targetId);done(rule);return;
       }
-      if(rule.type==='card'){window.LogCardsModule.show(rule.targetId);return;}
+      if(rule.type==='card'){window.LogCardsModule.show(rule.targetId);done(rule);return;}
       window.LogTimeModule.reloadFromStorage?.({view:'home'});
       const suggested=rule.selection==='smart'?window.LogTimeModule.suggestForAction():{themeId:rule.targetId,subthemeId:rule.subthemeId};
       if(!suggested)throw Error('Er is nog geen thema beschikbaar voor een slim voorstel.');
@@ -252,10 +251,9 @@
           window.LogCardsUI.close();window.dispatchEvent(new CustomEvent('kmreg-test-shell-select-section',{detail:{section:'time'}}));
         }catch(error){d.querySelector('[data-card-message]').textContent=error.message;}finally{busy=false;button.disabled=false;}
       });
-    }catch(error){status=error.message;failed.add(rule.id);try{done(rule);}catch(_){}window.LogCardsUI.sheet(rule.name,`<p>${esc(error.message||'Actie kon niet worden voorbereid.')}</p>`);}
+    }catch(error){status=error.message;failed.add(rule.id);refresh();window.LogCardsUI.sheet(rule.name,`<p>${esc(error.message||'Actie kon niet worden voorbereid.')}</p>`);}
     finally{busy=false;}
   }
-  // Never replace an open editor, scanner, start form or another modal.
   function smartRideState(s=snapshot()){
     const trips=s.km.trips||[],last=[...trips].sort((a,b)=>new Date(b.arrivalTime||b.departureTime)-new Date(a.arrivalTime||a.departureTime))[0];
     return {available:rideModuleEnabled(),enabled:s.time.settings?.smartRideEnabled!==false,last,token:last?JSON.stringify([last.id,last.arrivalTime,last.destination,last.endOdometer]):null};
@@ -365,4 +363,3 @@
   window.addEventListener('storage',refresh);
   window.addEventListener('log-navigation-modules-change',refresh);
 })();
-
