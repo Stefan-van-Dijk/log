@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const BUILD = window.LOG_TEST_BUILD || '0.33.6';
+  const BUILD = window.LOG_TEST_BUILD || '0.33.7';
   const SHELL_VERSION = (() => {
     try {
       const script = document.currentScript || [...document.scripts].find(item => item.src.includes('shell-ui.js'));
@@ -2374,7 +2374,7 @@
         <div class="km-shell-general-intro"><p>Alle instellingen van Log staan hier bij elkaar. De onderdelen zijn gegroepeerd op wat je wilt aanpassen.</p></div>
         <section class="km-shell-settings-group" aria-labelledby="kmShellRegistrationSettingsTitle">
           <header class="km-shell-settings-group-head"><h2 id="kmShellRegistrationSettingsTitle">Registratie</h2><p>Instellingen voor de gegevens die je in Log vastlegt.</p></header>
-          ${generalSettingsAccordion('kmShellRideSettings', 'Ritten', 'Voertuig, herkenning, navigatie en bediening', (window.LogLocationActions?.settingsHtml('ride')||'')+'<div class="km-shell-settings-panel-host"></div>', 'rides')}
+          ${generalSettingsAccordion('kmShellRideSettings', '<span aria-hidden="true">🚗</span> Ritten', 'Voertuig, herkenning, navigatie en bediening', (window.LogLocationActions?.settingsHtml('ride')||'')+'<div class="km-shell-settings-panel-host"></div>', 'rides')}
           ${generalSettingsAccordion('kmShellTimeSettings', 'Tijd en taken', 'Afronding en tussenstops', '<div class="km-shell-settings-panel-host"></div>', 'time')}
           ${generalSettingsAccordion('kmShellPeopleSettings', 'Personen', 'Contactimport en uitleg', window.LogContactImport.settingsHtml())}
           ${generalSettingsAccordion('kmShellLocationSettings', 'Locaties', 'Locatiegebruik, toestemming en herkenning', (window.LogLocationActions?.settingsHtml('location')||'')+'<div class="km-shell-settings-panel-host"></div>', 'locations')}

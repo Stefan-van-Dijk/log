@@ -168,25 +168,53 @@
   // Never replace an open editor, scanner, start form or another modal.
   function smartRideState(s=snapshot()){
     const trips=s.km.trips||[],last=[...trips].sort((a,b)=>new Date(b.arrivalTime||b.departureTime)-new Date(a.arrivalTime||a.departureTime))[0];
-    return {available:rideModuleEnabled()&&(trips.length>0||!!s.km.activeTrip),enabled:s.time.settings?.smartRideEnabled!==false,last,token:last?JSON.stringify([last.id,last.arrivalTime,last.destination,last.endOdometer]):null};
+    return {available:rideModuleEnabled(),enabled:s.time.settings?.smartRideEnabled!==false,last,token:last?JSON.stringify([last.id,last.arrivalTime,last.destination,last.endOdometer]):null};
   }
   async function prepareSmartRide(){
     const s=snapshot(),smart=smartRideState(s);
     if(busy||!smart.available||!smart.enabled||!smart.last?.destination||s.km.activeTrip||localStorage.getItem('kmreg-test-shell-section-v1')!=='rides'||!window.LogRideStarter||localStorage.getItem('log-test-smart-ride-handled-v1')===smart.token)return;
     busy=true;
-    try{localStorage.setItem('log-test-smart-ride-handled-v1',smart.token);await window.LogRideStarter.prepare();}
+    try{localStorage.setItem('log-test-smart-ride-handled-v1',smart.token);await window.LogRideStarter.prepare();const panel=document.getElementById('startInlinePanel');if(panel){panel.dataset.laAutoPrepared='true';const touched=()=>{delete panel.dataset.laAutoPrepared;};panel.addEventListener('input',touched,{once:true});panel.addEventListener('change',touched,{once:true});panel.addEventListener('pointerdown',touched,{once:true});}}
     catch(error){status=error.message;refresh();}
     finally{busy=false;}
   }
+  function visible(el){
+    if(!el?.isConnected)return false;
+    for(let node=el;node;node=node.parentElement){if(node.hidden||node.getAttribute('aria-hidden')==='true')return false;const style=getComputedStyle(node);if(style.display==='none'||style.visibility==='hidden')return false;}
+    return true;
+  }
+  function uiBlocked(allowAutoRide=false){
+    const autoRide=allowAutoRide&&document.querySelector('#startInlinePanel[data-la-auto-prepared="true"]');
+    return busy||document.hidden||[...document.querySelectorAll('dialog[open],.modal:not([hidden]),[data-action="cancel-start"],[data-action="cancel-arrival"],#cancelInlineInterruption,#inlineTaskTheme')].some(el=>!(autoRide&&el.matches('[data-action="cancel-start"]'))&&visible(el))||document.body.matches('.editor-view,.km-shell-settings-open,.km-shell-drawer-open,.km-shell-drawer-peek')||(document.activeElement?.matches('input,textarea,select,[contenteditable="true"]')&&visible(document.activeElement));
+  }
+  function ruleStatus(rule){
+    if(!rule.enabled)return 'Uitgeschakeld';
+    if(rule.type==='ride'&&!rideModuleEnabled())return 'Ritten staat uit';
+    const error=problem(rule);if(error)return error;
+    if(!inTime(rule))return 'Buiten de ingestelde dagen of tijden';
+    if(!point||Date.now()-point.time>120000)return permissionState==='denied'?'Locatietoestemming nodig':'Wacht op een actuele GPS-locatie';
+    const delta=distance(point,coordinates(rule.locationId));
+    if(delta>rule.radius)return 'Buiten de locatie · circa '+Math.round(delta)+' m afstand';
+    if(delta+point.accuracy>rule.radius)return 'GPS nog te onnauwkeurig · ±'+Math.round(point.accuracy)+' m';
+    const snooze=read(SNOOZES)[rule.id];if(snooze?.mode==='location')return 'Wacht op een herkende locatiewisseling';
+    if(snooze?.until>Date.now())return 'Opnieuw vanaf '+new Date(snooze.until).toLocaleString('nl-NL',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+    if(visits()[rule.locationId]?.done?.includes(rule.id))return 'Dit bezoek al getoond · wacht op volgend bezoek';
+    if(failed.has(rule.id))return 'Kon niet worden geopend · controleer de instelling';
+    return uiBlocked(rule.type==='card')?'Wacht tot het geopende scherm gesloten is':'Klaar om te tonen';
+  }
+  function updateRuleStatus(){if(!root)return;const rules=snapshot().rules;root.querySelectorAll('[data-la-reason]').forEach(el=>{const rule=rules.find(r=>r.id===el.dataset.laReason);if(rule){const text=ruleStatus(rule);if(el.textContent!==text)el.textContent=text;}});}
   function drain(){
-    if(busy||document.hidden||document.querySelector('dialog[open],.modal:not([hidden]),[data-action="cancel-start"],[data-action="cancel-arrival"],#cancelInlineInterruption,#inlineTaskTheme')||document.body.matches('.editor-view,.km-shell-settings-open,.km-shell-drawer-open,.km-shell-drawer-peek')||document.activeElement?.matches('input,textarea,select,[contenteditable="true"]'))return;
-    const rule=eligible().find(r=>!failed.has(r.id)&&!(r.type==='ride'&&read(KM).activeTrip));if(rule)propose(rule.id);else prepareSmartRide();
+    updateRuleStatus();
+    const rules=eligible().filter(r=>!failed.has(r.id)&&!(r.type==='ride'&&read(KM).activeTrip));
+    const card=rules.find(r=>r.type==='card');if(card&&!uiBlocked(true)){propose(card.id);return;}
+    if(uiBlocked())return;
+    const rule=rules[0];if(rule)propose(rule.id);else prepareSmartRide();
   }
   setInterval(drain,1000);
   function render(){
     if(!root)return;const s=snapshot(),allowed=window.LogSwipePolicy?.enabled('locationactions')!==false;
     const rules=s.rules.filter(r=>(r.name+' '+label(r.locationId,s)+' '+targetName(r,s)).toLocaleLowerCase('nl').includes(query));
-    root.innerHTML=`<section class="cards-module"><button type="button" class="btn primary full contact-update" data-la-new>＋ Actie toevoegen</button>${rules.map(r=>`<div class="code-card-swipe" data-la-row style="--card-color:var(--accent);--card-action-count:${allowed?2:1}"><div class="code-card-actions" inert aria-hidden="true">${allowed?`<button type="button" class="swipe-delete" data-la-delete="${esc(r.id)}">Verwijder</button>`:''}<button type="button" class="swipe-edit" data-la-edit="${esc(r.id)}">Bewerk</button></div><div class="code-card-surface"><button type="button" class="code-card" data-la-open="${esc(r.id)}"><span class="code-card-copy"><strong>${esc(r.name)}${r.enabled?'':' · uit'}</strong><small>${esc(label(r.locationId,s))} · ${esc(types[r.type])}</small><small>${esc(problem(r,s)||targetName(r,s))}</small><small>${r.days.length?r.days.map(i=>days[i]).join(', '):'Elke dag'} · ${r.start?r.start+'–'+r.end:'hele dag'}</small></span></button></div></div>`).join('')||'<p class="cards-empty">Nog geen acties voor deze selectie.</p>'}</section>`;
+    root.innerHTML=`<section class="cards-module"><button type="button" class="btn primary full contact-update" data-la-new>＋ Actie toevoegen</button>${rules.map(r=>`<div class="code-card-swipe" data-la-row style="--card-color:var(--accent);--card-action-count:${allowed?2:1}"><div class="code-card-actions" inert aria-hidden="true">${allowed?`<button type="button" class="swipe-delete" data-la-delete="${esc(r.id)}">Verwijder</button>`:''}<button type="button" class="swipe-edit" data-la-edit="${esc(r.id)}">Bewerk</button></div><div class="code-card-surface"><button type="button" class="code-card" data-la-open="${esc(r.id)}"><span class="code-card-copy"><strong>${esc(r.name)}${r.enabled?'':' · uit'}</strong><small>${esc(label(r.locationId,s))} · ${esc(types[r.type])}</small><small>${esc(problem(r,s)||targetName(r,s))}</small><small>${r.days.length?r.days.map(i=>days[i]).join(', '):'Elke dag'} · ${r.start?r.start+'–'+r.end:'hele dag'}</small><small data-la-reason="${esc(r.id)}">${esc(ruleStatus(r))}</small></span></button></div></div>`).join('')||'<p class="cards-empty">Nog geen acties voor deze selectie. Voeg een actie toe en kies Kaart tonen om een kaart op locatie te openen.</p>'}</section>`;
   }
   function refresh(){updateSettings();renderSuggestions();if(!root)return;const next=JSON.stringify([snapshot(),query,status,window.LogSwipePolicy?.enabled('locationactions')]);if(next!==signature){signature=next;render();}}
   function mount(target){
