@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const BUILD = window.LOG_TEST_BUILD || '0.33.13';
+  const BUILD = window.LOG_TEST_BUILD || '0.33.14';
   const SHELL_VERSION = (() => {
     try {
       const script = document.currentScript || [...document.scripts].find(item => item.src.includes('shell-ui.js'));
@@ -1740,7 +1740,7 @@
   }
 
   function deleteLocationFromShell(id) {
-    if (readData().settings.locationDeleteEnabled === false) return;
+    if (!window.LogSwipePolicy.enabled('locations')) return;
     const finish = () => {
       renderLocations();
       syncChrome();
@@ -2381,7 +2381,7 @@
         </section>
         <section class="km-shell-settings-group" aria-labelledby="kmShellAppSettingsTitle">
           <header class="km-shell-settings-group-head"><h2 id="kmShellAppSettingsTitle">App</h2><p>Bepaal per onderdeel waar het staat en in welke volgorde.</p></header>
-          ${generalSettingsAccordion('kmShellSwipeSettings', 'Bediening', 'Dezelfde swipe-acties in alle onderdelen', `<label class="log-swipe-setting"><input type="checkbox" id="logSwipeLifecycle" ${window.LogSwipePolicy.masterEnabled()?'checked':''}><span>Archiveren en verwijderen toestaan<small>Een korte veeg naar links bewerkt de regel. Veeg verder om te archiveren of verwijderen. Uitgeschakeld blijft bewerken mogelijk. Bestaande beperkingen per onderdeel blijven gelden.</small></span></label>`)}
+          ${generalSettingsAccordion('kmShellSwipeSettings', 'Bediening', 'Dezelfde swipe-acties in alle onderdelen', `<label class="log-swipe-setting"><input type="checkbox" id="logSwipeLifecycle" ${window.LogSwipePolicy.masterEnabled()?'checked':''}><span>Archiveren en verwijderen toestaan<small>Een korte veeg naar links bewerkt de regel. Veeg verder om te archiveren of verwijderen. Uitgeschakeld blijft bewerken mogelijk. Klap hieronder open om dit per onderdeel te bepalen.</small></span></label><details id="logSwipeModules"><summary>Per onderdeel instellen</summary><p class="cards-notice">De hoofdschakelaar gaat voor. Je keuzes hieronder blijven bewaard als die uitstaat.</p>${Object.entries(window.LogSwipePolicy.modules).map(([id,label])=>`<label class="log-swipe-setting"><input type="checkbox" data-log-swipe-module="${id}" ${window.LogSwipePolicy.configured(id)?'checked':''}><span>${esc(label)}</span></label>`).join('')}</details>`)}
           ${generalSettingsAccordion('kmShellModuleSettingsAccordion', 'Onderdelen en volgorde', 'Zet onderbalk en menu per onderdeel aan of uit', '<div id="kmShellModuleSettings" class="km-shell-module-settings"></div>')}
         </section>
         <section class="km-shell-settings-group" aria-labelledby="kmShellDataSettingsTitle">
@@ -2435,6 +2435,11 @@
       }
       saveModuleConfiguration(config, item.id, toggle.dataset.surface, showBottomBar);
     });
+    content.querySelectorAll('[data-log-swipe-module]').forEach(input=>input.addEventListener('change',event=>{
+      const module=input.dataset.logSwipeModule;
+      window.dispatchEvent(new CustomEvent('log-swipe-policy-change',{detail:{module,enabled:input.checked}}));
+      input.checked=window.LogSwipePolicy.configured(module);
+    }));
     content.querySelector('#logSwipeLifecycle')?.addEventListener('change',event=>{window.dispatchEvent(new CustomEvent('log-swipe-policy-change',{detail:{enabled:event.target.checked}}));event.target.checked=window.LogSwipePolicy.masterEnabled();});
     content.querySelector('[data-general-action="backup-export"]')?.addEventListener('click', () => {
       const status = $('#kmShellBackupStatus');

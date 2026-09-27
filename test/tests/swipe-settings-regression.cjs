@@ -1,0 +1,25 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),{JSDOM}=require('jsdom');
+const base=path.resolve(__dirname,'..'),dom=new JSDOM('<body></body>',{url:'https://example.test',runScripts:'outside-only'}),w=dom.window;
+const KM='kmreg-test-v4-data',TIME='urenregistratie.test.pwa.v1',get=key=>JSON.parse(w.localStorage.getItem(key));
+w.localStorage.setItem(KM,JSON.stringify({settings:{swipeDeleteEnabled:false,locationDeleteEnabled:false},trips:[{id:'keep'}]}));
+w.localStorage.setItem(TIME,JSON.stringify({settings:{swipeDeleteEnabled:false},entries:[{id:'keep'}]}));
+w.eval(fs.readFileSync(base+'/swipe-policy.js','utf8'));const p=w.LogSwipePolicy;
+for(const name of ['rides','locations','time','themes','people'])assert.equal(p.configured(name),false);
+assert.equal(p.configured('cards'),true);
+const html=fs.readFileSync(base+'/index.html','utf8'),handler=html.split('\n').find(l=>l.startsWith("window.addEventListener('log-swipe-policy-change'"));
+w.data=get(KM);w.reloadKilometerData=()=>w.data=get(KM);w.save=()=>w.localStorage.setItem(KM,JSON.stringify(w.data));w.render=()=>{};w.toast=()=>{};w.eval(handler);
+const change=detail=>w.dispatchEvent(new w.CustomEvent('log-swipe-policy-change',{detail}));
+change({module:'locations',enabled:true});assert.equal(p.enabled('locations'),true);assert.equal(p.enabled('rides'),false);
+change({module:'people',enabled:true});assert.equal(p.enabled('people'),true);assert.equal(p.enabled('time'),false);
+for(const name of Object.keys(p.modules)){change({module:name,enabled:true});assert.equal(p.enabled(name),true);change({module:name,enabled:false});assert.equal(p.enabled(name),false);}
+change({module:'cards',enabled:true});change({enabled:false});assert.equal(p.configured('cards'),true);assert.equal(p.enabled('cards'),false);
+change({enabled:true});assert.equal(p.enabled('cards'),true);assert.equal(p.enabled('locations'),false);
+const before=w.localStorage.getItem(KM);change({module:'unknown',enabled:true});assert.equal(w.localStorage.getItem(KM),before);
+assert.equal(get(KM).settings.swipeDeleteEnabled,false);assert.equal(get(TIME).settings.swipeDeleteEnabled,false);assert.equal(get(KM).trips[0].id,'keep');assert.equal(get(TIME).entries[0].id,'keep');
+assert.doesNotMatch(html,/name="(?:swipeDeleteEnabled|locationDeleteEnabled)"/);
+assert.doesNotMatch(fs.readFileSync(base+'/time/app.js','utf8'),/id="swipeDeleteEnabled"/);
+const shell=fs.readFileSync(base+'/shell-ui.js','utf8'),line=shell.split('\n').find(l=>l.includes("generalSettingsAccordion('kmShellSwipeSettings'"));
+w.generalSettingsAccordion=(id,title,subtitle,body)=>body;w.esc=String;
+const expression=line.trim().slice(2,-1);w.document.body.innerHTML=w.eval(expression);
+assert.equal(w.document.querySelectorAll('[data-log-swipe-module]').length,7);assert.equal(w.document.querySelector('#logSwipeModules').open,false);
+console.log('Central swipe settings: legacy defaults, independent modules, master switch, retained choices and one settings UI passed.');dom.window.close();

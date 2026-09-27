@@ -563,7 +563,7 @@
       shell.dataset.themeId = entry.themeId || '';
       shell.dataset.subthemeId = entry.subthemeId || '';
       shell.style.setProperty('--item-accent', themeColor(entry.themeId || entry.themeName));
-      const canDelete = state.settings.swipeDeleteEnabled !== false && (window.LogSwipePolicy?.enabled('time') ?? true);
+      const canDelete = (window.LogSwipePolicy?.enabled('time') ?? state.settings.swipeDeleteEnabled !== false);
       const canReopen = state.timer.status === 'inactive' && state.lastCompletion?.type === 'task' && state.lastCompletion.entryId === id && entry.activityType !== 'interruption';
       const actionCount = (canDelete ? 1 : 0) + 1;
       shell.innerHTML = `

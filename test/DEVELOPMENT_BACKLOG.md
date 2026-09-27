@@ -148,6 +148,8 @@ Bij iedere nieuwe ontwikkeling of wijziging:
 
 # Controle acties en sublocaties — 27 september 2026
 
+- 0.33.14: verwijderen/archiveren centraal onder Bediening: één hoofdschakelaar plus uitklapbare keuzes voor zeven modules. Losse bediening bij Ritten/Tijd en taken/Locaties verwijderd. Optionele settings.swipeLifecycleModules in bestaande kilometeropslag; bij ontbrekende keuze blijven oude vlaggen leidend. Hoofdschakelaar wist geen modulekeuzes. Legacy vlaggen en gebruikersdata blijven bewaard; alle relevante uitvoer- en editorcontroles gebruiken dezelfde policy. Gerichte module-swipe- en centrale instellingtests geslaagd.
+
 - 0.33.13: direct pauzeren/hervatten van acties (geen onmiddellijke uitvoering bij hervatten); Log-QR inhoudsvoorbeeld met terugkeer naar behouden invoer vóór kaartaanmaak; samenvatting van actieve type-/locatie-/zoekfilters en één wisknop. Gerichte actie-UI/overgangs-, Log-code- en filtercontroles geslaagd. Geen nieuwe opslagsleutels; productie ongewijzigd.
 
 - 0.33.12: compacte actiestatussen en detailweergave via aantikken. Details tonen reden, GPS-herkenning/nauwkeurigheid, straal, dagen, tijdvak, volgende mogelijkheid en laatste weergave/voorbereiding binnen de huidige sessie (geen nieuwe opslagsleutels). Swipe-bewerken/reset behouden. Detailvenster beschermt tegen automatisch openen van een andere actie. Actie-UI, overgangs- en herhaalcontroles geslaagd.

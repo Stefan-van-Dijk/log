@@ -4,8 +4,8 @@
   const BUILD=(()=>{
     try{
       const script=document.currentScript||[...document.scripts].find(item=>item.src.includes('shell-ui-stable.js'));
-      return window.LOG_TEST_BUILD||new URL(script?.src||location.href).searchParams.get('v')||'0.33.13';
-    }catch(_){return window.LOG_TEST_BUILD||'0.33.13';}
+      return window.LOG_TEST_BUILD||new URL(script?.src||location.href).searchParams.get('v')||'0.33.14';
+    }catch(_){return window.LOG_TEST_BUILD||'0.33.14';}
   })();
   const DATA_KEY='kmreg-test-v4-data';
   const SECTION_KEY='kmreg-test-shell-section-v1';
@@ -191,8 +191,7 @@
     const snapshot=readData();
     const locationSummary=$('#kmShellLocationSettings .km-shell-settings-accordion-title small',content);
     if(locationSummary){
-      const deleteEnabled=snapshot.settings.locationDeleteEnabled!==false;
-      locationSummary.textContent=`Herkenning ${Math.round(radius(snapshot))} m · verwijderen ${deleteEnabled?'aan':'uit'}`;
+      locationSummary.textContent=`Herkenning ${Math.round(radius(snapshot))} m`;
     }
     const duplicate=content.querySelector('#kmShellLocationSettings .km-shell-settings-panel-host>#app details.accordion.km-shell-settings-single>summary');
     if(duplicate)duplicate.hidden=true;
