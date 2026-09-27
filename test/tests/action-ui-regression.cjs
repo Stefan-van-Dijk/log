@@ -41,5 +41,14 @@ const tick=()=>new Promise(r=>setTimeout(r,5));
  touch('touchstart',surface,100);touch('touchmove',surface,180);assert.match(surface.style.transform,/80px/);now+=60000;gps();assert.equal(surface.isConnected,true,'GPS refresh must not replace a dragged row');touch('touchend',surface,180);
  assert.equal(resets,1);assert.equal(get('log-test-action-snoozes-v1').r,undefined);assert.equal(api.eligible().length,0);assert.equal(d.querySelector('#laResetNotice').hidden,false);
  d.querySelector('[data-la-open]').click();assert.equal(d.querySelector('dialog'),null,'touch release cannot open editor');assert.equal(cards+rides,0,'reset never runs an action');
+
+ w.LogCardsUI.close();put([rule('detail')]);gps();api.mount(d.querySelector('#root'));
+ api.details('detail');assert.ok(d.querySelector('[data-la-details]'));
+ assert.match(d.querySelector('[data-la-details]').textContent,/Locatie herkend/);
+ assert.match(d.querySelector('[data-la-details]').textContent,/nauwkeurig/);
+ assert.match(d.querySelector('[data-la-details]').textContent,/Niet geregistreerd/);
+ d.querySelector('[data-la-detail-edit]').click();assert.ok(d.querySelector('form'));w.LogCardsUI.close();
+ assert.equal(api.compactStatus({...rule(),enabled:false}),'Uitgeschakeld');
+ api.snoozeCard('c','halfHour',now,['detail']);assert.equal(api.compactStatus(rule('detail')),'Over 30 min');api.refresh();assert.equal(d.querySelector('[data-la-next]').textContent,'Over 30 min');
  console.log('Action UI passed: conditional fields including computed CSS, compact typed rows, irrelevant values cleared, native touch reset, cancellation, GPS refresh and click suppression.');w.close();
 })().catch(e=>{console.error(e);w.close();process.exitCode=1});

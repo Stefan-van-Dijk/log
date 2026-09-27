@@ -7,7 +7,7 @@
   const types={ride:'Rit voorbereiden',task:'Taak voorbereiden',card:'Kaart tonen'};
   const typeUI={ride:{label:'Rit',color:'#3984d8',path:'M5 11l2-6h10l2 6M5 11h14v7H5zM7 18v2m10-2v2M8 14h1m6 0h1'},task:{label:'Taak',color:'#b17a27',path:'M8 5H5v16h14V5h-3M8 3h8v4H8zM8 14l3 3 5-6'},card:{label:'Kaart',color:'#8d62cc',path:'M3 5h18v14H3zM7 9h4M7 14h2m5-4v5m3-5v5'}};
   const days=['Zo','Ma','Di','Wo','Do','Vr','Za'];
-  const failed=new Set();
+  const failed=new Set(),lastHandled=new Map();
   let permissionState='unknown',permissionHandle=null;
   function permissionText(){return !navigator.geolocation?'Locatiebepaling niet beschikbaar':({granted:'Toegestaan',denied:'Niet toegestaan · pas locatietoegang aan in je browser- of telefooninstellingen',prompt:'Nog toestemming nodig · kies Opnieuw controleren',unknown:'Toestemmingsstatus niet beschikbaar in deze browser'})[permissionState]||'Onbekend';}
   function settingsHtml(kind){
@@ -189,7 +189,8 @@
       return (includeHandled||edge?.ready)&&edge?.inside===true&&r.enabled&&(r.type!=='ride'||rideModuleEnabled())&&!problem(r,s)&&inTime(r,new Date(now))&&(includeHandled||(!suppressed&&!v?.done?.includes(r.id)))&&pos&&distance(point,pos)+point.accuracy<=r.radius;
     });
   }
-  function done(rule){
+  function done(rule,performed=false){
+    if(performed)lastHandled.set(rule.id,Date.now());
     const edges=read(EDGES);if(edges[rule.id]){edges[rule.id].ready=false;saveState(EDGES,edges);}
     if(rule.repeatMode&&rule.repeatMode!=='visit'){suppressRules([rule],rule.repeatMode);return;}
     const state=visits(),v=state[rule.locationId];if(v){v.done=[...new Set([...(v.done||[]),rule.id])];localStorage.setItem(VISITS,JSON.stringify(state));}refresh();
@@ -230,6 +231,7 @@
     // Alleen een actie die de kaart zelf opent mag zijn eigen herhaalstatus wijzigen.
   }
   function recordFailure(rule,error){
+    lastHandled.delete(rule.id);
     const state=visits(),snoozes=read(SNOOZES),edges=read(EDGES);
     for(const visit of Object.values(state))if(visit.done)visit.done=visit.done.filter(id=>id!==rule.id);
     delete snoozes[rule.id];
@@ -243,9 +245,9 @@
     try {
       if(rule.type==='ride'){
         if(read(KM).activeTrip)throw Error('Rond eerst de actieve rit af.');
-        await window.LogRideStarter.prepare(rule.selection==='smart'?null:rule.targetId);done(rule);return;
+        await window.LogRideStarter.prepare(rule.selection==='smart'?null:rule.targetId);done(rule,true);return;
       }
-      if(rule.type==='card'){if(window.LogCardsModule.show(rule.targetId)===false)throw Error('Kaart kon niet worden geopend.');done(rule);return;}
+      if(rule.type==='card'){if(window.LogCardsModule.show(rule.targetId)===false)throw Error('Kaart kon niet worden geopend.');done(rule,true);return;}
       window.LogTimeModule.reloadFromStorage?.({view:'home'});
       const suggested=rule.selection==='smart'?window.LogTimeModule.suggestForAction():{themeId:rule.targetId,subthemeId:rule.subthemeId};
       if(!suggested)throw Error('Er is nog geen thema beschikbaar voor een slim voorstel.');
@@ -255,7 +257,7 @@
       if(!inactive&&!active)throw Error('Rond eerst de openstaande taak of tussenstop af.');
       const buttons=inactive?'<button type="button" class="btn primary full" data-la-start="start">Start taak</button>':active?'<button type="button" class="btn primary full" data-la-start="interrupt">Start als tussenstop</button><button type="button" class="btn secondary full" data-la-start="replace">Huidige afronden en nieuwe starten</button>':'<p class="cards-notice">Rond eerst de openstaande taak of tussenstop af. Er wordt niets gewijzigd.</p>';
       const d=window.LogCardsUI.sheet(rule.name,`<p>Taak: <strong>${esc(targetName(chosen))}</strong></p><p class="cards-notice">${esc(label(rule.locationId))}</p>${active?`<p>Er loopt: <strong>${esc(timer.themeName)}</strong></p><p class="cards-notice">Een tussenstop gebruikt je ingestelde aftrek en afronding. Daarna ga je verder met de huidige taak. Bij afronden wordt de huidige taak met de ingestelde afronding opgeslagen, zonder inzet van anderen.</p>`:''}<div class="la-task-actions">${buttons}</div>`);
-      done(rule);
+      done(rule,true);
       d.querySelectorAll('[data-la-start]').forEach(button=>button.onclick=()=>{
         if(busy)return;busy=true;button.disabled=true;
         try{const current=eligible(Date.now(),true).find(r=>r.id===id);if(!current||JSON.stringify(current)!==original)throw Error('Dit voorstel is niet meer actueel. Sluit het en controleer de actie opnieuw.');
@@ -343,9 +345,55 @@
     }
     return ruleStatus(rule);
   }
+  function compactStatus(rule,now=Date.now()){
+    if(!rule.enabled)return 'Uitgeschakeld';
+    if(rule.type==='ride'&&!rideModuleEnabled())return 'Ritten staat uit';
+    if(problem(rule))return 'Controleer koppeling';
+    if(failed.has(rule.id))return 'Uitvoering mislukt';
+    const snooze=read(SNOOZES)[rule.id];
+    if(snooze?.mode==='location')return 'Wacht op locatiewisseling';
+    const next=nextWindow(rule,Math.max(now,snooze?.until||0));
+    if(next>now){
+      const minutes=Math.ceil((next-now)/60000);
+      return minutes<60?'Over '+minutes+' min':new Date(next).toDateString()===new Date(now).toDateString()?'Vanaf '+new Date(next).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'}):'Vanaf '+new Date(next).toLocaleString('nl-NL',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+    }
+    if(!point||now-point.time>120000)return permissionState==='denied'?'Locatietoestemming nodig':'Wacht op GPS';
+    const delta=distance(point,coordinates(rule.locationId));
+    if(delta>rule.radius)return 'Wacht op aankomst';
+    if(delta+point.accuracy>rule.radius)return 'GPS te onnauwkeurig';
+    if(!read(EDGES)[rule.id]?.ready)return rule.start||rule.days?.length?'Wacht op aankomst of tijdvak':'Wacht op aankomst';
+    return uiBlocked(rule.type==='card')?'Wacht op sluiten scherm':'Klaar om te tonen';
+  }
+  function detailHtml(rule){
+    const now=Date.now(),fresh=point&&now-point.time<=120000,pos=coordinates(rule.locationId);
+    const delta=fresh&&pos?distance(point,pos):null;
+    const recognized=delta===null?'Nog niet te bepalen':delta+point.accuracy<=rule.radius?'Ja':delta-point.accuracy>rule.radius?'Nee':'Nog onzeker';
+    const last=lastHandled.get(rule.id);
+    const rows=[
+      ['Status',ruleStatus(rule)],
+      ['Locatie',label(rule.locationId)],
+      ['Locatie herkend',recognized],
+      ['GPS',fresh?'±'+Math.round(point.accuracy)+' m nauwkeurig'+(delta!==null?' · circa '+Math.round(delta)+' m van locatie':''):'Geen actuele GPS-meting'],
+      ['Herkenningsstraal',rule.radius+' m'],
+      ['Dagen',rule.days?.length?rule.days.map(day=>days[day]).join(', '):'Elke dag'],
+      ['Tijdvak',rule.start?rule.start+' – '+rule.end:'Hele dag'],
+      ['Laatst getoond / voorbereid (sessie)',last?new Date(last).toLocaleString('nl-NL'):'Niet geregistreerd'],
+      ['Volgende mogelijkheid',availability(rule)]
+    ];
+    return '<dl>'+rows.map(([title,value])=>'<dt style="font-weight:600;margin-top:12px">'+esc(title)+'</dt><dd style="margin:4px 0;color:var(--muted)">'+esc(value)+'</dd>').join('')+'</dl>';
+  }
+  function details(id){
+    const rule=snapshot().rules.find(r=>r.id===id);if(!rule)return;
+    const panel=window.LogCardsUI.sheet(rule.name,'<p>'+esc(description(rule,snapshot()))+'</p><div data-la-details="'+esc(id)+'">'+detailHtml(rule)+'</div><p class="cards-notice">Automatische acties wachten zolang dit venster geopend is. De laatste uitvoering wordt alleen voor deze geopende sessie bijgehouden.</p><button type="button" class="btn secondary full" data-la-detail-edit>Bewerken</button>');
+    panel.querySelector('[data-la-detail-edit]').onclick=()=>edit(id);
+  }
   function updateRuleStatus(){
     const rules=snapshot().rules;
-    root?.querySelectorAll('[data-la-next]').forEach(el=>{const rule=rules.find(r=>r.id===el.dataset.laNext);if(rule){const text=availability(rule);if(el.textContent!==text)el.textContent=text;}});
+    document.querySelectorAll('[data-la-details]').forEach(el=>{
+      const rule=rules.find(r=>r.id===el.dataset.laDetails),html=rule?detailHtml(rule):'<p>Deze actie is verwijderd.</p>';
+      if(el.innerHTML!==html)el.innerHTML=html;
+    });
+    root?.querySelectorAll('[data-la-next]').forEach(el=>{const rule=rules.find(r=>r.id===el.dataset.laNext);if(rule){const text=compactStatus(rule);if(el.textContent!==text)el.textContent=text;}});
     document.querySelectorAll('[data-la-editor-status][data-rule-id]').forEach(el=>{const rule=rules.find(r=>r.id===el.dataset.ruleId);if(rule){const text=availability(rule);if(el.textContent!==text)el.textContent=text;}});
   }
   function drain(){
@@ -371,18 +419,18 @@
   function render(){
     if(!root)return;const s=snapshot(),allowed=window.LogSwipePolicy?.enabled('locationactions')!==false;
     const rules=s.rules.filter(r=>(r.name+' '+label(r.locationId,s)+' '+targetName(r,s)).toLocaleLowerCase('nl').includes(query));
-    root.innerHTML=`<section class="cards-module"><button type="button" class="btn primary full contact-update" data-la-new>＋ Actie toevoegen</button>${rules.map(r=>`<div class="code-card-swipe" data-la-row data-la-type="${esc(r.type)}" style="--card-color:${(typeUI[r.type]||typeUI.card).color};--card-action-count:${allowed?2:1}"><div class="la-reset-actions" inert aria-hidden="true"><button type="button" class="swipe-reopen" data-la-reset="${esc(r.id)}" aria-label="Actie opnieuw klaarzetten">Reset</button></div><div class="code-card-actions" inert aria-hidden="true">${allowed?`<button type="button" class="swipe-delete" data-la-delete="${esc(r.id)}">Verwijder</button>`:''}<button type="button" class="swipe-edit" data-la-edit="${esc(r.id)}">Bewerk</button></div><div class="code-card-surface"><button type="button" class="code-card" data-la-open="${esc(r.id)}" aria-label="${esc(r.name)}${r.enabled?'':' · uitgeschakeld'}"><span class="code-card-icon" role="img" aria-label="${(typeUI[r.type]||typeUI.card).label}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${(typeUI[r.type]||typeUI.card).path}"/></svg></span><span class="code-card-copy"><strong>${esc(r.name)}</strong><small>${esc(description(r,s))}</small><small class="la-next" data-la-next="${esc(r.id)}">${esc(availability(r))}</small></span></button></div></div>`).join('')||'<p class="cards-empty">Nog geen acties voor deze selectie. Voeg een actie toe en kies Kaart tonen om een kaart op locatie te openen.</p>'}</section>`;
+    root.innerHTML=`<section class="cards-module"><button type="button" class="btn primary full contact-update" data-la-new>＋ Actie toevoegen</button>${rules.map(r=>`<div class="code-card-swipe" data-la-row data-la-type="${esc(r.type)}" style="--card-color:${(typeUI[r.type]||typeUI.card).color};--card-action-count:${allowed?2:1}"><div class="la-reset-actions" inert aria-hidden="true"><button type="button" class="swipe-reopen" data-la-reset="${esc(r.id)}" aria-label="Actie opnieuw klaarzetten">Reset</button></div><div class="code-card-actions" inert aria-hidden="true">${allowed?`<button type="button" class="swipe-delete" data-la-delete="${esc(r.id)}">Verwijder</button>`:''}<button type="button" class="swipe-edit" data-la-edit="${esc(r.id)}">Bewerk</button></div><div class="code-card-surface"><button type="button" class="code-card" data-la-open="${esc(r.id)}" aria-label="${esc(r.name)}${r.enabled?'':' · uitgeschakeld'}"><span class="code-card-icon" role="img" aria-label="${(typeUI[r.type]||typeUI.card).label}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${(typeUI[r.type]||typeUI.card).path}"/></svg></span><span class="code-card-copy"><strong>${esc(r.name)}</strong><small>${esc(description(r,s))}</small><small class="la-next" data-la-next="${esc(r.id)}">${esc(compactStatus(r))}</small></span></button></div></div>`).join('')||'<p class="cards-empty">Nog geen acties voor deze selectie. Voeg een actie toe en kies Kaart tonen om een kaart op locatie te openen.</p>'}</section>`;
   }
   function refresh(){observeTransitions();updateRuleStatus();updateSettings();renderSuggestions();if(!root)return;const next=JSON.stringify([snapshot(),query,window.LogSwipePolicy?.enabled('locationactions')]);if(next!==signature){signature=next;render();}}
   function mount(target){
     if(root===target&&root.querySelector('[data-la-new]'))return;root=target;signature='';
     root.onclick=e=>{const b=e.target.closest('button');if(!b)return;if(b.hasAttribute('data-la-open')&&Date.now()<Math.max(suppressOpenUntil,Number(b.closest('[data-la-row]')?.dataset.suppressUntil||0)))return;
-      try{if(b.dataset.laReset)reset(b.dataset.laReset);if(b.hasAttribute('data-la-new'))edit();if(b.dataset.laEdit||b.dataset.laOpen)edit(b.dataset.laEdit||b.dataset.laOpen);
+      try{if(b.dataset.laReset)reset(b.dataset.laReset);if(b.hasAttribute('data-la-new'))edit();if(b.dataset.laEdit)edit(b.dataset.laEdit);if(b.dataset.laOpen)details(b.dataset.laOpen);
         if(b.dataset.laDelete&&window.LogSwipePolicy?.enabled('locationactions')!==false&&confirm('Deze actie verwijderen?'))write(raw=>{raw.locationActions=(raw.locationActions||[]).filter(r=>r.id!==b.dataset.laDelete);});
       }catch(error){window.LogCardsUI.sheet('Actie niet bijgewerkt',`<p>${esc(error.message)}</p>`);}
     };root.onchange=null;refresh();
   }
-  window.LogLocationActions={mount,refresh,edit,reset,settingsHtml,bindSettings,drain,snoozeCard,decorateCard,smartRideState,prepareSmartRide,inTime,nextWindow,availability,coordinates,assess,eligible,propose,snapshot,validate,unmount(){if(root){window.LogCardsUI.close();root.onclick=null;root.onchange=null;root=null;query='';}},search(value){const next=String(value||'').toLocaleLowerCase('nl');if(next!==query){query=next;signature='';refresh();}return root?.querySelectorAll('[data-la-row]').length||0;}};
+  window.LogLocationActions={mount,refresh,edit,reset,details,compactStatus,settingsHtml,bindSettings,drain,snoozeCard,decorateCard,smartRideState,prepareSmartRide,inTime,nextWindow,availability,coordinates,assess,eligible,propose,snapshot,validate,unmount(){if(root){window.LogCardsUI.close();root.onclick=null;root.onchange=null;root=null;query='';}},search(value){const next=String(value||'').toLocaleLowerCase('nl');if(next!==query){query=next;signature='';refresh();}return root?.querySelectorAll('[data-la-row]').length||0;}};
   document.addEventListener('visibilitychange',()=>{if(document.hidden)stop();else start();});
   window.addEventListener('pagehide',stop);window.addEventListener('pageshow',start);
   for(const event of ['log-time-state-change','log-km-state-change','log-shell-view-refresh'])window.addEventListener(event,refresh);
