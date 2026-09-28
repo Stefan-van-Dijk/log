@@ -8,7 +8,7 @@
   let busy=false;
 
   const $=(selector,root=document)=>root.querySelector(selector);
-  const esc=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[char]));
+  const esc=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 
   function rawState(){
     try{
@@ -65,7 +65,7 @@
   function canShare(surface){return enabled()&&Boolean(resolveSurface(surface));}
 
   function closeDialog(){
-    document.querySelectorAll('.log-public-dialog').forEach(dialog=>{try{dialog.close();}catch(_){}dialog.remove();});
+    document.querySelectorAll('.log-public-dialog').forEach(item=>{try{item.close();}catch(_){}item.remove();});
     document.body.classList.remove('cards-dialog-open');
   }
   function dialog(title,body){
@@ -99,12 +99,8 @@
     });
   }
 
-  function canonical(bundle){
-    return JSON.stringify({schema:bundle.schema,kind:bundle.kind,title:bundle.title,root:bundle.root,objects:bundle.objects});
-  }
-  function remoteCanonical(remote){
-    return JSON.stringify({schema:remote?.schema,kind:remote?.kind,title:remote?.title,root:remote?.root,objects:remote?.objects});
-  }
+  function canonical(bundle){return JSON.stringify({schema:bundle.schema,kind:bundle.kind,title:bundle.title,root:bundle.root,objects:bundle.objects});}
+  function remoteCanonical(remote){return JSON.stringify({schema:remote?.schema,kind:remote?.kind,title:remote?.title,root:remote?.root,objects:remote?.objects});}
   function storeSignature(identifier,signature){
     const current=rawState();
     if(!current.published?.[identifier])return;
@@ -140,20 +136,22 @@
     busy=true;
     try{
       const bundle=window.LogSharing.buildBundle(type,id);
-      const before=published(type,id)?.revision||0;
-      const progress=dialog('Publiceren',`<div class="log-public-progress"><span></span><p>Gegevens worden gepubliceerd…</p></div>`);
+      const before=Number(published(type,id)?.revision)||0;
+      const progress=dialog('Publiceren','<div class="log-public-progress"><span></span><p>Gegevens worden gepubliceerd…</p></div>');
       await window.LogSharing.publish(type,id,null);
       document.querySelectorAll('.log-share-dialog').forEach(item=>item.remove());
       if(progress.isConnected)closeDialog();
       const current=rawState();
       if(!String(current.key||'').trim()){current.enabled=false;saveRaw(current);syncSettings();return false;}
       const info=current.published?.[bundle.id];
-      if(!info||Number(info.revision||0)<Number(before||0)){dialog('Publiceren niet gelukt','<p>De publicatie is niet bevestigd. Probeer het opnieuw.</p>');return false;}
+      const after=Number(info?.revision)||0;
+      if(!info||after<=before){dialog('Publiceren niet gelukt','<p>De server heeft geen nieuwe revisie bevestigd. Probeer het opnieuw.</p>');return false;}
       info.signature=canonical(bundle);
       current.published[bundle.id]=info;
       saveRaw(current);
       return true;
     }catch(error){
+      document.querySelectorAll('.log-share-dialog').forEach(item=>item.remove());
       dialog('Publiceren niet gelukt',`<p>${esc(error?.message||'Onbekende fout.')}</p>`);
       return false;
     }finally{busy=false;}
