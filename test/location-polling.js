@@ -2,6 +2,14 @@
   'use strict';
   const listeners=new Set(),KM='kmreg-test-v4-data';
   let latest=null,pending=null,lastAttempt=0,visibleTrip='',started=false;
+  function loadSharing(){
+    if(document.querySelector('script[data-log-sharing]'))return;
+    const script=document.createElement('script');
+    script.src='./sharing.js?v=0.34.6';
+    script.async=false;
+    script.dataset.logSharing='1';
+    document.head.appendChild(script);
+  }
   function trip(){try{return JSON.parse(localStorage.getItem(KM)||'{}').activeTrip?.id||'';}catch(_){return '';}}
   function interval(){return trip()?60000:6000;}
   function request({maxAge=0}={}){
@@ -31,5 +39,6 @@
   window.addEventListener('log-km-state-change',()=>poll());
   window.addEventListener('pageshow',start);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)poll(true);});
+  loadSharing();
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();
