@@ -6,7 +6,7 @@
   function loadSharingUI(){
     if(document.querySelector('script[data-log-sharing-ui]'))return;
     const ui=document.createElement('script');
-    ui.src='./sharing-private-ui.js?v=0.34.10';
+    ui.src='./sharing-private-ui.js?v=0.34.11';
     ui.async=false;
     ui.dataset.logSharingUi='1';
     document.head.appendChild(ui);
