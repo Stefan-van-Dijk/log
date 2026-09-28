@@ -2,7 +2,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const {JSDOM}=require('jsdom');const base=path.resolve(__dirname,'..');
 const dom=new JSDOM('<body></body>',{runScripts:'outside-only',url:'https://example.test'}),w=dom.window,d=w.document;
 w.TextEncoder=TextEncoder;let task=null,ride=null,generated=null;
-w.LogTimeModule={reloadFromStorage(){},startFromCard(a){task=a}};w.LogRideStarter={async prepare(id){ride=id}};
+w.LogTimeModule={reloadFromStorage(){},prepareFromCode(a){task=a}};w.LogRideStarter={async prepare(id){ride=id}};
 w.LogCardsUI={sheet(title,body){d.body.innerHTML=`<section><h2>${title}</h2>${body}</section>`;return d.querySelector('section')},close(){d.body.innerHTML=''},edit(id,card){generated=card}};
 w.eval(fs.readFileSync(path.join(base,'log-code.js'),'utf8'));
 const api=w.LogCode,km='kmreg-test-v4-data',time='urenregistratie.test.pwa.v1',get=k=>JSON.parse(w.localStorage.getItem(k)||'{}');

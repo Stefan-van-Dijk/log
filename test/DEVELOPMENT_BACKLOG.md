@@ -1,5 +1,17 @@
 # Log — Ontwikkelbacklog
 
+## Test 0.34.3 — KIP-configuratie en compacte taak-QR
+
+Geïmplementeerd en gericht gecontroleerd in `test/**`; productie blijft 0.34.2.
+
+- Kaarten → Log-code maken → Thema-configuratie (KIP): vier afzonderlijke hoofdthema-voorinstellingen; optionele subthema’s per regel. Eerst controleren, daarna expliciet lokaal bewaren en configuratie-QR maken.
+- Configuratie blijft achterwaarts compatibel `log-code` versie 1 (`entities`, lege `actions`). Herhaald importeren voegt geen duplicaten toe; lokale namen/kleuren en bestaande registraties blijven behouden. Een bestaande subthema-ID wordt nooit naar een ander thema verplaatst.
+- Kaarten → Log-code maken → Compacte actie-QR: hoofdthema en optioneel één bijbehorend subthema. Payload `{"kind":"log-task","version":1,"id":"KIP1a0000000"}`; tevens herkenning van `log-task:KIP1a0000000`. ID exact 12 ASCII letters/cijfers/underscore/koppelteken.
+- Nieuwe configuraties krijgen stabiele `logCodeId`-waarden. Voor bestaande langere IDs blijft `logCodeId` intact en wordt aanvullend een 12-teken `taskCodeId` bewaard/exporteerd. Conflicterende koppelingen worden afgewezen, niet overschreven.
+- Scan → Taak starten → normale Tijd/Taken-startdialoog → Start. Alleen hoofdthema is geldig; een eerder gesuggereerd subthema wordt niet overgenomen. Subthemanaam wordt als bewerkbare notitie ingevuld. Een actieve taak (ook uit een andere tab) wordt niet vervangen.
+- Onbekende code toont “Deze Log-code is nog niet geconfigureerd.” met Terug.
+- Checks: `task-code-regression.cjs`, `log-code-regression.cjs`, `action-task-regression.cjs` en JavaScript-syntax. Camera/iPhone-PWA praktijkcontrole nog uitvoeren.
+
 Dit document is de vaste ontwikkel- en wensenlijst voor de testomgeving van **Log**.
 
 ## Werkwijze
