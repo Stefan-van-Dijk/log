@@ -8,15 +8,18 @@
   const VERTICAL_DOMINANCE=1.35;
   const EDIT_RELEASE_THRESHOLD=36;
   const LIFECYCLE_RELEASE_BUFFER=18;
+  const SHARE_RELEASE_THRESHOLD=36;
   let gesture=null;
 
   const $=(selector,root=document)=>root.querySelector(selector);
 
   function actionWidth(){return innerWidth<=520?78:84;}
+  function shareAvailable(ctx){return Boolean(ctx?.surface&&window.LogSharingUI?.canShare?.(ctx.surface));}
 
   function contextFor(surface){
     if(surface.matches('.code-card-surface')){
       const row=surface.closest('.code-card-swipe');
+      if(!row)return null;
       if(row.hasAttribute('data-la-row'))return {row,surface,reset:$('[data-la-reset]',row),edit:$('[data-la-edit]',row),lifecycle:$('[data-la-delete]',row),module:'locationactions'};
       if(row.hasAttribute('data-person-row'))return {row,surface,edit:$('[data-person-edit]',row),lifecycle:$('[data-delete-colleague]',row),module:'people'};
       return {row,surface,edit:$('[data-card-edit]',row),lifecycle:$('[data-card-delete]',row),module:'cards'};
@@ -24,41 +27,21 @@
     if(surface.matches('.activity-swipe-surface')){
       const row=surface.closest('.activity-swipe-row');
       if(!row)return null;
-      return {
-        row,module:'time',
-        surface,
-        edit:$('[data-swipe-action="edit"]',row),
-        lifecycle:$('[data-swipe-action="delete"]',row)
-      };
+      return {row,module:'time',surface,edit:$('[data-swipe-action="edit"]',row),lifecycle:$('[data-swipe-action="delete"]',row)};
     }
     if(surface.matches('.km-shell-location-swipe-surface')){
       const row=surface.closest('.km-shell-location-swipe-row');
       if(!row)return null;
-      return {
-        row,module:'locations',
-        surface,
-        edit:$('[data-shell-location-swipe-action="edit"]',row),
-        lifecycle:$('[data-shell-location-swipe-action="delete"]',row)
-      };
+      return {row,module:'locations',surface,edit:$('[data-shell-location-swipe-action="edit"]',row),lifecycle:$('[data-shell-location-swipe-action="delete"]',row)};
     }
     if(surface.matches('.km-shell-theme-swipe-surface')){
       const row=surface.closest('.km-shell-theme-swipe-row');
       if(!row)return null;
-      return {
-        row,module:'themes',
-        surface,
-        edit:$('[data-shell-theme-edit]',row),
-        lifecycle:$('[data-log-delete-theme],[data-del-sub]',row)
-      };
+      return {row,module:'themes',surface,edit:$('[data-shell-theme-edit]',row),lifecycle:$('[data-log-delete-theme],[data-del-sub]',row)};
     }
     const row=surface.closest('.swipe-row');
     if(!row)return null;
-    return {
-      row,module:'rides',
-      surface,
-      edit:$('.trip-swipe-actions [data-action^="edit-"]',row),
-      lifecycle:$('.trip-swipe-actions [data-action^="delete-"]',row)
-    };
+    return {row,module:'rides',surface,edit:$('.trip-swipe-actions [data-action^="edit-"]',row),lifecycle:$('.trip-swipe-actions [data-action^="delete-"]',row)};
   }
 
   function resetRow(ctx){
@@ -66,9 +49,10 @@
     ctx.surface.style.transition='transform .18s cubic-bezier(.2,.8,.2,1)';
     ctx.surface.style.transform='translateX(0)';
     delete ctx.surface.dataset.swipeOpen;
-    ctx.row?.classList.remove('swipe-open','delete-armed');
+    ctx.row?.classList.remove('swipe-open','delete-armed','log-share-armed');
     ctx.row?.classList.remove('swipe-edit-armed','la-reset-armed');
-    const reset=ctx.row?.querySelector('.la-reset-actions');if(reset){reset.setAttribute('inert','');reset.setAttribute('aria-hidden','true');}
+    const reset=ctx.row?.querySelector('.la-reset-actions');
+    if(reset){reset.setAttribute('inert','');reset.setAttribute('aria-hidden','true');}
     if(ctx.module==='cards')window.LogCardsModule?.closeSwipe(ctx.row);
   }
 
@@ -78,11 +62,9 @@
     const surface=event.target.closest?.('.activity-swipe-surface,.km-shell-location-swipe-surface,.km-shell-theme-swipe-surface,.swipe-surface,.code-card-surface');
     if(!surface)return;
     const ctx=contextFor(surface);
-    if(!ctx||(!ctx.edit&&!ctx.lifecycle))return;
+    if(!ctx||(!ctx.edit&&!ctx.lifecycle&&!ctx.reset&&!shareAvailable(ctx)))return;
     if(ctx.module==='locationactions'&&event.pointerType==='touch')return;
-    if(ctx.module==='cards'){
-      document.querySelectorAll('.code-card-swipe.actions-open').forEach(row=>window.LogCardsModule?.closeSwipe(row));
-    }
+    if(ctx.module==='cards')document.querySelectorAll('.code-card-swipe.actions-open').forEach(row=>window.LogCardsModule?.closeSwipe(row));
     gesture={pointerId:event.pointerId,startX:event.clientX,startY:event.clientY,dx:0,dy:0,peakLeft:0,horizontal:false,cancelled:false,ctx};
   }
 
@@ -92,19 +74,31 @@
     g.dx=event.clientX-g.startX;
     g.dy=event.clientY-g.startY;
     if(!g.horizontal){
-      const absX=Math.abs(g.dx);
-      const absY=Math.abs(g.dy);
+      const absX=Math.abs(g.dx),absY=Math.abs(g.dy);
       if(absX<AXIS_LOCK_DISTANCE&&absY<AXIS_LOCK_DISTANCE)return;
       if(absX>=AXIS_LOCK_DISTANCE&&absX>=absY*HORIZONTAL_DOMINANCE)g.horizontal=true;
       else if(absY>=AXIS_LOCK_DISTANCE&&absY>=absX*VERTICAL_DOMINANCE){g.cancelled=true;return;}
       else return;
     }
-    g.ctx.row.classList.toggle('la-reset-armed',Boolean(g.ctx.reset&&g.dx>=36));
+
+    const share=shareAvailable(g.ctx);
+    if(share&&g.dx>0){
+      if(event.cancelable)event.preventDefault();
+      try{g.ctx.surface.setPointerCapture?.(event.pointerId);}catch(_){}
+      g.ctx.row?.classList.toggle('log-share-armed',g.dx>=SHARE_RELEASE_THRESHOLD);
+      g.ctx.row?.classList.remove('la-reset-armed','swipe-edit-armed','delete-armed');
+      g.ctx.surface.style.transition='none';
+      g.ctx.surface.style.transform=`translateX(${Math.min(actionWidth(),Math.max(0,g.dx))}px)`;
+      return;
+    }
+
+    g.ctx.row?.classList.remove('log-share-armed');
+    g.ctx.row?.classList.toggle('la-reset-armed',Boolean(g.ctx.reset&&g.dx>=SHARE_RELEASE_THRESHOLD));
     g.peakLeft=Math.max(g.peakLeft,Math.max(0,-g.dx));
     const lifecycleAllowed=g.ctx.lifecycle&&(window.LogSwipePolicy?.enabled(g.ctx.module)??true);
     const lifeArmed=lifecycleAllowed&&g.peakLeft>=actionWidth()+LIFECYCLE_EXTRA&&-g.dx>=actionWidth()+LIFECYCLE_EXTRA-LIFECYCLE_RELEASE_BUFFER;
-    g.ctx.row.classList.toggle('swipe-edit-armed',-g.dx>=EDIT_RELEASE_THRESHOLD&&g.peakLeft>=EDIT_THRESHOLD&&!lifeArmed);
-    g.ctx.row.classList.toggle('delete-armed',Boolean(lifeArmed));
+    g.ctx.row?.classList.toggle('swipe-edit-armed',-g.dx>=EDIT_RELEASE_THRESHOLD&&g.peakLeft>=EDIT_THRESHOLD&&!lifeArmed);
+    g.ctx.row?.classList.toggle('delete-armed',Boolean(lifeArmed));
     if(['cards','people','locationactions'].includes(g.ctx.module)){
       if(event.cancelable)event.preventDefault();
       try{g.ctx.surface.setPointerCapture(event.pointerId);}catch(_){}
@@ -119,21 +113,32 @@
     if(!g||g.pointerId!==event.pointerId)return;
     gesture=null;
     if(g.cancelled||!g.horizontal)return;
+
+    const shareArmed=shareAvailable(g.ctx)&&g.dx>=SHARE_RELEASE_THRESHOLD;
+    if(shareArmed){
+      const surface=g.ctx.surface;
+      if(g.ctx.row)g.ctx.row.dataset.suppressUntil=String(Date.now()+400);
+      resetRow(g.ctx);
+      Promise.resolve(window.LogSharingUI?.shareFromSurface?.(surface)).catch(()=>{});
+      return;
+    }
+
     const distance=Math.max(0,-g.dx);
     const lifecycleThreshold=actionWidth()+LIFECYCLE_EXTRA;
     const lifecycleArmed=g.peakLeft>=lifecycleThreshold&&distance>=lifecycleThreshold-LIFECYCLE_RELEASE_BUFFER;
     const editArmed=g.peakLeft>=EDIT_THRESHOLD&&distance>=EDIT_RELEASE_THRESHOLD;
-    const action=g.ctx.reset&&g.dx>=36?g.ctx.reset:g.ctx.lifecycle&&lifecycleArmed&&(window.LogSwipePolicy?.enabled(g.ctx.module)??true)
+    const action=g.ctx.reset&&g.dx>=SHARE_RELEASE_THRESHOLD?g.ctx.reset:g.ctx.lifecycle&&lifecycleArmed&&(window.LogSwipePolicy?.enabled(g.ctx.module)??true)
       ?g.ctx.lifecycle
       :(g.ctx.edit&&editArmed?g.ctx.edit:null);
+
     if(['cards','people','locationactions'].includes(g.ctx.module)){
-      g.ctx.row.dataset.suppressUntil=String(Date.now()+400);
+      if(g.ctx.row)g.ctx.row.dataset.suppressUntil=String(Date.now()+400);
       resetRow(g.ctx);
     }
     if(!action)return;
     if(action===g.ctx.reset){
       try{window.LogLocationActions.reset(action.dataset.laReset);}
-      catch(error){window.LogCardsUI.sheet('Actie niet gereset', '<p>Opnieuw klaarzetten is niet gelukt. Probeer het opnieuw.</p>');}
+      catch(error){window.LogCardsUI.sheet('Actie niet gereset','<p>Opnieuw klaarzetten is niet gelukt. Probeer het opnieuw.</p>');}
       return;
     }
     setTimeout(()=>{
@@ -145,15 +150,16 @@
 
   function pointerCancel(event){
     if(!gesture||gesture.pointerId!==event.pointerId)return;
-    if(['cards','people','locationactions'].includes(gesture.ctx.module))resetRow(gesture.ctx);
+    if(shareAvailable(gesture.ctx)||['cards','people','locationactions'].includes(gesture.ctx.module))resetRow(gesture.ctx);
     gesture=null;
   }
 
-  // iOS touch input uses the same thresholds without relying on a synthetic
-  // click on an inert button or on pointer capture surviving a list refresh.
   function touchEvent(event,point){return {target:event.target,pointerId:'la-touch',button:0,clientX:point.clientX,clientY:point.clientY,cancelable:event.cancelable,preventDefault:()=>event.preventDefault()};}
   function touchStart(event){
-    if(!event.target.closest?.('[data-la-row] .code-card-surface'))return;
+    const shareTarget=event.target.closest?.('.code-card-surface,.km-shell-location-swipe-surface,.km-shell-theme-swipe-surface');
+    const legacyAction=event.target.closest?.('[data-la-row] .code-card-surface');
+    if(!legacyAction&&!shareTarget)return;
+    if(shareTarget&&!window.LogSharingUI?.canShare?.(shareTarget)&&!legacyAction)return;
     if(event.touches.length!==1){pointerCancel({pointerId:'la-touch'});return;}
     pointerDown(touchEvent(event,event.touches[0]));
   }
@@ -181,4 +187,3 @@
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});
   else init();
 })();
-
