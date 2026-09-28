@@ -9,9 +9,76 @@
   const taskIdPattern=/^[A-Za-z0-9_-]{12}$/;
   const alphabet='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
   const reserved=new Set();
+  const configBase='https://sharon.life/log/config/';
+  let lookupController=null;
+  function onlinePayload(document,id){
+    if(!document||document.logCodeId!==id||!taskIdPattern.test(id))throw Error('De configuratie hoort niet bij deze identifier.');
+    let value;
+    if(['log-config','log-config-example'].includes(document.type)){
+      if(document.schemaVersion!==1||!Number.isSafeInteger(document.version)||document.version<1)throw Error('Deze configuratieversie wordt niet ondersteund.');
+      if(!Array.isArray(document.themes)||document.themes.length>20||!Array.isArray(document.actions)||document.actions.length>20)throw Error('Ongeldige online configuratie.');
+      const entities=[];
+      for(const theme of document.themes){
+        if(!theme||!Array.isArray(theme.subthemes)||theme.subthemes.length>20)throw Error('Ongeldig thema in configuratie.');
+        entities.push({type:'theme',id:theme.logCodeId,name:theme.name});
+        for(const sub of theme.subthemes){
+          if(!sub)throw Error('Ongeldig subthema.');
+          entities.push({type:'subtheme',id:sub.logCodeId,name:sub.name,themeId:theme.logCodeId});
+        }
+      }
+      const actions=document.actions.map(a=>{
+        if(!a||a.trigger!=='qr'||a.action!=='start-task'||a.requireConfirmation!==true)throw Error('Deze online actie wordt niet ondersteund.');
+        return {type:'task',logCodeId:a.logCodeId,name:a.title,themeId:a.themeLogCodeId,subthemeId:a.subthemeLogCodeId||'',note:a.note||'',enabled:a.enabled!==false};
+      });
+      value={kind:'log-code',version:1,title:document.title,entities,actions};
+    }else if(document.kind==='log-code'){
+      value=document;
+    }else throw Error('Dit bestand is geen ondersteunde Log-configuratie.');
+    const payload=parse(JSON.stringify(value));
+    if(!payload||payload.kind!=='log-code')throw Error('Ongeldige online configuratie.');
+    const ids=[id,...payload.entities.map(e=>e.id),...payload.actions.map(a=>a.logCodeId).filter(Boolean)];
+    if(ids.some(code=>!taskIdPattern.test(code))||new Set(ids).size!==ids.length)throw Error('Online identifiers moeten uniek zijn en uit 12 tekens bestaan.');
+    payload.remote={id,version:document.kind==='log-code'?(document.configVersion||1):document.version};
+    if(!Number.isSafeInteger(payload.remote.version)||payload.remote.version<1)throw Error('Ongeldige configuratieversie.');
+    return payload;
+  }
+  async function fetchConfiguration(id,signal){
+    if(!taskIdPattern.test(id))throw Error('Ongeldige identifier.');
+    const response=await fetch(configBase+id+'.json',{mode:'cors',credentials:'omit',redirect:'error',cache:'no-store',signal});
+    if(response.status===404)throw Error('Deze Log-code is nog niet geconfigureerd en is ook niet gevonden op sharon.life.');
+    if(!response.ok)throw Error('De configuratie kon niet worden opgehaald. Probeer later opnieuw.');
+    if(!/^application\/json(?:\s*;|$)/i.test(response.headers.get('content-type')||''))throw Error('De website gaf geen JSON-configuratie terug.');
+    const max=65536;
+    if(Number(response.headers.get('content-length'))>max)throw Error('Het configuratiebestand is te groot.');
+    let source;
+    if(response.body?.getReader){
+      const reader=response.body.getReader(),chunks=[];let length=0;
+      try{while(true){const {done,value}=await reader.read();if(done)break;length+=value.byteLength;if(length>max){await reader.cancel();throw Error('Het configuratiebestand is te groot.');}chunks.push(value);}}finally{reader.releaseLock();}
+      const bytes=new Uint8Array(length);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length;}source=new TextDecoder().decode(bytes);
+    }else source=await response.text();
+    if(source.length>max)throw Error('Het configuratiebestand is te groot.');
+    let document;try{document=JSON.parse(source);}catch(_){throw Error('Het configuratiebestand bevat ongeldige JSON.');}
+    return onlinePayload(document,id);
+  }
+  async function previewOnline(id){
+    const controller=new AbortController();lookupController=controller;
+    const ui=window.LogCardsUI,panel=ui.sheet('Configuratie zoeken',`<p role="status" data-online-status>Deze Log-code is nog niet geconfigureerd. Zoeken op sharon.life…</p><button class="btn full" data-online-retry hidden>Opnieuw proberen</button><button class="btn full" data-task-back>Terug</button>`);
+    panel.querySelector('[data-task-back]').onclick=()=>{controller.abort();ui.close();};
+    panel.querySelector('[data-online-retry]').onclick=()=>preview({kind:'log-action',version:1,id});
+    const timeout=setTimeout(()=>controller.abort(),12000);
+    try{
+      const payload=await fetchConfiguration(id,controller.signal);
+      if(panel.isConnected&&lookupController===controller&&!controller.signal.aborted){plan(payload);preview(payload);}
+    }catch(error){
+      if(panel.isConnected&&lookupController===controller){
+        panel.querySelector('[data-online-status]').textContent=error.name==='AbortError'?'Ophalen duurt te lang. Controleer je verbinding en probeer opnieuw.':error instanceof TypeError?'Geen verbinding met sharon.life. Controleer internet en probeer opnieuw.':error.message;
+        panel.querySelector('[data-online-retry]').hidden=false;
+      }
+    }finally{clearTimeout(timeout);if(lookupController===controller)lookupController=null;}
+  }
   function newCodeId(){
     const time=read(TIME),km=read(KM);
-    const used=new Set([...reserved,...[...list(time,'themes'),...list(time,'subthemes'),...list(time,'locationActions')].flatMap(x=>[x.id,x.logCodeId,x.taskCodeId]),...list(km,'cards').map(c=>c.value)]);
+    const used=new Set([...reserved,...list(time,'logConfigurations').map(c=>c.id),...[...list(time,'themes'),...list(time,'subthemes'),...list(time,'locationActions')].flatMap(x=>[x.id,x.logCodeId,x.taskCodeId]),...list(km,'cards').map(c=>c.value)]);
     for(let attempt=0;attempt<100;attempt++){
       const code=Array.from(crypto.getRandomValues(new Uint8Array(12)),v=>alphabet[v&63]).join('');
       if(!used.has(code)){reserved.add(code);return code;}
@@ -111,6 +178,10 @@
   }
   function plan(payload){
     const km=read(KM),time=read(TIME),map=new Map(),rows=[],remaining=payload.entities.map(e=>({...e}));
+    if(payload.remote){
+      const codes=new Set([payload.remote.id,...payload.entities.flatMap(e=>[e.id,e.taskCodeId]).filter(Boolean),...payload.actions.map(a=>a.logCodeId).filter(Boolean)]);
+      if(list(time,'logConfigurations').some(c=>c.id!==payload.remote.id&&codes.has(c.id))||[...list(time,'themes'),...list(time,'subthemes'),...list(time,'locationActions')].some(e=>[e.id,e.logCodeId,e.taskCodeId].includes(payload.remote.id)))throw Error('Deze configuratie-identifier is al voor andere gegevens in gebruik.');
+    }
     ensureTaskActions(time);
     while(remaining.length){
       const index=remaining.findIndex(e=>(!e.parentId||map.has(e.parentId))&&(!e.themeId||map.has(e.themeId)));
@@ -147,9 +218,13 @@
   }
   function commit(payload){
     const result=plan(payload);
+    if(payload.remote){
+      const configs=list(result.time,'logConfigurations').filter(c=>c.id!==payload.remote.id);
+      configs.push({id:payload.remote.id,version:payload.remote.version,payload});result.time.logConfigurations=configs;
+    }
     try{
       if(payload.entities.some(e=>e.type==='location'))localStorage.setItem(KM,JSON.stringify(result.km));
-      if(payload.entities.some(e=>e.type!=='location'))localStorage.setItem(TIME,JSON.stringify(result.time));
+      if(payload.remote||payload.entities.some(e=>e.type!=='location'))localStorage.setItem(TIME,JSON.stringify(result.time));
     }catch(_){throw Error('Opslaan niet voltooid. Mogelijk is een deel toegevoegd. Maak opslagruimte vrij en probeer opnieuw; bestaande gegevens worden herkend.');}
     window.dispatchEvent(new CustomEvent('log-km-state-change',{detail:{reason:'code-import'}}));
     window.LogTimeModule?.reloadFromStorage?.({view:'home'});
@@ -183,8 +258,13 @@
     window.LogCardsUI.close();
   }
   function preview(payload){
+    if(lookupController){lookupController.abort();lookupController=null;}
     if(['log-task','log-action'].includes(payload.kind)){
       try{
+        const local=read(TIME),cached=list(local,'logConfigurations').find(c=>c.id===payload.id);
+        if(cached)return preview(cached.payload);
+        const known=[...list(local,'themes'),...list(local,'subthemes'),...list(local,'locationActions')].some(e=>[e.id,e.logCodeId,e.taskCodeId].includes(payload.id));
+        if(!known)return previewOnline(payload.id);
         migrateTasks();
         if(list(read(TIME),'locationActions').some(r=>r.logCodeId===payload.id)){
           if(!window.LogLocationActions)throw Error('Acties zijn nog niet beschikbaar.');
@@ -200,6 +280,11 @@
     }
     const ui=window.LogCardsUI,result=plan(payload);
     const panel=ui.sheet('Log-code herkennen',`<h3>${esc(payload.title)}</h3><p>Controleer deze gegevens. Bestaande waarden blijven behouden.</p>${result.rows.map(({entity:e,local,status})=>`<div class="log-code-row"><strong>${esc(e.name)}</strong><small>${esc({theme:'Thema',subtheme:'Subthema',location:'Locatie',person:'Persoon'}[e.type])} · ${esc(status)}</small><small>${esc(details(e))}</small>${local&&status.includes('lokale')?`<small>In Log: ${esc(local.name)} · ${esc(details(local))}</small>`:''}</div>`).join('')}<p>${payload.actions.length?'Na toevoegen kies je zelf een starter.':'Thema’s met een korte identifier krijgen een QR-actie in Acties. Overige gegevens worden alleen toegevoegd.'}</p><button class="btn full" data-import-code>Gegevens toevoegen / gebruiken</button><p data-log-status role="status"></p>`);
+    if(payload.remote){
+      const info=document.createElement('p');info.textContent=`Configuratie van sharon.life · versie ${payload.remote.version}. Toevoegen start geen taak.`;panel.querySelector('[data-import-code]').before(info);
+      for(const action of payload.actions){const row=document.createElement('p');row.textContent=`Actie: ${action.name||'Taak starten'} · ${payload.entities.find(e=>e.id===action.themeId)?.name||''} · ${payload.entities.find(e=>e.id===action.subthemeId)?.name||'Zonder subthema'}`;info.before(row);}
+      const back=document.createElement('button');back.className='btn full';back.textContent='Annuleren';back.onclick=()=>ui.close();info.after(back);
+    }
     panel.querySelector('[data-import-code]').onclick=()=>{
       try{const saved=commit(payload);ready(payload,saved);}catch(error){panel.querySelector('[data-log-status]').textContent=error.message;}
     };

@@ -1,5 +1,16 @@
 # Log — Ontwikkelbacklog
 
+## Test 0.34.5 — Online configuraties op sharon.life
+
+Geïmplementeerd en gericht getest in `test/**`; productie blijft 0.34.2.
+
+- Onbekende 12-teken QR-identifiers worden opgezocht via `https://sharon.life/log/config/<identifier>.json`. Bestaande lokale acties, inclusief pauzes en verwijderde legacy-acties, blijven leidend.
+- Eerst thema’s, subthema’s en acties bekijken; pas na bevestiging toevoegen. Geen automatische timerstart. Lokaal opgeslagen configuratie en actiekoppelingen werken vervolgens offline. De bestaande Tijd/Taken-opslag krijgt aanvullend `logConfigurations`; bestaande registraties en instellingen blijven behouden.
+- Ondersteunt bestaande `log-code` versie 1 met extra `logCodeId` en optioneel `configVersion`, plus het reeds geüploade `log-config-example`/`log-config` schema 1 met thema’s en bevestigde taakacties. `Bwv2g6f5g5vJ.json` hoeft voor deze test niet opnieuw geüpload te worden.
+- Vaste HTTPS-bron, geen credentials/redirects, timeout 12 seconden, downloadlimiet 64 KiB, bestaande importlimieten (20 gegevens, 20 acties, 4000 tekens na omzetting). Identifier, relaties, versies, dubbele IDs en lokale conflicten worden gecontroleerd. Netwerkfouten, 404 en ongeldige JSON tonen uitleg en Terug/Opnieuw proberen; sluiten tijdens laden opent niets opnieuw.
+- Configuratie-ID verwijst naar het bestand. De afzonderlijke actie-IDs uit dat bestand werken lokaal na import; online zoeken van een actie-ID zonder eigen configuratiebestand is nog niet beschikbaar. Online bewerken/opslaan en centraal register vallen buiten deze stap.
+- Gerichte regressies: online-config, QR-acties, Log-code-import, taakcodes en versielabels. Praktijkscan op iPhone/PWA blijft te controleren.
+
 ## Test 0.34.4 — QR als aanleiding bij Acties
 
 Geïmplementeerd in `test/**`; productie blijft 0.34.2.
