@@ -1,10 +1,10 @@
-const CACHE='kmreg-test-shell-0.34.9';
+const CACHE='kmreg-test-shell-0.34.10';
 const SHELL=[
   './',
   './index.html',
-  './location-polling.js?v=0.34.9',
-  './sharing.js?v=0.34.9',
-  './sharing-private-ui.js?v=0.34.9',
+  './location-polling.js?v=0.34.10',
+  './sharing.js?v=0.34.10',
+  './sharing-private-ui.js?v=0.34.10',
   './swipe-policy.js?v=0.34.5',
   './swipe-ui.css?v=0.34.5',
   './cards.css?v=0.34.5',
@@ -28,7 +28,7 @@ const SHELL=[
   './shell-location-status.js?v=0.34.5',
   './shell-removal-policy.js?v=0.34.5',
   './shell-quick-actions.js?v=0.34.5',
-  './shell-direct-actions.js?v=0.34.9',
+  './shell-direct-actions.js?v=0.34.10',
   './id-converter.html',
   './manifest.webmanifest',
   './app-icon.svg',
