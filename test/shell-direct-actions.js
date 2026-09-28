@@ -156,10 +156,7 @@
 
   function touchEvent(event,point){return {target:event.target,pointerId:'la-touch',button:0,clientX:point.clientX,clientY:point.clientY,cancelable:event.cancelable,preventDefault:()=>event.preventDefault()};}
   function touchStart(event){
-    const shareTarget=event.target.closest?.('.code-card-surface,.km-shell-location-swipe-surface,.km-shell-theme-swipe-surface');
-    const legacyAction=event.target.closest?.('[data-la-row] .code-card-surface');
-    if(!legacyAction&&!shareTarget)return;
-    if(shareTarget&&!window.LogSharingUI?.canShare?.(shareTarget)&&!legacyAction)return;
+    if(!event.target.closest?.('[data-la-row] .code-card-surface'))return;
     if(event.touches.length!==1){pointerCancel({pointerId:'la-touch'});return;}
     pointerDown(touchEvent(event,event.touches[0]));
   }
