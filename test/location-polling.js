@@ -5,7 +5,7 @@
   function loadSharing(){
     if(document.querySelector('script[data-log-sharing]'))return;
     const script=document.createElement('script');
-    script.src='./sharing.js?v=0.34.6';
+    script.src='./sharing.js?v=0.34.7';
     script.async=false;
     script.dataset.logSharing='1';
     document.head.appendChild(script);
