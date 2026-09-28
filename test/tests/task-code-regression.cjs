@@ -9,12 +9,13 @@ w.LogCardsUI={sheet(title,body){d.querySelector('#cards').innerHTML=`<section><h
 w.addEventListener('kmreg-test-shell-select-section',e=>section=e.detail.section);
 w.eval(fs.readFileSync(path.join(__dirname,'../log-code.js'),'utf8'));const api=w.LogCode;
 const config={kind:'log-code',version:1,title:'KIP',entities:[{type:'theme',id:'KIP1a0000000',name:'1a – Procesanalyse'},{type:'subtheme',id:'KIP1aSUB0001',themeId:'KIP1a0000000',name:'Analyse gebruikersproces'}],actions:[]};
+w.eval(fs.readFileSync(path.join(__dirname,'../location-actions.js'),'utf8'));
 const parsed=api.parse(JSON.stringify(config));api.preview(parsed);assert.equal(get().themes.length,1);d.querySelector('[data-import-code]').click();
 const imported=w.localStorage.getItem(key);api.commit(parsed);assert.equal(w.localStorage.getItem(key),imported);assert.deepEqual(get().entries,[entry]);assert.equal(get().settings.custom,true);assert.equal(get().locationActions[0].id,'keep');
 const theme=get().themes.find(t=>t.logCodeId==='KIP1a0000000'),sub=get().subthemes[0];
 for(const [id,subId] of [['KIP1a0000000',''],['KIP1aSUB0001',sub.id]]){
   const code=api.parse(JSON.stringify({kind:'log-task',version:1,id}));assert.equal(api.parse('log-task:'+id).id,id);
-  api.preview(code);assert.equal(get().timer.status,'inactive');d.querySelector('[data-start-compact-task]').click();
+  api.preview(code);assert.equal(get().timer.status,'inactive');d.querySelector('[data-qr-run]').click();
   assert.equal(section,'time');assert.equal(d.querySelector('#startTheme').value,theme.id);assert.equal(d.querySelector('#startSubtheme').value,subId);assert.equal(get().timer.status,'inactive','opening must not start');
   d.querySelector('#confirmStart').click();assert.equal(get().timer.status,'active');assert.equal(get().timer.subthemeId,subId||null);assert.equal(get().timer.note,subId?sub.name:'');
   const state=get();state.timer={status:'inactive'};set(state);
@@ -30,10 +31,12 @@ for(const id of ['KIP000000000','KIP1a0000000','KIP2b0000000','KIP2d0000000']){
  api.configBuilder();const f=d.querySelector('#cards form');f.elements.theme.value=id;f.elements.theme.onchange();f.elements.subs.value+='\nExtra\nExtra';f.dispatchEvent(new w.Event('submit',{cancelable:true}));assert.ok(d.querySelector('[data-save-config]'));d.querySelector('[data-save-config]').click();const built=api.parse(generated.value);assert.equal(built.entities.filter(e=>e.name==='Extra').length,1);const snapshot=w.localStorage.getItem(key);api.commit(built);assert.equal(w.localStorage.getItem(key),snapshot);
 }
 api.configBuilder();let f=d.querySelector('#cards form');f.elements.theme.value='local-0';f.elements.theme.onchange();f.dispatchEvent(new w.Event('submit',{cancelable:true}));d.querySelector('[data-save-config]').click();assert.equal(get().themes[0].logCodeId,'legacy-long-identifier');assert.equal(get().themes[0].taskCodeId.length,12);assert.equal(api.resolveTask(get().themes[0].taskCodeId).theme.id,'old');
-for(const subId of ['',sub.id]){api.taskBuilder();f=d.querySelector('#cards form');f.elements.theme.value=theme.id;f.elements.theme.onchange();f.elements.sub.value=subId;f.dispatchEvent(new w.Event('submit',{cancelable:true}));const code=api.parse(generated.value);assert.equal(code.kind,'log-task');assert.equal(code.id.length,12);assert.equal(api.resolveTask(code.id).sub?.id||'',subId);}
+for(const subId of ['',sub.id]){api.taskBuilder();f=d.querySelector('#cards form');f.elements.theme.value=theme.id;f.elements.theme.onchange();f.elements.sub.value=subId;f.dispatchEvent(new w.Event('submit',{cancelable:true}));const code=api.parse(generated.value);assert.equal(code.kind,'log-action');assert.equal(code.id.length,12);assert.equal(api.resolveTask(code.id).sub?.id||'',subId);}
 // Conflict: never move a subtheme to another theme or overwrite a local name.
 const changed=structuredClone(config);changed.entities[0].name='Remote rename';api.commit(api.parse(JSON.stringify(changed)));assert.equal(get().themes.find(t=>t.id===theme.id).name,theme.name);
 const wrong=structuredClone(config);wrong.entities[0].id='OTHER0000000';wrong.entities[0].name='Other';wrong.entities[1].themeId='OTHER0000000';const snapshot=w.localStorage.getItem(key);assert.throws(()=>api.commit(api.parse(JSON.stringify(wrong))),/ander hoofdthema/);assert.equal(w.localStorage.getItem(key),snapshot);
 // A task started in another tab between preview and confirmation must survive.
 w.LogTimeModule.prepareFromCode({themeId:theme.id});state=get();state.timer={status:'active',sessionId:'other-tab',themeId:'old',note:'Keep'};set(state);d.querySelector('#confirmStart').click();assert.equal(get().timer.sessionId,'other-tab');assert.match(w.lastToast,/loopt nog een taak/);assert.throws(()=>w.LogTimeModule.prepareFromCode({themeId:theme.id}),/loopt nog een taak/);
 assert.equal(get().entries[0].id,'history');console.log('Task QR: configurations, 12-character IDs, optional subtheme, guarded confirmation, deduplication, legacy IDs, unknown codes and preserved history passed.');dom.window.close();
+
+

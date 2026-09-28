@@ -7,19 +7,58 @@
   const list=(raw,key)=>Array.isArray(raw[key])?raw[key]:[];
   const collection={theme:'themes',subtheme:'subthemes',location:'locations',person:'colleagues'};
   const taskIdPattern=/^[A-Za-z0-9_-]{12}$/;
-  const newCodeId=()=>crypto.randomUUID().replace(/-/g,'').slice(0,12);
+  const alphabet='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+  const reserved=new Set();
+  function newCodeId(){
+    const time=read(TIME),km=read(KM);
+    const used=new Set([...reserved,...[...list(time,'themes'),...list(time,'subthemes'),...list(time,'locationActions')].flatMap(x=>[x.id,x.logCodeId,x.taskCodeId]),...list(km,'cards').map(c=>c.value)]);
+    for(let attempt=0;attempt<100;attempt++){
+      const code=Array.from(crypto.getRandomValues(new Uint8Array(12)),v=>alphabet[v&63]).join('');
+      if(!used.has(code)){reserved.add(code);return code;}
+    }
+    throw Error('Geen unieke identifier beschikbaar. Probeer opnieuw.');
+  }
+  function assertActionCode(rule,time=read(TIME),explicit=false){
+    if(typeof rule.logCodeId!=='string'||!taskIdPattern.test(rule.logCodeId))throw Error('Een identifier bestaat uit exact 12 tekens: A–Z, a–z, 0–9, - en _.');
+    if(list(time,'locationActions').some(r=>r.id!==rule.id&&r.logCodeId===rule.logCodeId))throw Error('Deze identifier is al in gebruik.');
+    if(explicit||list(time,'locationActions').some(r=>r.id===rule.id&&r.logCodeId===rule.logCodeId))return;
+    for(const entity of [...list(time,'themes'),...list(time,'subthemes')]){
+      if([entity.logCodeId,entity.taskCodeId,entity.id].includes(rule.logCodeId)&&!(rule.type==='task'&&rule.selection!=='smart'&&(rule.subthemeId?entity.id===rule.subthemeId:entity.id===rule.targetId)))throw Error('Deze identifier is al aan andere gegevens gekoppeld.');
+    }
+  }
+  function ensureTaskActions(time,explicit=new Set()){
+    const rules=list(time,'locationActions');let changed=false;
+    for(const entity of [...list(time,'themes'),...list(time,'subthemes')]){
+      const code=entity.taskCodeId||(taskIdPattern.test(entity.logCodeId||'')?entity.logCodeId:null);
+      if(!code||entity.logActionCode===code)continue;
+      const linked=rules.find(r=>r.logCodeId===code);
+      if(linked){
+        if(!explicit.has(code)&&(linked.type!=='task'||linked.targetId!==(entity.themeId||entity.id)||(linked.subthemeId||'')!==(entity.themeId?entity.id:'')))throw Error('Deze identifier is al aan een andere actie gekoppeld.');
+        entity.logActionCode=code;changed=true;continue;
+      }
+      const themeId=entity.themeId||entity.id;if(!list(time,'themes').some(t=>t.id===themeId))continue;
+      const rule={id:crypto.randomUUID(),trigger:'qr',logCodeId:code,name:entity.name,type:'task',selection:'fixed',targetId:themeId,subthemeId:entity.themeId?entity.id:'',note:entity.themeId?entity.name:'',repeatMode:'scan',enabled:true,days:[],start:'',end:''};
+      assertActionCode(rule,time);rules.push(rule);entity.logActionCode=code;changed=true;
+    }
+    if(changed)time.locationActions=rules;return changed;
+  }
+  function migrateTasks(){
+    const time=read(TIME);if(!ensureTaskActions(time))return;
+    localStorage.setItem(TIME,JSON.stringify(time));window.LogTimeModule?.reloadFromStorage?.({view:window.LogTimeModule.getView?.()||'home'});window.dispatchEvent(new Event('log-time-state-change'));
+  }
   function parse(value){
+    if(typeof value==='string'&&taskIdPattern.test(value))return {kind:'log-action',version:1,id:value};
     if(typeof value==='string'&&value.startsWith('log-task:'))value=JSON.stringify({kind:'log-task',version:1,id:value.slice(9)});
     let p;try{p=JSON.parse(value);}catch(_){return null;}
     if(!p)return null;
-    if(p.kind==='log-task'){
+    if(['log-task','log-action'].includes(p.kind)){
       if(p.version!==1)throw Error('Deze taakcode gebruikt een niet ondersteunde versie.');
       if(typeof p.id!=='string'||!/^[A-Za-z0-9_-]{12}$/.test(p.id))throw Error('Ongeldige taakidentifier.');
-      return {kind:'log-task',version:1,id:p.id};
+      return {kind:p.kind,version:1,id:p.id};
     }
     if(p.kind!=='log-code')return null;
     if(value.length>4000||p.version!==1)throw Error('Deze Log-code is te groot of gebruikt een niet ondersteunde versie.');
-    if(!Array.isArray(p.entities)||p.entities.length>20||!Array.isArray(p.actions)||p.actions.length>2)throw Error('Ongeldige Log-code.');
+    if(!Array.isArray(p.entities)||p.entities.length>20||!Array.isArray(p.actions)||p.actions.length>20)throw Error('Ongeldige Log-code.');
     const text=(v,max=160)=>{if(typeof v!=='string'||!v.trim()||v.length>max)throw Error('Ongeldige gegevens in Log-code.');return v;};
     const ids=new Set();
     const entities=p.entities.map(e=>{
@@ -50,6 +89,14 @@
     const actions=p.actions.map(a=>{
       if(!a||!['task','ride'].includes(a.type))throw Error('Deze actie wordt niet ondersteund.');
       const n={type:a.type};
+      if(a.logCodeId!=null){
+        if(a.type!=='task'||typeof a.logCodeId!=='string'||!taskIdPattern.test(a.logCodeId))throw Error('Ongeldige actie-identifier.');
+        n.logCodeId=a.logCodeId;n.name=text(a.name||'Taak starten',120);
+        if(a.note)n.note=text(a.note,500);
+        if(a.days){if(!Array.isArray(a.days)||a.days.some(d=>!Number.isInteger(d)||d<0||d>6))throw Error('Ongeldige dagen.');n.days=a.days;}
+        if(a.start||a.end){if(!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(a.start)||!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(a.end)||a.start===a.end)throw Error('Ongeldig tijdvak.');n.start=a.start;n.end=a.end;}
+        n.enabled=a.enabled!==false;
+      }
       if(a.type==='task'){
         if(!find(a.themeId,'theme'))throw Error('De taak mist een thema.');n.themeId=a.themeId;
         if(a.subthemeId){if(find(a.subthemeId,'subtheme')?.themeId!==a.themeId)throw Error('Subthema hoort niet bij dit thema.');n.subthemeId=a.subthemeId;}
@@ -58,11 +105,13 @@
       if(a.type==='ride'&&!n.locationId)throw Error('De rit mist een bestemming.');
       return n;
     });
+    if(new Set(actions.filter(a=>a.logCodeId).map(a=>a.logCodeId)).size!==actions.filter(a=>a.logCodeId).length)throw Error('Dubbele actie-identifier.');
     if(!entities.length)throw Error('Deze code bevat geen gegevens.');
     return {kind:'log-code',version:1,title:text(p.title||'Log-code',80),entities,actions};
   }
   function plan(payload){
     const km=read(KM),time=read(TIME),map=new Map(),rows=[],remaining=payload.entities.map(e=>({...e}));
+    ensureTaskActions(time);
     while(remaining.length){
       const index=remaining.findIndex(e=>(!e.parentId||map.has(e.parentId))&&(!e.themeId||map.has(e.themeId)));
       if(index<0)throw Error('Onoplosbare verwijzingen.');
@@ -84,6 +133,16 @@
     }
     const owners=new Map();
     for(const x of [...list(time,'themes'),...list(time,'subthemes')])for(const code of [x.logCodeId,x.taskCodeId,x.id].filter(c=>taskIdPattern.test(c||''))){if(owners.has(code)&&owners.get(code)!==x)throw Error('Een taakidentifier hoort bij meerdere items. Bestaande gegevens blijven behouden.');owners.set(code,x);}
+    const configured=payload.actions.filter(a=>a.logCodeId);
+    for(const a of configured){
+      const rules=list(time,'locationActions'),found=rules.find(r=>r.logCodeId===a.logCodeId);
+      const rule={id:found?.id||crypto.randomUUID(),trigger:'qr',logCodeId:a.logCodeId,name:a.name,type:'task',selection:'fixed',targetId:map.get(a.themeId),subthemeId:map.get(a.subthemeId)||'',note:a.note||'',repeatMode:'scan',enabled:a.enabled!==false,days:a.days||[],start:a.start||'',end:a.end||''};
+      assertActionCode(rule,time,true);
+      if(found&&(found.type!==rule.type||found.targetId!==rule.targetId||(found.subthemeId||'')!==rule.subthemeId))throw Error('Deze actie-identifier heeft al een andere koppeling.');
+      if(!found){rules.push(rule);time.locationActions=rules;}
+    }
+    ensureTaskActions(time,new Set(configured.map(a=>a.logCodeId)));
+    for(const rule of list(time,'locationActions').filter(r=>r.trigger==='qr'))assertActionCode(rule,time);
     return {km,time,map,rows};
   }
   function commit(payload){
@@ -124,9 +183,23 @@
     window.LogCardsUI.close();
   }
   function preview(payload){
-    if(payload.kind==='log-task')return previewTask(payload);
+    if(['log-task','log-action'].includes(payload.kind)){
+      try{
+        migrateTasks();
+        if(list(read(TIME),'locationActions').some(r=>r.logCodeId===payload.id)){
+          if(!window.LogLocationActions)throw Error('Acties zijn nog niet beschikbaar.');
+          return window.LogLocationActions.scanCode(payload.id);
+        }
+        const legacy=resolveTask(payload.id),entity=legacy.sub||legacy.theme;
+        if(entity.logActionCode){
+          if(!window.LogLocationActions)throw Error('Acties zijn nog niet beschikbaar.');
+          return window.LogLocationActions.scanCode(entity.logActionCode);
+        }
+        return previewTask(payload);
+      }catch(error){const p=window.LogCardsUI.sheet('Log-code',`<p role="status">${esc(error.message)}</p><button class="btn full" data-task-back>Terug</button>`);p.querySelector('[data-task-back]').onclick=()=>window.LogCardsUI.close();return;}
+    }
     const ui=window.LogCardsUI,result=plan(payload);
-    const panel=ui.sheet('Log-code herkennen',`<h3>${esc(payload.title)}</h3><p>Controleer deze gegevens. Bestaande waarden blijven behouden.</p>${result.rows.map(({entity:e,local,status})=>`<div class="log-code-row"><strong>${esc(e.name)}</strong><small>${esc({theme:'Thema',subtheme:'Subthema',location:'Locatie',person:'Persoon'}[e.type])} · ${esc(status)}</small><small>${esc(details(e))}</small>${local&&status.includes('lokale')?`<small>In Log: ${esc(local.name)} · ${esc(details(local))}</small>`:''}</div>`).join('')}<p>${payload.actions.length?'Na toevoegen kies je zelf een starter.':'Deze code is een informatiedrager zonder starter.'}</p><button class="btn full" data-import-code>Gegevens toevoegen / gebruiken</button><p data-log-status role="status"></p>`);
+    const panel=ui.sheet('Log-code herkennen',`<h3>${esc(payload.title)}</h3><p>Controleer deze gegevens. Bestaande waarden blijven behouden.</p>${result.rows.map(({entity:e,local,status})=>`<div class="log-code-row"><strong>${esc(e.name)}</strong><small>${esc({theme:'Thema',subtheme:'Subthema',location:'Locatie',person:'Persoon'}[e.type])} · ${esc(status)}</small><small>${esc(details(e))}</small>${local&&status.includes('lokale')?`<small>In Log: ${esc(local.name)} · ${esc(details(local))}</small>`:''}</div>`).join('')}<p>${payload.actions.length?'Na toevoegen kies je zelf een starter.':'Thema’s met een korte identifier krijgen een QR-actie in Acties. Overige gegevens worden alleen toegevoegd.'}</p><button class="btn full" data-import-code>Gegevens toevoegen / gebruiken</button><p data-log-status role="status"></p>`);
     panel.querySelector('[data-import-code]').onclick=()=>{
       try{const saved=commit(payload);ready(payload,saved);}catch(error){panel.querySelector('[data-log-status]').textContent=error.message;}
     };
@@ -140,6 +213,7 @@
         if(current.rows.some(row=>row.status==='Nieuw'))throw Error('Gegevens zijn gewijzigd of verwijderd. Scan de code opnieuw.');
         const id=ref=>current.map.get(ref);
         const loc=list(read(KM),'locations').find(x=>x.id===id(a.locationId));
+        if(a.logCodeId)return preview({kind:'log-action',id:a.logCodeId,version:1});
         if(a.type==='task'){
           prepareTask({themeId:id(a.themeId),subthemeId:id(a.subthemeId)||'',locationName:loc?.name||''});
         }else{await window.LogRideStarter.prepare(id(a.locationId));window.LogCardsUI.close();}
@@ -218,19 +292,22 @@
     };
     form.onsubmit=event=>{event.preventDefault();try{
       const name=form.elements.themeName.value.trim();if(!name)throw Error('Vul een hoofdthema in.');
-      const entity=(type,item,name,id)=>{const code=item?.logCodeId||id||newCodeId();return {type,id:code,name:item?.name||name,...(item?.color?{color:item.color}:{}),taskCodeId:item?.taskCodeId||(taskIdPattern.test(code)?code:newCodeId())};};
-      const existing=selected||themes.find(t=>t.name===name),theme=entity('theme',existing,name,preset?.[0]);
+      const localIds=new Map();
+      const entity=(type,item,name,id)=>{const code=item?.logCodeId||id||newCodeId();if(item)localIds.set(item.id,code);return {type,id:code,name:item?.name||name,...(item?.color?{color:item.color}:{}),taskCodeId:item?.taskCodeId||(taskIdPattern.test(code)?code:newCodeId())};};
+      const existing=selected||themes.find(t=>t.name===name),theme=entity('theme',existing,name);
       const names=[...new Set(form.elements.subs.value.split('\n').map(s=>s.trim()).filter(Boolean))];
       const entities=[theme,...names.map(name=>({...entity('subtheme',list(time,'subthemes').find(s=>s.themeId===existing?.id&&s.name===name),name),themeId:theme.id}))];
-      const payload=parse(JSON.stringify({kind:'log-code',version:1,title:theme.name.slice(0,80),entities,actions:[]}));
+      const actions=list(time,'locationActions').filter(r=>r.trigger==='qr'&&r.type==='task'&&r.selection!=='smart'&&r.targetId===existing?.id&&(!r.subthemeId||localIds.has(r.subthemeId))).map(r=>({type:'task',logCodeId:r.logCodeId,name:r.name,note:r.note||'',themeId:theme.id,subthemeId:localIds.get(r.subthemeId),days:r.days||[],start:r.start||'',end:r.end||'',enabled:r.enabled}));
+      const payload=parse(JSON.stringify({kind:'log-code',version:1,title:theme.name.slice(0,80),entities,actions}));
       const value=JSON.stringify(payload);if(new TextEncoder().encode(value).length>1800)throw Error('Te veel gegevens voor één QR. Verdeel de subthema’s over meerdere configuratiecodes voor hetzelfde thema.');
-      const review=document.createElement('section');review.dataset.configReview='';review.innerHTML=`<h3>${esc(theme.name)}</h3>${names.length?'<ul>'+names.map(n=>`<li>${esc(n)}</li>`).join('')+'</ul>':'<p>Zonder subthema’s</p>'}<p>Bewaar deze configuratie in Log en maak de deelbare configuratie-QR. Daarna kun je compacte actie-QR’s maken.</p><button class="btn full" data-save-config>Configuratie bewaren en QR maken</button><button class="btn full" data-config-back>Terug</button><p data-config-status role="status"></p>`;
+      const review=document.createElement('section');review.dataset.configReview='';review.innerHTML=`<h3>${esc(theme.name)}</h3>${names.length?'<ul>'+names.map(n=>`<li>${esc(n)}</li>`).join('')+'</ul>':'<p>Zonder subthema’s</p>'}<p>Bewaar dit thema, de subthema’s en bijbehorende QR-acties in Log en maak de deelbare configuratie-QR. Acties kun je daarna beheren onder Acties.</p><button class="btn full" data-save-config>Configuratie bewaren en QR maken</button><button class="btn full" data-config-back>Terug</button><p data-config-status role="status"></p>`;
       panel.querySelector('[data-config-review]')?.remove();form.hidden=true;panel.append(review);
       review.querySelector('[data-config-back]').onclick=()=>{review.remove();form.hidden=false;};
       review.querySelector('[data-save-config]').onclick=()=>{try{commit(payload);window.LogCardsUI.edit(null,{value,format:'QR_CODE',name:'Configuratie · '+payload.title});}catch(error){review.querySelector('[data-config-status]').textContent=error.message;}};
     }catch(error){panel.querySelector('[data-log-status]').textContent=error.message;}};
   }
   function taskBuilder(){
+    migrateTasks();
     const time=read(TIME),themes=list(time,'themes');
     const panel=window.LogCardsUI.sheet('Compacte actie-QR maken',`<form><label>Hoofdthema<select name="theme" required><option value="">Kies een thema</option>${themes.map(t=>`<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('')}</select></label><label>Subthema (optioneel)<select name="sub"><option value="">Geen subthema</option></select></label><p>De QR bevat alleen een taak-ID van 12 tekens. Scan op een ander apparaat eerst de configuratie-QR.</p><button type="submit" class="btn full">Actie-QR maken</button><p data-log-status role="status"></p></form>`);
     const form=panel.querySelector('form');
@@ -241,8 +318,10 @@
       const item=sub||theme,id=item.taskCodeId||item.logCodeId;
       if(!taskIdPattern.test(id||''))throw Error('Bewaar eerst een thema-configuratie voor dit thema via Log-code maken.');
       resolveTask(id);
-      window.LogCardsUI.edit(null,{value:JSON.stringify({kind:'log-task',version:1,id}),format:'QR_CODE',name:theme.name+(sub?' · '+sub.name:'')});
+      const action=list(fresh,'locationActions').find(r=>r.trigger==='qr'&&r.logCodeId===id);
+      if(!action||action.type!=='task'||action.targetId!==theme.id||(action.subthemeId||'')!==(sub?.id||''))throw Error('De gekoppelde actie is gewijzigd of verwijderd. Maak de QR vanuit Acties.');
+      window.LogCardsUI.edit(null,{value:id,format:'QR_CODE',name:theme.name+(sub?' · '+sub.name:'')});
     }catch(error){panel.querySelector('[data-log-status]').textContent=error.message;}};
   }
-  window.LogCode={parse,plan,commit,preview,builder,configBuilder,taskBuilder,resolveTask};
+  window.LogCode={newCodeId,assertActionCode,migrateTasks,parse,plan,commit,preview,builder,configBuilder,taskBuilder,resolveTask};
 })();

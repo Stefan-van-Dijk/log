@@ -203,7 +203,7 @@
     $('[data-run-card-action]',panel)?.addEventListener('click',()=>runAction(id));
     panel.style.setProperty('--card-color',color(card.color));
     panel.classList.add('cards-display');
-    try{const payload=window.LogCode?.parse(card.value);if(payload){const button=document.createElement('button');button.type='button';button.className='btn full cards-scan-action';button.textContent=payload.kind==='log-task'?'Taak openen':'Gegevens en starters openen';button.onclick=()=>{try{window.LogCode.preview(payload)}catch(error){message(error.message)}};$('.cards-dialog-body',panel).appendChild(button);}}catch(error){message(error.message);}
+    try{const payload=window.LogCode?.parse(card.value);if(payload){const button=document.createElement('button');button.type='button';button.className='btn full cards-scan-action';button.textContent=['log-task','log-action'].includes(payload.kind)?'Taak openen':'Gegevens en starters openen';button.onclick=()=>{try{window.LogCode.preview(payload)}catch(error){message(error.message)}};$('.cards-dialog-body',panel).appendChild(button);}}catch(error){message(error.message);}
     try{renderCode($('[data-code-display]',panel),card)}catch(error){message(error.message || 'Code kan niet worden weergegeven. De inhoud is nog beschikbaar.')}
     $('[data-card-copy]',panel).onclick=async()=>{try{await navigator.clipboard.writeText(card.value);if(dialog===panel)message('Inhoud gekopieerd.')}catch(_){if(dialog===panel)message('Kopiëren is niet gelukt. Selecteer de inhoud hierboven om deze te kopiëren.')}};
     window.LogLocationActions?.decorateCard?.(panel,id);
@@ -219,7 +219,7 @@
     const format=SCAN_FORMATS[window.ZXing.BarcodeFormat[result.getBarcodeFormat()]],value=result.getText();
     if(!format){message('Dit codetype wordt nog niet ondersteund.');return;}
     if(!value){message('De code bevat geen leesbare inhoud.');return;}
-    try{const payload=window.LogCode?.parse(value);if(payload){window.LogCode.preview(payload);return;}}catch(error){sheet('Log-code niet geopend',`<p>${esc(error.message)}</p>`);return;}
+    try{const bare=/^[A-Za-z0-9_-]{12}$/.test(value),configured=window.LogLocationActions?.snapshot().rules.some(r=>r.logCodeId===value);const payload=bare&&(format!=='QR_CODE'||(!configured&&records().some(c=>c.value===value)))?null:window.LogCode?.parse(value);if(payload){window.LogCode.preview(payload);return;}}catch(error){sheet('Log-code niet geopend',`<p>${esc(error.message)}</p>`);return;}
     const matches=records().filter(card=>card.value===value);
     if(matches.length===1){show(matches[0].id,true);return;}
     if(matches.length>1){
@@ -298,3 +298,4 @@
   window.addEventListener('pagehide',stopScanner);
   document.addEventListener('visibilitychange',()=>{if(document.hidden){stopScanner();const button=dialog?.querySelector('[data-camera-start]');if(button){button.disabled=false;button.textContent='Camera hervatten';message('Camera gepauzeerd. Tik om verder te scannen.')}}});
 })();
+

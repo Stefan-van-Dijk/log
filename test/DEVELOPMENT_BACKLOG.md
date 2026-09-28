@@ -1,5 +1,16 @@
 # Log — Ontwikkelbacklog
 
+## Test 0.34.4 — QR als aanleiding bij Acties
+
+Geïmplementeerd in `test/**`; productie blijft 0.34.2.
+
+- Acties → Nieuwe actie/Bewerken → Aanleiding: Locatie of QR-code scannen. QR-acties hebben geen locatie/GPS of bezoekreset nodig; elke bewuste scan biedt de actie opnieuw aan. Actief, dagen en tijdvak blijven gelden. Taak vraagt de normale startbevestiging; rit wordt voorbereid; kaart wordt geopend na aantikken.
+- Nieuwe QR-identifiers: exact 12 willekeurige tekens uit `ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_`, gegenereerd met `crypto.getRandomValues`. Controle tegen bestaande gegevens, acties, kaarten en in deze sessie voorgestelde codes; bij een botsing opnieuw genereren. Opgeslagen actie-ID blijft vast bij bewerken. Bestaande betekenisvolle codes blijven geldig.
+- Actiedetails → QR-kaart maken: QR bevat uitsluitend de identifier. De huidige generator levert daarvoor 21×21 modules bij foutcorrectie M, plus witte marge. Oude JSON `log-task` en `log-task:` blijven ondersteund; gewone UPC-barcodeherkenning blijft intact.
+- Bestaande thema-/subthema-koppelingen worden aanvullend als QR-acties opgenomen in de bestaande `locationActions`-collectie. `logActionCode` markeert eenmalige migratie: verwijderen/pauzeren wordt niet ongedaan gemaakt door opnieuw scannen. Gegevens, lokale IDs, opslagcodes en registraties blijven behouden.
+- Thema-configuratie maakt willekeurige IDs, ook bij KIP-voorinstellingen, en neemt bijbehorende vaste taakacties mee. Herimport is idempotent; botsende koppelingen worden geweigerd. De database/API voor online opzoeken is toekomstwerk; deze versie werkt lokaal na configuratie-import.
+- Gerichte controles: QR-acties aanmaken/bewerken/scannen, casegevoelige 12-tekenidentifiers, collision retry, 21×21 QR, taak/rit/kaart, geen GPS-uitvoering, pauzeren en gewijzigde voorstellen, configuratie-overdracht en herimport, legacy-QR/deletie, behoud historie, bestaande locatieacties en scanner. iPhone/camera praktijkcontrole blijft open.
+
 ## Test 0.34.3 — KIP-configuratie en compacte taak-QR
 
 Geïmplementeerd en gericht gecontroleerd in `test/**`; productie blijft 0.34.2.
