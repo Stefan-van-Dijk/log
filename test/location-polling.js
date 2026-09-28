@@ -3,6 +3,14 @@
   const listeners=new Set(),KM='kmreg-test-v4-data';
   let latest=null,pending=null,lastAttempt=0,visibleTrip='',started=false;
 
+  function loadActionDetailsReset(){
+    if(document.querySelector('script[data-log-action-details-reset]'))return;
+    const script=document.createElement('script');
+    script.src='./action-details-reset.js?v=0.34.12';
+    script.async=false;
+    script.dataset.logActionDetailsReset='1';
+    document.head.appendChild(script);
+  }
   function loadSharingUI(){
     if(document.querySelector('script[data-log-sharing-ui]'))return;
     const ui=document.createElement('script');
@@ -54,6 +62,7 @@
   window.addEventListener('log-km-state-change',()=>poll());
   window.addEventListener('pageshow',start);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)poll(true);});
+  loadActionDetailsReset();
   loadSharing();
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();
