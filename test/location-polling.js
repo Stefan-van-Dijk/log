@@ -6,7 +6,7 @@
   function loadSharingUI(){
     if(document.querySelector('script[data-log-sharing-ui]'))return;
     const ui=document.createElement('script');
-    ui.src='./sharing-private-ui.js?v=0.34.9';
+    ui.src='./sharing-private-ui.js?v=0.34.10';
     ui.async=false;
     ui.dataset.logSharingUi='1';
     document.head.appendChild(ui);
@@ -19,7 +19,7 @@
       return;
     }
     const script=document.createElement('script');
-    script.src='./sharing.js?v=0.34.9';
+    script.src='./sharing.js?v=0.34.10';
     script.async=false;
     script.dataset.logSharing='1';
     script.addEventListener('load',loadSharingUI,{once:true});
