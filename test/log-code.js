@@ -2,13 +2,19 @@
   'use strict';
   const KM='kmreg-test-v4-data', TIME='urenregistratie.test.pwa.v1';
   const types=['theme','subtheme','location','person'];
-  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
   const read=key=>JSON.parse(localStorage.getItem(key)||'{}');
   const list=(raw,key)=>Array.isArray(raw[key])?raw[key]:[];
   const collection={theme:'themes',subtheme:'subthemes',location:'locations',person:'colleagues'};
   function parse(value){
     let p;try{p=JSON.parse(value);}catch(_){return null;}
-    if(!p||p.kind!=='log-code')return null;
+    if(!p)return null;
+    if(p.kind==='log-task'){
+      if(p.version!==1)throw Error('Deze taakcode gebruikt een niet ondersteunde versie.');
+      if(typeof p.id!=='string'||!/^[A-Za-z0-9_-]{12}$/.test(p.id))throw Error('Ongeldige taakidentifier.');
+      return {kind:'log-task',version:1,id:p.id};
+    }
+    if(p.kind!=='log-code')return null;
     if(value.length>4000||p.version!==1)throw Error('Deze Log-code is te groot of gebruikt een niet ondersteunde versie.');
     if(!Array.isArray(p.entities)||p.entities.length>20||!Array.isArray(p.actions)||p.actions.length>2)throw Error('Ongeldige Log-code.');
     const text=(v,max=160)=>{if(typeof v!=='string'||!v.trim()||v.length>max)throw Error('Ongeldige gegevens in Log-code.');return v;};
@@ -69,8 +75,6 @@
     return {km,time,map,rows};
   }
   function commit(payload){
-    // Repeat planning at confirmation. Writes are idempotent; a failed second store
-    // leaves imported references recoverable by retrying, never executes an action.
     const result=plan(payload);
     try{
       if(payload.entities.some(e=>e.type==='location'))localStorage.setItem(KM,JSON.stringify(result.km));
@@ -82,7 +86,26 @@
     return result;
   }
   function details(e){return [e.address,e.lat!=null?`${e.lat}, ${e.lng}`:'',e.email,e.phone].filter(Boolean).join(' · ');}
+  function previewTask(payload){
+    const time=read(TIME),sub=list(time,'subthemes').find(x=>x.logCodeId===payload.id||x.id===payload.id);
+    if(!sub)throw Error('Deze taak is nog niet ingesteld. Scan eerst de configuratiecode.');
+    const theme=list(time,'themes').find(x=>x.id===sub.themeId);
+    if(!theme)throw Error('Het hoofdthema van deze taak is niet beschikbaar. Scan de configuratiecode opnieuw.');
+    const panel=window.LogCardsUI.sheet('Taak herkend',`<h3>${esc(sub.name)}</h3><p>${esc(theme.name)}</p><button class="btn full cards-scan-action" data-start-compact-task>Taak starten</button><p class="cards-notice">De taak start na aantikken.</p><p data-log-status role="status"></p>`);
+    panel.querySelector('[data-start-compact-task]').onclick=()=>{
+      const button=panel.querySelector('[data-start-compact-task]');if(button.disabled)return;button.disabled=true;
+      try{
+        const current=read(TIME),currentSub=list(current,'subthemes').find(x=>x.logCodeId===payload.id||x.id===payload.id);
+        if(!currentSub)throw Error('Deze taak is niet meer beschikbaar. Scan eerst de configuratiecode.');
+        const currentTheme=list(current,'themes').find(x=>x.id===currentSub.themeId);
+        if(!currentTheme)throw Error('Het hoofdthema van deze taak is niet meer beschikbaar.');
+        window.LogTimeModule.startFromCard({themeId:currentTheme.id,subthemeId:currentSub.id,locationName:''});
+        window.LogCardsUI.close();window.dispatchEvent(new CustomEvent('kmreg-test-shell-select-section',{detail:{section:'time'}}));
+      }catch(error){panel.querySelector('[data-log-status]').textContent=error.message;button.disabled=false;}
+    };
+  }
   function preview(payload){
+    if(payload.kind==='log-task')return previewTask(payload);
     const ui=window.LogCardsUI,result=plan(payload);
     const panel=ui.sheet('Log-code herkennen',`<h3>${esc(payload.title)}</h3><p>Controleer deze gegevens. Bestaande waarden blijven behouden.</p>${result.rows.map(({entity:e,local,status})=>`<div class="log-code-row"><strong>${esc(e.name)}</strong><small>${esc({theme:'Thema',subtheme:'Subthema',location:'Locatie',person:'Persoon'}[e.type])} · ${esc(status)}</small><small>${esc(details(e))}</small>${local&&status.includes('lokale')?`<small>In Log: ${esc(local.name)} · ${esc(details(local))}</small>`:''}</div>`).join('')}<p>${payload.actions.length?'Na toevoegen kies je zelf een starter.':'Deze code is een informatiedrager zonder starter.'}</p><button class="btn full" data-import-code>Gegevens toevoegen / gebruiken</button><p data-log-status role="status"></p>`);
     panel.querySelector('[data-import-code]').onclick=()=>{
@@ -95,7 +118,6 @@
       if(button.disabled)return;button.disabled=true;
       try{
         const a=payload.actions[Number(button.dataset.codeStarter)],current=plan(payload);
-        // A deleted target must be reimported explicitly, never recreated by an action.
         if(current.rows.some(row=>row.status==='Nieuw'))throw Error('Gegevens zijn gewijzigd of verwijderd. Scan de code opnieuw.');
         const id=ref=>current.map.get(ref);
         const loc=list(read(KM),'locations').find(x=>x.id===id(a.locationId));
@@ -111,32 +133,18 @@
     const groups=[['theme','Thema',list(time,'themes')],['subtheme','Subthema',list(time,'subthemes')],['location','Locatie',list(km,'locations')],['person','Persoon',list(time,'colleagues')]];
     const panel=window.LogCardsUI.sheet('Log-code maken',`<form data-log-builder><label>Titel<input name="title" maxlength="80" required></label>${groups.map(([type,label,items])=>`<div class="form-group" data-group="${type}"><label>${label}<select name="${type}">${options(items)}</select></label><div data-new="${type}" hidden><label>Naam<input name="${type}Name" maxlength="160"></label>${type==='location'?'<label>Adres<input name="address" maxlength="160"></label>':type==='person'?'<label>E-mail<input name="email" type="email" maxlength="160"></label><label>Telefoon<input name="phone" maxlength="80"></label>':''}</div></div>`).join('')}<label data-task-starter hidden><input type="checkbox" name="task"> Starter: taak starten</label><label data-ride-starter hidden><input type="checkbox" name="ride"> Starter: rit voorbereiden</label><p data-subtheme-help hidden>Het subthema hoort bij het gekozen thema.</p><p data-location-help hidden>De hoofdlocatie wordt samen met deze sublocatie opgenomen.</p><p data-person-help hidden>Iedereen die deze QR leest kan de opgenomen persoonsgegevens zien. Neem alleen gegevens op die je wilt delen.</p><label><input type="checkbox" name="consent" required> Ik wil deze gegevens in de code opnemen.</label><button class="btn full" type="submit">Inhoud controleren</button><p data-log-status role="status"></p></form>`);
     const form=panel.querySelector('form');
-    function show(selector,visible){
-      const node=panel.querySelector(selector);node.hidden=!visible;node.style.display=visible?'':'none';
-      node.querySelectorAll('input,select').forEach(input=>{input.disabled=!visible;});
-    }
+    function show(selector,visible){const node=panel.querySelector(selector);node.hidden=!visible;node.style.display=visible?'':'none';node.querySelectorAll('input,select').forEach(input=>{input.disabled=!visible;});}
     function fields(){
       const theme=form.elements.theme.value,location=form.elements.location.value,person=form.elements.person.value;
       const sub=form.elements.subtheme,previous=sub.value;
       sub.innerHTML=options(theme&&theme!=='new'?list(time,'subthemes').filter(item=>String(item.themeId)===theme):[]);
-      sub.value=[...sub.options].some(option=>option.value===previous)?previous:'';
-      if(!theme)sub.value='';
+      sub.value=[...sub.options].some(option=>option.value===previous)?previous:'';if(!theme)sub.value='';
       show('[data-group="subtheme"]',Boolean(theme));
-      for(const [type] of groups){
-        const input=form.elements[type],isNew=!input.disabled&&input.value==='new';
-        show('[data-new="'+type+'"]',isNew);
-        form.elements[type+'Name'].required=isNew;
-      }
-      show('[data-task-starter]',Boolean(theme));
-      show('[data-ride-starter]',Boolean(location));
-      if(!theme)form.elements.task.checked=false;
-      if(!location)form.elements.ride.checked=false;
-      show('[data-subtheme-help]',Boolean(sub.value));
-      show('[data-location-help]',Boolean(list(km,'locations').find(item=>String(item.id)===location)?.parentId));
-      show('[data-person-help]',Boolean(person));
+      for(const [type] of groups){const input=form.elements[type],isNew=!input.disabled&&input.value==='new';show('[data-new="'+type+'"]',isNew);form.elements[type+'Name'].required=isNew;}
+      show('[data-task-starter]',Boolean(theme));show('[data-ride-starter]',Boolean(location));if(!theme)form.elements.task.checked=false;if(!location)form.elements.ride.checked=false;
+      show('[data-subtheme-help]',Boolean(sub.value));show('[data-location-help]',Boolean(list(km,'locations').find(item=>String(item.id)===location)?.parentId));show('[data-person-help]',Boolean(person));
     }
-    for(const [type] of groups)form.elements[type].onchange=fields;
-    fields();
+    for(const [type] of groups)form.elements[type].onchange=fields;fields();
     form.onsubmit=event=>{
       event.preventDefault();try{
         if(!form.elements.consent.checked)throw Error('Bevestig welke gegevens je wilt delen.');
