@@ -4,8 +4,8 @@
   const STORE='log-test-sharing-v1';
   const PUBLIC_BASE='https://sharon.life/log/config/';
   const TYPES={location:'Locatie',card:'Kaart',theme:'Thema',action:'Actie'};
-  let settingsObserver=null;
   let busy=false;
+  let mountQueued=false;
 
   const $=(selector,root=document)=>root.querySelector(selector);
   const esc=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
@@ -191,6 +191,7 @@
     return `<details class="km-shell-settings-accordion" id="kmShellPublicSettings"><summary><span class="km-shell-settings-accordion-title"><strong>Publiek</strong><small>Extern delen alleen na koppelen</small></span><span class="km-shell-settings-accordion-arrow">›</span></summary><div class="km-shell-settings-accordion-body"><label class="log-public-setting-row"><span><strong>Koppelen aan sharon.life</strong><small>Delen via swipe links naar rechts voor locaties, kaarten, thema’s en acties.</small></span><input type="checkbox" role="switch" data-log-public-toggle></label><p class="log-public-setting-status" data-log-public-status></p></div></details>`;
   }
   function mountSettings(){
+    mountQueued=false;
     const title=$('#kmShellAppSettingsTitle');
     const group=title?.closest('.km-shell-settings-group');
     if(!group)return;
@@ -209,12 +210,22 @@
     }
     syncSettings();
   }
+  function queueMountSettings(){
+    if(mountQueued)return;
+    mountQueued=true;
+    requestAnimationFrame(mountSettings);
+  }
   function syncSettings(){
     const toggle=$('[data-log-public-toggle]');
     const status=$('[data-log-public-status]');
     const active=enabled();
-    if(toggle)toggle.checked=active;
-    if(status){status.textContent=active?'Gekoppeld · rechts swipen om te delen':'Niet gekoppeld';status.dataset.active=String(active);}
+    if(toggle&&toggle.checked!==active)toggle.checked=active;
+    if(status){
+      const text=active?'Gekoppeld · rechts swipen om te delen':'Niet gekoppeld';
+      const data=String(active);
+      if(status.textContent!==text)status.textContent=text;
+      if(status.dataset.active!==data)status.dataset.active=data;
+    }
   }
 
   function installStyles(){
@@ -231,12 +242,34 @@
     document.head.appendChild(style);
   }
 
+  function guardShareSwipe(event){
+    if(!enabled())return;
+    const surface=event.target.closest?.('.km-shell-theme-swipe-surface,.km-shell-location-swipe-surface,.code-card-surface');
+    if(surface&&canShare(surface))event.stopPropagation();
+  }
+
   function init(){
-    installStyles();mountSettings();
-    settingsObserver=new MutationObserver(()=>mountSettings());
-    settingsObserver.observe(document.body,{childList:true,subtree:true});
-    for(const name of ['pageshow','log-km-state-change','log-time-state-change','log-shell-view-refresh'])window.addEventListener(name,()=>{mountSettings();syncSettings();});
-    window.LogSharingUI={enabled,canShare,shareFromSurface,showStatus,mountSettings,resolveSurface};
+    installStyles();
+    queueMountSettings();
+
+    const bodyObserver=new MutationObserver(()=>{
+      if(document.body.classList.contains('km-shell-settings-open'))queueMountSettings();
+    });
+    bodyObserver.observe(document.body,{attributes:true,attributeFilter:['class']});
+
+    document.addEventListener('click',event=>{
+      if(event.target.closest?.('#kmShellSettingsButton'))setTimeout(queueMountSettings,0);
+    },true);
+    document.addEventListener('touchstart',guardShareSwipe,{capture:true,passive:true});
+
+    for(const name of ['pageshow','log-km-state-change','log-time-state-change','log-shell-view-refresh']){
+      window.addEventListener(name,()=>{
+        if(document.body.classList.contains('km-shell-settings-open'))queueMountSettings();
+        syncSettings();
+      });
+    }
+
+    window.LogSharingUI={enabled,canShare,shareFromSurface,showStatus,mountSettings:queueMountSettings,resolveSurface};
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
