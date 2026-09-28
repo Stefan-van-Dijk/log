@@ -12,7 +12,7 @@
   function permissionText(){return !navigator.geolocation?'Locatiebepaling niet beschikbaar':({granted:'Toegestaan',denied:'Niet toegestaan · pas locatietoegang aan in je browser- of telefooninstellingen',prompt:'Nog toestemming nodig · kies Opnieuw controleren',unknown:'Toestemmingsstatus niet beschikbaar in deze browser'})[permissionState]||'Onbekend';}
   function settingsHtml(kind){
     if(kind==='ride')return `<div data-la-ride-settings><label class="log-swipe-setting"><input type="checkbox" data-la-smart-ride><span><span aria-hidden="true">🚗</span> Slimme ritvoorstellen<small>Wacht na parkeren op een volgend waargenomen vertrek en bereidt dan in Ritten een voorstel voor vanaf het laatst afgeronde eindpunt, met de bestemming uit je historie. Je bevestigt zelf de start.</small></span></label></div>`;
-    return `<section><h3>Locatiegebruik</h3><p class="cards-notice">Log controleert je locatie zolang de app geopend en zichtbaar is en locatietoestemming heeft. Er is geen aparte hoofdschakelaar. Per actie bepaal je of die actief is. Dit geeft geen locatieherkenning wanneer Log gesloten is.</p><p class="cards-notice">Kaarten kunnen direct verschijnen; ritten en taken worden voorbereid. Een nieuw bezoek wordt herkend als Log je eerst duidelijk buiten en daarna weer binnen de locatie ziet.</p><p>Locatietoestemming: <span data-la-permission role="status"></span></p><p class="cards-notice" data-la-status role="status"></p><button type="button" class="btn secondary full" data-la-check>Opnieuw controleren</button></section>`;
+    return `<section><h3>Locatiegebruik</h3><p class="cards-notice">Log vraagt bij openen je locatie op. Zolang de app zichtbaar is: elke 6 seconden zonder actieve rit, elke minuut tijdens een rit. Hiervoor is locatietoestemming nodig. Er is geen aparte hoofdschakelaar. Per actie bepaal je of die actief is. Dit geeft geen locatieherkenning wanneer Log gesloten is.</p><p class="cards-notice">Kaarten kunnen direct verschijnen; ritten en taken worden voorbereid. Een nieuw bezoek wordt herkend als Log je eerst duidelijk buiten en daarna weer binnen de locatie ziet.</p><p>Locatietoestemming: <span data-la-permission role="status"></span></p><p class="cards-notice" data-la-status role="status"></p><button type="button" class="btn secondary full" data-la-check>Opnieuw controleren</button></section>`;
   }
   function updateSettings(){
     document.querySelectorAll('[data-la-permission]').forEach(el=>{if(el.textContent!==permissionText())el.textContent=permissionText();});
@@ -27,7 +27,7 @@
     host.querySelector('[data-la-check]')?.addEventListener('click',()=>{start();queryPermission();});
     host.querySelector('[data-la-smart-ride]')?.addEventListener('change',e=>{if(!smartRideState().available){updateSettings();return;}try{write(raw=>{raw.settings={...raw.settings,smartRideEnabled:e.target.checked};});}catch(error){updateSettings();window.LogCardsUI.sheet('Instelling niet bewaard',`<p>${esc(error.message)}</p>`);}});
   }
-  let suppressOpenUntil=0;
+  let suppressOpenUntil=0,pollingUnsubscribe=null;
   let root=null,query='',watch=null,timer=null,generation=0,point=null,status='Locatie wordt gecontroleerd zodra Log zichtbaar is.',busy=false,signature='';
   function snapshot(){const time=read(TIME),km=read(KM);return {time,km,rules:time.locationActions||[],locations:km.locations||[],cards:km.cards||[],themes:time.themes||[],subs:time.subthemes||[]};}
   function rideModuleEnabled(){return window.LogModuleVisibility?.enabled('rides')===true;}
@@ -201,13 +201,17 @@
     if(rule.repeatMode&&rule.repeatMode!=='visit'){suppressRules([rule],rule.repeatMode);return;}
     const state=visits(),v=state[rule.locationId];if(v){v.done=[...new Set([...(v.done||[]),rule.id])];localStorage.setItem(VISITS,JSON.stringify(state));}refresh();
   }
-  function stop(){generation++;if(watch!==null)navigator.geolocation?.clearWatch(watch);watch=null;clearInterval(timer);timer=null;point=null;renderSuggestions();}
+  function stop(){generation++;if(pollingUnsubscribe){pollingUnsubscribe();pollingUnsubscribe=null;}if(watch!==null)navigator.geolocation?.clearWatch(watch);watch=null;clearInterval(timer);timer=null;point=null;renderSuggestions();}
   function start(){
     stop();failed.clear();if(document.hidden)return;
     if(!navigator.geolocation){status='Locatiebepaling is niet beschikbaar.';refresh();return;}
     const token=generation;status='Locatie bepalen…';refresh();
     const success=p=>{if(token!==generation)return;try{permissionState='granted';assess(p);}catch(_){status='Locatievoorstellen konden niet worden bijgewerkt.';point=null;refresh();}};
     const failure=e=>{if(token!==generation)return;point=null;status=e.code===1?'Geen locatietoestemming. Sta locatie toe en tik op Opnieuw controleren.':'Geen betrouwbare locatie beschikbaar. Probeer opnieuw.';if(e.code===1){permissionState='denied';stop();}refresh();};
+    if(window.LogLocationPolling){
+      pollingUnsubscribe=window.LogLocationPolling.subscribe((p,error)=>error?failure(error):success(p));
+      window.LogLocationPolling.request({maxAge:window.LogLocationPolling.interval()}).catch(failure);return;
+    }
     const options={enableHighAccuracy:true,maximumAge:15000,timeout:15000};
     watch=navigator.geolocation.watchPosition(success,failure,options);
     timer=setInterval(()=>{if(!document.hidden){renderSuggestions();navigator.geolocation.getCurrentPosition(success,failure,options);}},60000);

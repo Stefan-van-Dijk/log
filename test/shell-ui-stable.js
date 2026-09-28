@@ -4,8 +4,8 @@
   const BUILD=(()=>{
     try{
       const script=document.currentScript||[...document.scripts].find(item=>item.src.includes('shell-ui-stable.js'));
-      return window.LOG_TEST_BUILD||new URL(script?.src||location.href).searchParams.get('v')||'0.33.14';
-    }catch(_){return window.LOG_TEST_BUILD||'0.33.14';}
+      return window.LOG_TEST_BUILD||new URL(script?.src||location.href).searchParams.get('v')||'0.33.15';
+    }catch(_){return window.LOG_TEST_BUILD||'0.33.15';}
   })();
   const DATA_KEY='kmreg-test-v4-data';
   const SECTION_KEY='kmreg-test-shell-section-v1';
@@ -242,10 +242,9 @@
     gpsPending=true;
     gps={...gps,status:'loading',error:''};
     decorateLocations();
-    navigator.geolocation.getCurrentPosition(
+    window.LogLocationPolling.request({maxAge:force?0:window.LogLocationPolling.interval()}).then(
       pos=>{gpsPending=false;analyzePosition(pos);},
-      err=>{gpsPending=false;gps={...gps,status:'error',error:err.code===1?'Geen locatietoestemming.':'Huidige locatie kon niet worden bepaald.',updatedAt:Date.now()};decorateLocations();},
-      {enableHighAccuracy:true,timeout:12000,maximumAge:30000}
+      err=>{gpsPending=false;gps={...gps,status:'error',error:err.code===1?'Geen locatietoestemming.':'Huidige locatie kon niet worden bepaald.',updatedAt:Date.now()};decorateLocations();}
     );
   }
 
@@ -333,6 +332,7 @@
     observer.observe(document.body,{attributes:true,attributeFilter:['class']});
   }
 
+  window.LogLocationPolling?.subscribe(pos=>{if(pos&&section()==='locations')analyzePosition(pos);});
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});
   else init();
 })();

@@ -148,6 +148,8 @@ Bij iedere nieuwe ontwikkeling of wijziging:
 
 # Controle acties en sublocaties — 27 september 2026
 
+- 0.33.15 (28 september): gedeelde GPS-opvraag bij openen/hervatten, vervolgens 6 seconden zonder actieve rit en 60 seconden met actieve rit. Geen periodieke aanvragen op achtergrond; gelijktijdige aanvragen delen één verzoek. Acties, ritopslag en locatieoverzicht ontvangen dezelfde meting. Ritspoor bewaart maximaal één vers punt per minuut; oude GPS wordt niet opnieuw als actuele positie opgeslagen. Bestaande punten/IndexedDB en sleutels behouden. Handmatige GPS-acties kunnen een extra meting vragen. Gerichte interval-, achtergrond/hervat-, fout-, spoor- en actieovergangstests geslaagd.
+
 - 0.33.14: verwijderen/archiveren centraal onder Bediening: één hoofdschakelaar plus uitklapbare keuzes voor zeven modules. Losse bediening bij Ritten/Tijd en taken/Locaties verwijderd. Optionele settings.swipeLifecycleModules in bestaande kilometeropslag; bij ontbrekende keuze blijven oude vlaggen leidend. Hoofdschakelaar wist geen modulekeuzes. Legacy vlaggen en gebruikersdata blijven bewaard; alle relevante uitvoer- en editorcontroles gebruiken dezelfde policy. Gerichte module-swipe- en centrale instellingtests geslaagd.
 
 - 0.33.13: direct pauzeren/hervatten van acties (geen onmiddellijke uitvoering bij hervatten); Log-QR inhoudsvoorbeeld met terugkeer naar behouden invoer vóór kaartaanmaak; samenvatting van actieve type-/locatie-/zoekfilters en één wisknop. Gerichte actie-UI/overgangs-, Log-code- en filtercontroles geslaagd. Geen nieuwe opslagsleutels; productie ongewijzigd.
