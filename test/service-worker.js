@@ -1,4 +1,4 @@
-const CACHE='kmreg-test-shell-0.34.12';
+const CACHE='kmreg-test-shell-0.34.13';
 const SHELL=[
   './',
   './index.html',
@@ -25,7 +25,7 @@ const SHELL=[
   './shell-backup-archive.js?v=0.34.5',
   './shell-ui.js?v=0.34.5',
   './shell-ui-stable.js?v=0.34.5',
-  './shell-gestures.js?v=0.34.5',
+  './shell-gestures.js?v=0.34.13',
   './shell-location-status.js?v=0.34.5',
   './shell-removal-policy.js?v=0.34.5',
   './shell-quick-actions.js?v=0.34.5',
