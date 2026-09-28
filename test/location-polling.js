@@ -2,12 +2,27 @@
   'use strict';
   const listeners=new Set(),KM='kmreg-test-v4-data';
   let latest=null,pending=null,lastAttempt=0,visibleTrip='',started=false;
+
+  function loadSharingUI(){
+    if(document.querySelector('script[data-log-sharing-ui]'))return;
+    const ui=document.createElement('script');
+    ui.src='./sharing-private-ui.js?v=0.34.9';
+    ui.async=false;
+    ui.dataset.logSharingUi='1';
+    document.head.appendChild(ui);
+  }
   function loadSharing(){
-    if(document.querySelector('script[data-log-sharing]'))return;
+    const existing=document.querySelector('script[data-log-sharing]');
+    if(existing){
+      if(window.LogSharing)loadSharingUI();
+      else existing.addEventListener('load',loadSharingUI,{once:true});
+      return;
+    }
     const script=document.createElement('script');
-    script.src='./sharing.js?v=0.34.8';
+    script.src='./sharing.js?v=0.34.9';
     script.async=false;
     script.dataset.logSharing='1';
+    script.addEventListener('load',loadSharingUI,{once:true});
     document.head.appendChild(script);
   }
   function trip(){try{return JSON.parse(localStorage.getItem(KM)||'{}').activeTrip?.id||'';}catch(_){return '';}}
