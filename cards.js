@@ -198,7 +198,7 @@
     }catch(error){message(error.message || 'Opslaan is niet gelukt. Je invoer blijft staan.')}};
   }
   function show(id, recognized = false) {
-    const card=records().find(item=>item.id===id);if(!card)return;
+    const card=records().find(item=>item.id===id);if(!card)return false;
     const panel=sheet(card.name,`${recognized?'<p class="cards-recognized" role="status">✓ Code herkend · bestaande kaart</p>':''}<p class="cards-location-label">${esc(locationLabel(card.locationId))}</p><div class="code-surface" data-code-display></div><details class="cards-content-details"><summary>Inhoud bekijken</summary><pre class="cards-value">${esc(card.value)}</pre><button type="button" class="btn secondary full" data-card-copy>Inhoud kopiëren</button></details>${recognized&&actionLabel(card)?`<button type="button" class="btn full cards-scan-action" data-run-card-action>${esc(actionLabel(card))}</button>${card.scanAction.type==='task'?'<p class="cards-notice">De taak start pas als je op deze knop tikt.</p>':''}`:''}`);
     $('[data-run-card-action]',panel)?.addEventListener('click',()=>runAction(id));
     panel.style.setProperty('--card-color',color(card.color));
@@ -206,6 +206,8 @@
     try{const payload=window.LogCode?.parse(card.value);if(payload){const button=document.createElement('button');button.type='button';button.className='btn full cards-scan-action';button.textContent='Gegevens en starters openen';button.onclick=()=>{try{window.LogCode.preview(payload)}catch(error){message(error.message)}};$('.cards-dialog-body',panel).appendChild(button);}}catch(error){message(error.message);}
     try{renderCode($('[data-code-display]',panel),card)}catch(error){message(error.message || 'Code kan niet worden weergegeven. De inhoud is nog beschikbaar.')}
     $('[data-card-copy]',panel).onclick=async()=>{try{await navigator.clipboard.writeText(card.value);if(dialog===panel)message('Inhoud gekopieerd.')}catch(_){if(dialog===panel)message('Kopiëren is niet gelukt. Selecteer de inhoud hierboven om deze te kopiëren.')}};
+    window.LogLocationActions?.decorateCard?.(panel,id);
+    return panel;
   }
   function reader() {
     const hints=new Map();hints.set(window.ZXing.DecodeHintType.POSSIBLE_FORMATS,Object.keys(SCAN_FORMATS).map(key=>window.ZXing.BarcodeFormat[key]));
@@ -290,7 +292,7 @@
     },()=>{if(root!==target)return;button.disabled=false;notice='Locatie niet beschikbaar. Kies zelf een locatie.';renderList()}, {enableHighAccuracy:true,timeout:10000,maximumAge:30000});
   }
   window.LogCardsUI={sheet,close,edit};
-  window.LogCardsModule={mount,closeSwipe:row=>setSwipe(row,false),unmount(){if(root){close();root=null;}},search(value){query=String(value||'').toLocaleLowerCase('nl');return renderList()},refresh};
+  window.LogCardsModule={mount,show,closeSwipe:row=>setSwipe(row,false),unmount(){if(root){close();root=null;}},search(value){query=String(value||'').toLocaleLowerCase('nl');return renderList()},refresh};
   window.addEventListener('log-km-state-change',refresh);
   window.addEventListener('storage',event=>{if(event.key==='kmreg-v4-data')refresh()});
   window.addEventListener('pagehide',stopScanner);

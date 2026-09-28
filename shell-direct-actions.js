@@ -17,6 +17,8 @@
   function contextFor(surface){
     if(surface.matches('.code-card-surface')){
       const row=surface.closest('.code-card-swipe');
+      if(row.hasAttribute('data-la-row'))return {row,surface,reset:$('[data-la-reset]',row),edit:$('[data-la-edit]',row),lifecycle:$('[data-la-delete]',row),module:'locationactions'};
+      if(row.hasAttribute('data-person-row'))return {row,surface,edit:$('[data-person-edit]',row),lifecycle:$('[data-delete-colleague]',row),module:'people'};
       return {row,surface,edit:$('[data-card-edit]',row),lifecycle:$('[data-card-delete]',row),module:'cards'};
     }
     if(surface.matches('.activity-swipe-surface')){
@@ -65,17 +67,19 @@
     ctx.surface.style.transform='translateX(0)';
     delete ctx.surface.dataset.swipeOpen;
     ctx.row?.classList.remove('swipe-open','delete-armed');
-    ctx.row?.classList.remove('swipe-edit-armed');
+    ctx.row?.classList.remove('swipe-edit-armed','la-reset-armed');
+    const reset=ctx.row?.querySelector('.la-reset-actions');if(reset){reset.setAttribute('inert','');reset.setAttribute('aria-hidden','true');}
     if(ctx.module==='cards')window.LogCardsModule?.closeSwipe(ctx.row);
   }
 
   function pointerDown(event){
     if(event.button!=null&&event.button!==0)return;
-    if(event.target.closest?.('input,select,textarea,button:not([data-card-open])'))return;
+    if(event.target.closest?.('input,select,textarea,button:not([data-card-open]):not([data-person-open]):not([data-la-open])'))return;
     const surface=event.target.closest?.('.activity-swipe-surface,.km-shell-location-swipe-surface,.km-shell-theme-swipe-surface,.swipe-surface,.code-card-surface');
     if(!surface)return;
     const ctx=contextFor(surface);
     if(!ctx||(!ctx.edit&&!ctx.lifecycle))return;
+    if(ctx.module==='locationactions'&&event.pointerType==='touch')return;
     if(ctx.module==='cards'){
       document.querySelectorAll('.code-card-swipe.actions-open').forEach(row=>window.LogCardsModule?.closeSwipe(row));
     }
@@ -95,17 +99,18 @@
       else if(absY>=AXIS_LOCK_DISTANCE&&absY>=absX*VERTICAL_DOMINANCE){g.cancelled=true;return;}
       else return;
     }
+    g.ctx.row.classList.toggle('la-reset-armed',Boolean(g.ctx.reset&&g.dx>=36));
     g.peakLeft=Math.max(g.peakLeft,Math.max(0,-g.dx));
     const lifecycleAllowed=g.ctx.lifecycle&&(window.LogSwipePolicy?.enabled(g.ctx.module)??true);
     const lifeArmed=lifecycleAllowed&&g.peakLeft>=actionWidth()+LIFECYCLE_EXTRA&&-g.dx>=actionWidth()+LIFECYCLE_EXTRA-LIFECYCLE_RELEASE_BUFFER;
     g.ctx.row.classList.toggle('swipe-edit-armed',-g.dx>=EDIT_RELEASE_THRESHOLD&&g.peakLeft>=EDIT_THRESHOLD&&!lifeArmed);
     g.ctx.row.classList.toggle('delete-armed',Boolean(lifeArmed));
-    if(g.ctx.module==='cards'){
+    if(['cards','people','locationactions'].includes(g.ctx.module)){
       if(event.cancelable)event.preventDefault();
       try{g.ctx.surface.setPointerCapture(event.pointerId);}catch(_){}
       const width=actionWidth()*(lifecycleAllowed?2:1);
       g.ctx.surface.style.transition='none';
-      g.ctx.surface.style.transform=`translateX(${Math.max(-width,Math.min(0,g.dx))}px)`;
+      g.ctx.surface.style.transform=`translateX(${Math.max(-width,Math.min(g.ctx.reset?actionWidth():0,g.dx))}px)`;
     }
   }
 
@@ -118,14 +123,19 @@
     const lifecycleThreshold=actionWidth()+LIFECYCLE_EXTRA;
     const lifecycleArmed=g.peakLeft>=lifecycleThreshold&&distance>=lifecycleThreshold-LIFECYCLE_RELEASE_BUFFER;
     const editArmed=g.peakLeft>=EDIT_THRESHOLD&&distance>=EDIT_RELEASE_THRESHOLD;
-    const action=g.ctx.lifecycle&&lifecycleArmed&&(window.LogSwipePolicy?.enabled(g.ctx.module)??true)
+    const action=g.ctx.reset&&g.dx>=36?g.ctx.reset:g.ctx.lifecycle&&lifecycleArmed&&(window.LogSwipePolicy?.enabled(g.ctx.module)??true)
       ?g.ctx.lifecycle
       :(g.ctx.edit&&editArmed?g.ctx.edit:null);
-    if(g.ctx.module==='cards'){
+    if(['cards','people','locationactions'].includes(g.ctx.module)){
       g.ctx.row.dataset.suppressUntil=String(Date.now()+400);
       resetRow(g.ctx);
     }
     if(!action)return;
+    if(action===g.ctx.reset){
+      try{window.LogLocationActions.reset(action.dataset.laReset);}
+      catch(error){window.LogCardsUI.sheet('Actie niet gereset', '<p>Opnieuw klaarzetten is niet gelukt. Probeer het opnieuw.</p>');}
+      return;
+    }
     setTimeout(()=>{
       if(!action.isConnected)return;
       resetRow(g.ctx);
@@ -135,11 +145,33 @@
 
   function pointerCancel(event){
     if(!gesture||gesture.pointerId!==event.pointerId)return;
-    if(gesture.ctx.module==='cards')resetRow(gesture.ctx);
+    if(['cards','people','locationactions'].includes(gesture.ctx.module))resetRow(gesture.ctx);
     gesture=null;
   }
 
+  // iOS touch input uses the same thresholds without relying on a synthetic
+  // click on an inert button or on pointer capture surviving a list refresh.
+  function touchEvent(event,point){return {target:event.target,pointerId:'la-touch',button:0,clientX:point.clientX,clientY:point.clientY,cancelable:event.cancelable,preventDefault:()=>event.preventDefault()};}
+  function touchStart(event){
+    if(!event.target.closest?.('[data-la-row] .code-card-surface'))return;
+    if(event.touches.length!==1){pointerCancel({pointerId:'la-touch'});return;}
+    pointerDown(touchEvent(event,event.touches[0]));
+  }
+  function touchMove(event){
+    if(gesture?.pointerId!=='la-touch')return;
+    if(event.touches.length!==1){pointerCancel({pointerId:'la-touch'});return;}
+    pointerMove(touchEvent(event,event.touches[0]));
+  }
+  function touchEnd(event){
+    if(gesture?.pointerId!=='la-touch')return;
+    if(event.changedTouches[0])pointerMove(touchEvent(event,event.changedTouches[0]));
+    pointerUp({pointerId:'la-touch'});
+  }
   function init(){
+    document.addEventListener('touchstart',touchStart,{capture:true,passive:true});
+    document.addEventListener('touchmove',touchMove,{capture:true,passive:false});
+    document.addEventListener('touchend',touchEnd,{capture:true,passive:false});
+    document.addEventListener('touchcancel',()=>pointerCancel({pointerId:'la-touch'}),true);
     document.addEventListener('pointerdown',pointerDown,true);
     document.addEventListener('pointermove',pointerMove,true);
     document.addEventListener('pointerup',pointerUp,true);
@@ -149,3 +181,4 @@
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});
   else init();
 })();
+

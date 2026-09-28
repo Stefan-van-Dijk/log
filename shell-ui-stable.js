@@ -4,8 +4,8 @@
   const BUILD=(()=>{
     try{
       const script=document.currentScript||[...document.scripts].find(item=>item.src.includes('shell-ui-stable.js'));
-      return window.LOG_BUILD||new URL(script?.src||location.href).searchParams.get('v')||'0.33.0';
-    }catch(_){return window.LOG_BUILD||'0.33.0';}
+      return window.LOG_BUILD||new URL(script?.src||location.href).searchParams.get('v')||'0.33.15';
+    }catch(_){return window.LOG_BUILD||'0.33.15';}
   })();
   const DATA_KEY='kmreg-v4-data';
   const SECTION_KEY='kmreg-shell-section-v1';
@@ -191,8 +191,7 @@
     const snapshot=readData();
     const locationSummary=$('#kmShellLocationSettings .km-shell-settings-accordion-title small',content);
     if(locationSummary){
-      const deleteEnabled=snapshot.settings.locationDeleteEnabled!==false;
-      locationSummary.textContent=`Herkenning ${Math.round(radius(snapshot))} m · verwijderen ${deleteEnabled?'aan':'uit'}`;
+      locationSummary.textContent=`Herkenning ${Math.round(radius(snapshot))} m`;
     }
     const duplicate=content.querySelector('#kmShellLocationSettings .km-shell-settings-panel-host>#app details.accordion.km-shell-settings-single>summary');
     if(duplicate)duplicate.hidden=true;
@@ -243,10 +242,9 @@
     gpsPending=true;
     gps={...gps,status:'loading',error:''};
     decorateLocations();
-    navigator.geolocation.getCurrentPosition(
+    window.LogLocationPolling.request({maxAge:force?0:window.LogLocationPolling.interval()}).then(
       pos=>{gpsPending=false;analyzePosition(pos);},
-      err=>{gpsPending=false;gps={...gps,status:'error',error:err.code===1?'Geen locatietoestemming.':'Huidige locatie kon niet worden bepaald.',updatedAt:Date.now()};decorateLocations();},
-      {enableHighAccuracy:true,timeout:12000,maximumAge:30000}
+      err=>{gpsPending=false;gps={...gps,status:'error',error:err.code===1?'Geen locatietoestemming.':'Huidige locatie kon niet worden bepaald.',updatedAt:Date.now()};decorateLocations();}
     );
   }
 
@@ -334,6 +332,8 @@
     observer.observe(document.body,{attributes:true,attributeFilter:['class']});
   }
 
+  window.LogLocationPolling?.subscribe(pos=>{if(pos&&section()==='locations')analyzePosition(pos);});
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});
   else init();
 })();
+

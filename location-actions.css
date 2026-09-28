@@ -1,0 +1,15 @@
+#logLocationSuggestions{margin:12px;padding:12px;border:1px solid var(--line);border-radius:16px;background:var(--card);color:var(--text)}#logLocationSuggestions[hidden]{display:none}#logLocationSuggestions h2{font-size:14px;margin:0 0 10px}.la-proposal{display:flex;align-items:center;gap:8px;padding:8px 0}.la-proposal>div{flex:1;min-width:0}.la-proposal strong,.la-proposal small{display:block;overflow-wrap:anywhere}.la-proposal strong{font-size:14px}.la-proposal small{font-size:12px;color:var(--muted);margin-top:4px}.la-proposal .btn{padding:10px;font-size:13px;min-height:44px}.la-dismiss{background:transparent;color:var(--muted);border:0;font-size:24px;min-width:36px;min-height:44px}.la-times{display:grid;grid-template-columns:1fr 1fr;gap:12px;min-width:0}.la-days{border:1px solid var(--line);border-radius:12px;padding:10px;display:flex;flex-wrap:wrap;gap:10px}.la-days legend{color:var(--muted);font-size:12px}.people-form .la-days label{display:flex;align-items:center;gap:4px;min-height:40px}.people-form .la-days input{width:20px;height:20px}.la-times input{min-width:0}body.editor-view #logLocationSuggestions,body.km-shell-settings-open #logLocationSuggestions{display:none}
+.la-snooze,.la-task-actions{display:grid;gap:10px;margin-top:12px}.la-snooze .btn{min-height:44px;white-space:normal}
+
+
+.la-reset-actions{position:absolute;left:0;top:0;bottom:0;display:flex;width:var(--log-action-width,84px)}
+.la-reset-actions button{width:100%;border:0;border-radius:0;color:#fff;font-family:inherit;font-size:12px;font-weight:650;background:var(--log-reactivate,#198754);filter:brightness(.78)}
+.la-reset-armed .la-reset-actions button{filter:brightness(1.08)}
+
+.la-form [hidden]{display:none!important}
+[data-la-row] .code-card-surface,[data-la-row] .code-card{touch-action:pan-y;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+[data-la-row] .code-card-copy small{white-space:normal;line-height:1.4}
+.la-reset-notice{position:fixed;z-index:180;bottom:calc(88px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:max-content;max-width:calc(100vw - 32px);box-sizing:border-box;padding:12px 16px;border-radius:14px;background:var(--card,#222);color:var(--text,#fff);box-shadow:0 4px 22px #0004;font-size:13px;pointer-events:none}
+.la-reset-notice[hidden]{display:none!important}
+
+[data-la-row] .la-next{font-size:11px;color:var(--muted);margin-top:5px}

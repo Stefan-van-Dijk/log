@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://stefan-van-dijk.github.io/log/config/modules.schema.json",
+  "$id": "https://stefan-van-dijk.github.io/log/test/config/modules.schema.json",
   "title": "Log menuconfiguratie",
   "type": "object",
   "additionalProperties": false,
@@ -60,7 +60,9 @@
               "time",
               "locations",
               "themes",
-              "barcodes"
+              "barcodes",
+              "people",
+              "locationactions"
             ]
           },
           "available": {
@@ -86,7 +88,10 @@
               "time",
               "locations",
               "themes",
-              "placeholder"
+              "placeholder",
+              "barcodes",
+              "people",
+              "locationactions"
             ]
           },
           "settingsTarget": {
