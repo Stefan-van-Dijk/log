@@ -84,7 +84,7 @@
   }
   function askKey(){
     return new Promise(resolve=>{
-      const d=dialog('Publiek koppelen',`<p>Voer de publicatiesleutel in om Log aan de publieke opslag te koppelen.</p><label class="log-public-field"><span>Publicatiesleutel</span><input type="password" autocomplete="off" data-public-key></label><p class="log-public-note" data-public-key-status>De sleutel blijft alleen op dit apparaat in Log bewaard.</p><div class="log-public-actions"><button type="button" class="btn secondary" data-public-cancel>Annuleren</button><button type="button" class="btn" data-public-save>Koppelen</button></div>`);
+      const d=dialog('Publiek koppelen',`<p>Voer de publicatiesleutel in om de publieke koppeling te activeren.</p><label class="log-public-field"><span>Publicatiesleutel</span><input type="password" autocomplete="off" data-public-key></label><p class="log-public-note" data-public-key-status>De sleutel blijft alleen op dit apparaat in Log bewaard.</p><div class="log-public-actions"><button type="button" class="btn secondary" data-public-cancel>Annuleren</button><button type="button" class="btn" data-public-save>Koppelen</button></div>`);
       let finished=false;
       const finish=value=>{if(finished)return;finished=true;closeDialog();resolve(value);};
       d.querySelector('[data-public-close]').onclick=()=>finish('');
@@ -92,7 +92,7 @@
       d.addEventListener('cancel',event=>{event.preventDefault();finish('');});
       d.querySelector('[data-public-save]').onclick=()=>{
         const value=d.querySelector('[data-public-key]').value.trim();
-        if(value.length<16){d.querySelector('[data-public-key-status]').textContent='De sleutel is niet volledig. Gebruik de publicatiesleutel van sharon.life.';return;}
+        if(value.length<16){d.querySelector('[data-public-key-status]').textContent='De sleutel is niet volledig. Controleer de publicatiesleutel.';return;}
         finish(value);
       };
       d.querySelector('[data-public-key]').focus();
@@ -169,12 +169,11 @@
     }
     const status=await compareStatus(type,id,bundle,info);
     info=published(type,id)||info;
-    const url=info.url||`${PUBLIC_BASE}${bundle.id}.json`;
     const statusText=status.state==='current'?'Actueel':status.state==='changed'?'Wijzigingen klaar om te publiceren':'Vergelijking nog niet beschikbaar';
     const statusClass=status.state==='current'?'current':status.state==='changed'?'changed':'unknown';
     const updateButton=status.state==='current'?'':`<button type="button" class="btn" data-public-update>${status.state==='changed'?'Update publiceren':'Opnieuw publiceren'}</button>`;
-    const d=dialog(bundle.title,`<div class="log-public-qr">${qrSvg(url)}</div><div class="log-public-identifier">${esc(bundle.id)}</div><div class="log-public-meta"><span>Revisie ${Number(info.revision)||1}</span><span class="log-public-badge ${statusClass}">${esc(statusText)}</span></div><p class="log-public-note">Scan deze QR-code met een ander apparaat om deze publieke configuratie te openen.</p><div class="log-public-actions"><button type="button" class="btn secondary" data-public-copy>Link kopiëren</button>${updateButton}</div>`);
-    d.querySelector('[data-public-copy]').onclick=async event=>{event.currentTarget.textContent=await copy(url)?'Gekopieerd':'Kopiëren mislukt';};
+    const d=dialog(bundle.title,`<div class="log-public-qr">${qrSvg(bundle.id)}</div><div class="log-public-identifier">${esc(bundle.id)}</div><div class="log-public-meta"><span>Revisie ${Number(info.revision)||1}</span><span class="log-public-badge ${statusClass}">${esc(statusText)}</span></div><p class="log-public-note">Scan deze QR-code in Log om deze publieke configuratie op te halen.</p><div class="log-public-actions"><button type="button" class="btn secondary" data-public-copy>Identifier kopiëren</button>${updateButton}</div>`);
+    d.querySelector('[data-public-copy]').onclick=async event=>{event.currentTarget.textContent=await copy(bundle.id)?'Gekopieerd':'Kopiëren mislukt';};
     const update=d.querySelector('[data-public-update]');
     if(update)update.onclick=async()=>{if(await publish(type,id))showStatus(type,id);};
   }
@@ -188,7 +187,7 @@
   }
 
   function settingsMarkup(){
-    return `<details class="km-shell-settings-accordion" id="kmShellPublicSettings"><summary><span class="km-shell-settings-accordion-title"><strong>Publiek</strong><small>Extern delen alleen na koppelen</small></span><span class="km-shell-settings-accordion-arrow">›</span></summary><div class="km-shell-settings-accordion-body"><label class="log-public-setting-row"><span><strong>Koppelen aan sharon.life</strong><small>Delen via swipe links naar rechts voor locaties, kaarten, thema’s en acties.</small></span><input type="checkbox" role="switch" data-log-public-toggle></label><p class="log-public-setting-status" data-log-public-status></p></div></details>`;
+    return `<details class="km-shell-settings-accordion" id="kmShellPublicSettings"><summary><span class="km-shell-settings-accordion-title"><strong>Publiek</strong><small>Extern delen alleen na koppelen</small></span><span class="km-shell-settings-accordion-arrow">›</span></summary><div class="km-shell-settings-accordion-body"><label class="log-public-setting-row"><span><strong>Publieke koppeling</strong><small>Delen via swipe links naar rechts voor locaties, kaarten, thema’s en acties.</small></span><input type="checkbox" role="switch" data-log-public-toggle></label><p class="log-public-setting-status" data-log-public-status></p></div></details>`;
   }
   function mountSettings(){
     mountQueued=false;
