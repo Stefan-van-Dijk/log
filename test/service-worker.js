@@ -1,4 +1,4 @@
-const CACHE='kmreg-test-shell-0.35.1-test.6';
+const CACHE='kmreg-test-shell-0.35.1-test.7';
 const SHELL=[
   './',
   './index.html',
