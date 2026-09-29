@@ -1,8 +1,14 @@
 (function(){
   'use strict';
+  const BUILD='0.34.14';
+  window.LOG_TEST_BUILD=BUILD;
   const listeners=new Set(),KM='kmreg-test-v4-data';
   let latest=null,pending=null,lastAttempt=0,visibleTrip='',started=false;
 
+  function syncVisibleBuild(){
+    document.querySelectorAll('.km-shell-version-number').forEach(el=>{if(el.textContent!==BUILD)el.textContent=BUILD;});
+    document.querySelectorAll('.km-shell-version').forEach(el=>{const label=`Geladen testversie ${BUILD}`;if(el.getAttribute('aria-label')!==label)el.setAttribute('aria-label',label);});
+  }
   function loadActionDetailsReset(){
     if(document.querySelector('script[data-log-action-details-reset]'))return;
     const script=document.createElement('script');
@@ -57,12 +63,12 @@
     const id=trip();if(id!==visibleTrip){visibleTrip=id;force=true;}
     if(force||Date.now()-lastAttempt>=interval())request().catch(()=>{});
   }
-  function start(){if(!started){started=true;setInterval(()=>poll(),1000);}poll(Date.now()-lastAttempt>1000);}
+  function start(){if(!started){started=true;setInterval(()=>poll(),1000);}poll(Date.now()-lastAttempt>1000);syncVisibleBuild();}
   window.LogLocationPolling={request,interval,subscribe(listener){listeners.add(listener);if(latest&&!document.hidden&&Date.now()-latest.timestamp<=interval())listener(latest);return()=>listeners.delete(listener);}};
   window.addEventListener('log-km-state-change',()=>poll());
-  window.addEventListener('pageshow',start);
-  document.addEventListener('visibilitychange',()=>{if(!document.hidden)poll(true);});
+  window.addEventListener('pageshow',()=>{start();syncVisibleBuild();setTimeout(syncVisibleBuild,100);});
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden){poll(true);syncVisibleBuild();}});
   loadActionDetailsReset();
   loadSharing();
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{start();syncVisibleBuild();setTimeout(syncVisibleBuild,100);},{once:true});else start();
 })();
