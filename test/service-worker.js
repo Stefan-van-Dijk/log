@@ -1,8 +1,8 @@
-const CACHE='kmreg-test-shell-0.34.13';
+const CACHE='kmreg-test-shell-0.34.14';
 const SHELL=[
   './',
   './index.html',
-  './location-polling.js?v=0.34.12',
+  './location-polling.js?v=0.34.14',
   './sharing.js?v=0.34.10',
   './sharing-private-ui.js?v=0.34.11',
   './action-details-reset.js?v=0.34.12',
