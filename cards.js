@@ -241,8 +241,8 @@
     return decoder.decodeBitmap(new window.ZXing.BinaryBitmap(new window.ZXing.HybridBinarizer(source)));
   }
   function scanner() {
-    const panel=sheet('Code scannen',`<p>Richt de camera op een QR-code of barcode.</p><video class="cards-video" playsinline muted autoplay></video><button type="button" class="btn full" data-camera-start>Camera starten</button><label class="cards-photo btn secondary">Code uit foto lezen<input type="file" accept="image/*" data-card-photo></label><button type="button" class="cards-link" data-manual>Zelf inhoud invoeren</button>`);
-    $('[data-manual]',panel).onclick=()=>edit();
+    const panel=sheet('Code scannen',`<p>Richt de camera op een QR-code of barcode.</p><video class="cards-video" playsinline muted autoplay></video><button type="button" class="btn full" data-camera-start>Camera starten</button><label class="cards-photo btn secondary">Code uit foto lezen<input type="file" accept="image/*" data-card-photo></label><details class="cards-content-details" data-manual-code><summary>Code handmatig invoeren</summary>${window.LogSharedCard.manualForm()}</details>`);
+    window.LogSharedCard.bindManual($('[data-manual-code]',panel));
     const start=$('[data-camera-start]',panel);
     start.onclick=async()=>{
       if(start.disabled)return;
@@ -291,7 +291,7 @@
       notice=count?`${count} ${count===1?'kaart past':'kaarten passen'} bij locaties in de buurt · bovenaan gezet.`:'Geen gekoppelde kaarten in de buurt. Alle kaarten blijven beschikbaar.';renderList();
     },()=>{if(root!==target)return;button.disabled=false;notice='Locatie niet beschikbaar. Kies zelf een locatie.';renderList()}, {enableHighAccuracy:true,timeout:10000,maximumAge:30000});
   }
-  window.LogCardsUI={sheet,close,edit};
+  window.LogCardsUI={sheet,close,edit,renderCode,validate(card){validate(card);makeCode(card);}};
   window.LogCardsModule={mount,show,closeSwipe:row=>setSwipe(row,false),unmount(){if(root){close();root=null;}},search(value){query=String(value||'').toLocaleLowerCase('nl');return renderList()},refresh};
   window.addEventListener('log-km-state-change',refresh);
   window.addEventListener('storage',event=>{if(event.key==='kmreg-test-v4-data')refresh()});

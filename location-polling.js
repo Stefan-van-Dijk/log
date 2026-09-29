@@ -1,6 +1,6 @@
 (function(){
   'use strict';
-  const BUILD='0.35';
+  const BUILD='0.36';
   window.LOG_BUILD=BUILD;
   // Compatibility layer for modules promoted from the isolated test tree.
   // On the live route these legacy test key names are transparently routed
@@ -13,7 +13,10 @@
     ['log-test-action-snoozes-v1','log-action-snoozes-v1'],
     ['log-test-action-transitions-v1','log-action-transitions-v1'],
     ['log-test-smart-ride-departure-v1','log-smart-ride-departure-v1'],
-    ['log-test-sharing-v1','log-sharing-v1']
+    ['log-test-sharing-v1','log-sharing-v1'],
+    ['log-test-shared-card-updates-v1','log-shared-card-updates-v1'],
+    ['log-test-shared-config-updates-v2','log-shared-config-updates-v2'],
+    ['log-test-shared-provenance-v1','log-shared-provenance-v1']
   ]);
   function installProductionKeyRouting(){
     if(window.__logProductionKeyRoutingInstalled)return;
@@ -33,7 +36,7 @@
     bridge('kmreg-test-shell-open-settings','kmreg-shell-open-settings');
   }
   installProductionKeyRouting();
-  // Some promoted modules still inspect this compatibility build variable.
+  // Promoted modules inspect this compatibility build variable.
   window.LOG_TEST_BUILD=BUILD;
 
   const listeners=new Set(),KM='kmreg-v4-data';
@@ -41,6 +44,7 @@
 
   function syncVisibleBuild(){
     window.LOG_BUILD=BUILD;
+    window.LOG_TEST_BUILD=BUILD;
     document.querySelectorAll('.km-shell-version-number').forEach(el=>{if(el.textContent!==BUILD)el.textContent=BUILD;});
     document.querySelectorAll('.km-shell-version').forEach(el=>{const label=`Geladen versie ${BUILD}`;if(el.getAttribute('aria-label')!==label)el.setAttribute('aria-label',label);});
   }
@@ -85,6 +89,61 @@
     script.addEventListener('load',loadSharingUI,{once:true});
     document.head.appendChild(script);
   }
+  function loadSharedSettingsUI(){
+    if(document.querySelector('script[data-log-shared-settings-ui]'))return;
+    const script=document.createElement('script');
+    script.src=`./shared-settings-ui.js?v=${BUILD}`;
+    script.async=false;
+    script.dataset.logSharedSettingsUi='1';
+    document.head.appendChild(script);
+  }
+  function loadSharedConfigBridge(){
+    if(document.querySelector('script[data-log-shared-config-bridge]'))return;
+    const script=document.createElement('script');
+    script.src=`./shared-config-bridge.js?v=${BUILD}`;
+    script.async=false;
+    script.dataset.logSharedConfigBridge='1';
+    document.head.appendChild(script);
+  }
+  function loadSharedDiffRights(){
+    if(document.querySelector('script[data-log-shared-diff-rights]'))return;
+    const script=document.createElement('script');
+    script.src=`./shared-diff-rights.js?v=${BUILD}`;
+    script.async=false;
+    script.dataset.logSharedDiffRights='1';
+    document.head.appendChild(script);
+  }
+  function loadSharedUpdateCompact(){
+    if(document.querySelector('script[data-log-shared-update-compact]'))return;
+    const script=document.createElement('script');
+    script.src=`./shared-update-compact.js?v=${BUILD}`;
+    script.async=false;
+    script.dataset.logSharedUpdateCompact='1';
+    document.head.appendChild(script);
+  }
+  function loadSharedStack(){
+    const after=()=>{
+      // shared-card-import originated in test and sets the compatibility build;
+      // restore the live release label immediately after loading it.
+      window.LOG_TEST_BUILD=BUILD;
+      loadSharedSettingsUI();
+      loadSharedConfigBridge();
+      loadSharedDiffRights();
+      loadSharedUpdateCompact();
+    };
+    const existing=document.querySelector('script[data-log-shared-card-import]');
+    if(existing){
+      if(window.LogSharedConfig)after();
+      else existing.addEventListener('load',after,{once:true});
+      return;
+    }
+    const script=document.createElement('script');
+    script.src=`./shared-card-import.js?v=${BUILD}`;
+    script.async=false;
+    script.dataset.logSharedCardImport='1';
+    script.addEventListener('load',after,{once:true});
+    document.head.appendChild(script);
+  }
   function trip(){try{return JSON.parse(localStorage.getItem(KM)||'{}').activeTrip?.id||'';}catch(_){return '';}}
   function interval(){return trip()?60000:6000;}
   function request({maxAge=0}={}){
@@ -117,5 +176,6 @@
   loadBuildUI();
   loadActionDetailsReset();
   loadSharing();
+  loadSharedStack();
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{start();syncVisibleBuild();setTimeout(syncVisibleBuild,100);},{once:true});else start();
 })();

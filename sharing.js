@@ -43,7 +43,7 @@
     if(type==='location')addLocation(id);else if(type==='card')addCard(id);else if(type==='theme')addTheme(id,true);else if(type==='action')addAction(id);else throw new Error('Onbekend deeltype.');
     const roots={location:found.locations,card:found.cards,theme:found.themes,action:found.actions};if(!roots[type]?.has(String(id)))throw new Error(`${TYPES[type]||'Item'} niet gevonden.`);
     const identifier=configId(type,id);
-    return{schema:'https://sharon.life/log/config/v1',kind:'log-config',id:identifier,title:itemTitle(type,id,s),root:{type,sourceId:String(id)},exportedAt:new Date().toISOString(),source:{app:'Log',build:String(window.LOG_TEST_BUILD||'0.35')},objects:{locations:[...found.locations.values()],themes:[...found.themes.values()],subthemes:[...found.subthemes.values()],cards:[...found.cards.values()],actions:[...found.actions.values()]}};
+    return{schema:'https://sharon.life/log/config/v1',kind:'log-config',id:identifier,title:itemTitle(type,id,s),root:{type,sourceId:String(id)},exportedAt:new Date().toISOString(),source:{app:'Log',build:String(window.LOG_TEST_BUILD||'0.35.1-test.2')},objects:{locations:[...found.locations.values()],themes:[...found.themes.values()],subthemes:[...found.subthemes.values()],cards:[...found.cards.values()],actions:[...found.actions.values()]}};
   }
 
   function removeDialog(){document.querySelectorAll('.log-share-dialog').forEach(x=>x.remove());}
