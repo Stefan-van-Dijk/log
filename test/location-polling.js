@@ -1,6 +1,6 @@
 (function(){
   'use strict';
-  const BUILD='0.34.15';
+  const BUILD='0.34.16';
   window.LOG_TEST_BUILD=BUILD;
   const listeners=new Set(),KM='kmreg-test-v4-data';
   let latest=null,pending=null,lastAttempt=0,visibleTrip='',started=false;
@@ -12,7 +12,7 @@
   function loadTestBuildUI(){
     if(document.querySelector('script[data-log-test-build-ui]'))return;
     const script=document.createElement('script');
-    script.src='./test-build-ui.js?v=0.34.15';
+    script.src='./test-build-ui.js?v=0.34.16';
     script.async=false;
     script.dataset.logTestBuildUi='1';
     document.head.appendChild(script);
