@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const BUILD='0.34.17';
+  const BUILD='0.34.18';
   window.LOG_TEST_BUILD=BUILD;
 
   function installStyles(){
@@ -56,6 +56,20 @@
     document.head.appendChild(style);
   }
 
+  function ensureCurrentSharingUI(){
+    const wanted=`sharing-private-ui.js?v=${BUILD}`;
+    const scripts=[...document.querySelectorAll('script[data-log-sharing-ui]')];
+    if(scripts.some(script=>script.src.includes(wanted)))return;
+    scripts.forEach(script=>script.remove());
+    document.getElementById('kmShellPublicSettings')?.remove();
+    document.querySelectorAll('.log-public-dialog,.log-share-dialog').forEach(dialog=>{try{dialog.close?.();}catch(_){}dialog.remove();});
+    const script=document.createElement('script');
+    script.src=`./sharing-private-ui.js?v=${BUILD}`;
+    script.async=false;
+    script.dataset.logSharingUi='1';
+    document.head.appendChild(script);
+  }
+
   function render(){
     installStyles();
     const settings=document.getElementById('kmShellSettingsButton');
@@ -74,6 +88,7 @@
 
   function init(){
     render();
+    ensureCurrentSharingUI();
     if(!document.getElementById('kmShellSettingsButton')){
       const observer=new MutationObserver(()=>{
         render();
@@ -81,7 +96,7 @@
       });
       observer.observe(document.body,{childList:true,subtree:true});
     }
-    window.addEventListener('pageshow',render);
+    window.addEventListener('pageshow',()=>{render();ensureCurrentSharingUI();});
     window.addEventListener('log-shell-view-refresh',render);
   }
 
