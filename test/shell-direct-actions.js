@@ -85,6 +85,7 @@
     const share=shareAvailable(g.ctx);
     if(share&&g.dx>0){
       if(event.cancelable)event.preventDefault();
+      event.stopPropagation?.();
       try{g.ctx.surface.setPointerCapture?.(event.pointerId);}catch(_){}
       g.ctx.row?.classList.toggle('log-share-armed',g.dx>=SHARE_RELEASE_THRESHOLD);
       g.ctx.row?.classList.remove('la-reset-armed','swipe-edit-armed','delete-armed');
@@ -151,7 +152,7 @@
 
   function touchEvent(event,point){return {target:event.target,pointerId:'log-touch',button:0,clientX:point.clientX,clientY:point.clientY,cancelable:event.cancelable,preventDefault:()=>event.preventDefault()};}
   function touchStart(event){
-    const surface=event.target.closest?.('.activity-swipe-surface,.km-shell-location-swipe-surface,.km-shell-theme-swipe-surface,.swipe-surface,.code-card-surface');
+    const surface=event.target.closest?.('[data-la-row] .code-card-surface');
     if(!surface)return;
     if(event.touches.length!==1){pointerCancel({pointerId:'log-touch'});return;}
     pointerDown(touchEvent(event,event.touches[0]));
