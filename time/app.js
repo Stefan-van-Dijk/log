@@ -1,6 +1,6 @@
 'use strict';
 
-const STORAGE_KEY = 'urenregistratie.pwa.v1';
+const STORAGE_KEY = 'urenregistratie.test.pwa.v1';
 const ROUNDING_UNITS = [3, 6, 12, 15, 30, 60];
 const THEME_COLORS = ['#a875ff', '#4da3ff', '#49d17d', '#ff9f0a', '#ff6767', '#4da3ff', '#ffbd4a', '#8e8e93'];
 
@@ -716,14 +716,16 @@ function addColleague(rawName) {
 function openStartModal(prefill = {}) {
   const suggested = suggestion();
   const selectedThemeId = prefill.themeId || suggested?.theme?.id || '';
-  const selectedSubId = prefill.subthemeId || suggested?.sub?.id || '';
+  const selectedSubId = Object.hasOwn(prefill,'themeId') ? (prefill.subthemeId || '') : (suggested?.sub?.id || '');
   openModal(`<div class="modal-head"><h2 id="modalTitle">Start activiteit</h2><button class="close" aria-label="Sluiten">×</button></div><div class="field"><label>Thema</label><select id="startTheme">${themeOptions(selectedThemeId)}</select></div><div class="inline-form"><div class="field"><label>Nieuw thema</label><input id="newThemeStart" placeholder="Naam"></div><button id="addThemeStart" class="btn small">Toevoegen</button></div><div class="field"><label>Subthema</label><select id="startSubtheme">${selectedThemeId ? subthemeOptions(selectedThemeId, selectedSubId) : '<option value="">Kies eerst een thema</option>'}</select></div><div class="inline-form"><div class="field"><label>Nieuw subthema</label><input id="newSubthemeStart" placeholder="Naam"></div><button id="addSubthemeStart" class="btn small">Toevoegen</button></div><div class="field"><label>Locatie (optioneel)</label><input id="startLocation" value="${safeText(prefill.locationName || suggested?.locationName || '')}" placeholder="Bijvoorbeeld kantoor of Amsterdam"></div><div class="field"><label>Notitie (optioneel)</label><textarea id="startNote"></textarea></div><button id="confirmStart" class="btn primary full">Start</button>`);
   const theme = $('#startTheme'); const sub = $('#startSubtheme');
+  $('#startNote').value=prefill.note||'';
+  if(Object.hasOwn(prefill,'locationName'))$('#startLocation').value=prefill.locationName||'';
   const refreshSubs = (selected = '') => { sub.innerHTML = theme.value ? subthemeOptions(theme.value, selected) : '<option value="">Kies eerst een thema</option>'; };
   theme.addEventListener('change', () => refreshSubs());
   $('#addThemeStart').addEventListener('click', () => { const t = addTheme($('#newThemeStart').value); if (!t) return; theme.innerHTML = themeOptions(t.id); $('#newThemeStart').value = ''; refreshSubs(); toast('Thema toegevoegd'); });
   $('#addSubthemeStart').addEventListener('click', () => { if (!theme.value) return toast('Kies eerst een thema'); const s = addSubtheme(theme.value, $('#newSubthemeStart').value); if (!s) return; refreshSubs(s.id); $('#newSubthemeStart').value = ''; toast('Subthema toegevoegd'); });
-  $('#confirmStart').addEventListener('click', () => { const t = state.themes.find(x => x.id === theme.value); if (!t) return toast('Kies eerst een thema'); const s = state.subthemes.find(x => x.id === sub.value) || null; startTimer(t, s, cleanName($('#startLocation').value), cleanName($('#startNote').value)); closeModal(); });
+  $('#confirmStart').addEventListener('click', () => { try { startFromCard({themeId:theme.value,subthemeId:sub.value,locationName:cleanName($('#startLocation').value),note:cleanName($('#startNote').value)}); closeModal(); } catch(error){toast(error.message);} });
 }
 
 function startTimer(theme, subtheme = null, locationName = '', note = '') {
@@ -950,13 +952,22 @@ function init() {
 }
 
 // Read persisted timer state again at confirmation, including changes from another tab.
-function startFromCard({themeId,subthemeId,locationName=''}) {
+function prepareFromCode({themeId,subthemeId='',locationName='',note=''}) {
+  state=loadState();
+  if(state.timer.status!=='inactive')throw Error('Er loopt nog een taak of er wacht een taak op afronding. Rond die eerst af.');
+  if(!state.themes.some(t=>t.id===themeId)||(subthemeId&&!state.subthemes.some(s=>s.id===subthemeId&&s.themeId===themeId)))throw Error('Het gekoppelde thema of subthema is niet meer beschikbaar.');
+  window.dispatchEvent(new CustomEvent('kmreg-test-shell-select-section',{detail:{section:'time'}}));
+  currentView='home';render();
+  openStartModal({themeId,subthemeId,locationName,note});
+}
+
+function startFromCard({themeId,subthemeId,locationName='',note=''}) {
   state=loadState();
   if(state.timer.status!=='inactive')throw Error('Er loopt nog een taak of er wacht een taak op afronding. Rond die eerst af.');
   const theme=state.themes.find(item=>item.id===themeId);
   const subtheme=subthemeId?state.subthemes.find(item=>item.id===subthemeId&&item.themeId===themeId):null;
   if(!theme || (subthemeId&&!subtheme))throw Error('Het gekoppelde thema of subthema is niet meer beschikbaar. Bewerk de kaart.');
-  try { startTimer(theme,subtheme,locationName); }
+  try { startTimer(theme,subtheme,locationName,note); }
   catch(error){state=loadState();throw error;}
   return true;
 }
@@ -1014,6 +1025,7 @@ window.LogTimeModule = Object.freeze({
   reloadFromStorage,
   startFromEntry,
   startFromCard,
+  prepareFromCode,
   startFromLocationAction,
   suggestForAction: () => {state=loadState();const s=suggestion();return s?{themeId:s.theme.id,subthemeId:s.sub?.id||'',themeName:s.theme.name,subthemeName:s.sub?.name||''}:null;},
   resumeEntry: entryId => reopenLastTask(entryId),

@@ -1,21 +1,137 @@
 (function(){
   'use strict';
-  const KM='kmreg-v4-data', TIME='urenregistratie.pwa.v1';
+  const KM='kmreg-test-v4-data', TIME='urenregistratie.test.pwa.v1';
   const types=['theme','subtheme','location','person'];
   const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const read=key=>JSON.parse(localStorage.getItem(key)||'{}');
   const list=(raw,key)=>Array.isArray(raw[key])?raw[key]:[];
   const collection={theme:'themes',subtheme:'subthemes',location:'locations',person:'colleagues'};
+  const taskIdPattern=/^[A-Za-z0-9_-]{12}$/;
+  const alphabet='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+  const reserved=new Set();
+  const configBase='https://sharon.life/log/config/';
+  let lookupController=null;
+  function onlinePayload(document,id){
+    if(!document||document.logCodeId!==id||!taskIdPattern.test(id))throw Error('De configuratie hoort niet bij deze identifier.');
+    let value;
+    if(['log-config','log-config-example'].includes(document.type)){
+      if(document.schemaVersion!==1||!Number.isSafeInteger(document.version)||document.version<1)throw Error('Deze configuratieversie wordt niet ondersteund.');
+      if(!Array.isArray(document.themes)||document.themes.length>20||!Array.isArray(document.actions)||document.actions.length>20)throw Error('Ongeldige online configuratie.');
+      const entities=[];
+      for(const theme of document.themes){
+        if(!theme||!Array.isArray(theme.subthemes)||theme.subthemes.length>20)throw Error('Ongeldig thema in configuratie.');
+        entities.push({type:'theme',id:theme.logCodeId,name:theme.name});
+        for(const sub of theme.subthemes){
+          if(!sub)throw Error('Ongeldig subthema.');
+          entities.push({type:'subtheme',id:sub.logCodeId,name:sub.name,themeId:theme.logCodeId});
+        }
+      }
+      const actions=document.actions.map(a=>{
+        if(!a||a.trigger!=='qr'||a.action!=='start-task'||a.requireConfirmation!==true)throw Error('Deze online actie wordt niet ondersteund.');
+        return {type:'task',logCodeId:a.logCodeId,name:a.title,themeId:a.themeLogCodeId,subthemeId:a.subthemeLogCodeId||'',note:a.note||'',enabled:a.enabled!==false};
+      });
+      value={kind:'log-code',version:1,title:document.title,entities,actions};
+    }else if(document.kind==='log-code'){
+      value=document;
+    }else throw Error('Dit bestand is geen ondersteunde Log-configuratie.');
+    const payload=parse(JSON.stringify(value));
+    if(!payload||payload.kind!=='log-code')throw Error('Ongeldige online configuratie.');
+    const ids=[id,...payload.entities.map(e=>e.id),...payload.actions.map(a=>a.logCodeId).filter(Boolean)];
+    if(ids.some(code=>!taskIdPattern.test(code))||new Set(ids).size!==ids.length)throw Error('Online identifiers moeten uniek zijn en uit 12 tekens bestaan.');
+    payload.remote={id,version:document.kind==='log-code'?(document.configVersion||1):document.version};
+    if(!Number.isSafeInteger(payload.remote.version)||payload.remote.version<1)throw Error('Ongeldige configuratieversie.');
+    return payload;
+  }
+  async function fetchConfiguration(id,signal){
+    if(!taskIdPattern.test(id))throw Error('Ongeldige identifier.');
+    const response=await fetch(configBase+id+'.json',{mode:'cors',credentials:'omit',redirect:'error',cache:'no-store',signal});
+    if(response.status===404)throw Error('Deze Log-code is nog niet geconfigureerd en is ook niet gevonden op sharon.life.');
+    if(!response.ok)throw Error('De configuratie kon niet worden opgehaald. Probeer later opnieuw.');
+    if(!/^application\/json(?:\s*;|$)/i.test(response.headers.get('content-type')||''))throw Error('De website gaf geen JSON-configuratie terug.');
+    const max=65536;
+    if(Number(response.headers.get('content-length'))>max)throw Error('Het configuratiebestand is te groot.');
+    let source;
+    if(response.body?.getReader){
+      const reader=response.body.getReader(),chunks=[];let length=0;
+      try{while(true){const {done,value}=await reader.read();if(done)break;length+=value.byteLength;if(length>max){await reader.cancel();throw Error('Het configuratiebestand is te groot.');}chunks.push(value);}}finally{reader.releaseLock();}
+      const bytes=new Uint8Array(length);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length;}source=new TextDecoder().decode(bytes);
+    }else source=await response.text();
+    if(source.length>max)throw Error('Het configuratiebestand is te groot.');
+    let document;try{document=JSON.parse(source);}catch(_){throw Error('Het configuratiebestand bevat ongeldige JSON.');}
+    return onlinePayload(document,id);
+  }
+  async function previewOnline(id){
+    const controller=new AbortController();lookupController=controller;
+    const ui=window.LogCardsUI,panel=ui.sheet('Configuratie zoeken',`<p role="status" data-online-status>Deze Log-code is nog niet geconfigureerd. Zoeken op sharon.life…</p><button class="btn full" data-online-retry hidden>Opnieuw proberen</button><button class="btn full" data-task-back>Terug</button>`);
+    panel.querySelector('[data-task-back]').onclick=()=>{controller.abort();ui.close();};
+    panel.querySelector('[data-online-retry]').onclick=()=>preview({kind:'log-action',version:1,id});
+    const timeout=setTimeout(()=>controller.abort(),12000);
+    try{
+      const payload=await fetchConfiguration(id,controller.signal);
+      if(panel.isConnected&&lookupController===controller&&!controller.signal.aborted){plan(payload);preview(payload);}
+    }catch(error){
+      if(panel.isConnected&&lookupController===controller){
+        panel.querySelector('[data-online-status]').textContent=error.name==='AbortError'?'Ophalen duurt te lang. Controleer je verbinding en probeer opnieuw.':error instanceof TypeError?'Geen verbinding met sharon.life. Controleer internet en probeer opnieuw.':error.message;
+        panel.querySelector('[data-online-retry]').hidden=false;
+      }
+    }finally{clearTimeout(timeout);if(lookupController===controller)lookupController=null;}
+  }
+  function newCodeId(){
+    const time=read(TIME),km=read(KM);
+    const used=new Set([...reserved,...list(time,'logConfigurations').map(c=>c.id),...[...list(time,'themes'),...list(time,'subthemes'),...list(time,'locationActions')].flatMap(x=>[x.id,x.logCodeId,x.taskCodeId]),...list(km,'cards').map(c=>c.value)]);
+    for(let attempt=0;attempt<100;attempt++){
+      const code=Array.from(crypto.getRandomValues(new Uint8Array(12)),v=>alphabet[v&63]).join('');
+      if(!used.has(code)){reserved.add(code);return code;}
+    }
+    throw Error('Geen unieke identifier beschikbaar. Probeer opnieuw.');
+  }
+  function assertActionCode(rule,time=read(TIME),explicit=false){
+    if(typeof rule.logCodeId!=='string'||!taskIdPattern.test(rule.logCodeId))throw Error('Een identifier bestaat uit exact 12 tekens: A–Z, a–z, 0–9, - en _.');
+    if(list(time,'locationActions').some(r=>r.id!==rule.id&&r.logCodeId===rule.logCodeId))throw Error('Deze identifier is al in gebruik.');
+    if(explicit||list(time,'locationActions').some(r=>r.id===rule.id&&r.logCodeId===rule.logCodeId))return;
+    for(const entity of [...list(time,'themes'),...list(time,'subthemes')]){
+      if([entity.logCodeId,entity.taskCodeId,entity.id].includes(rule.logCodeId)&&!(rule.type==='task'&&rule.selection!=='smart'&&(rule.subthemeId?entity.id===rule.subthemeId:entity.id===rule.targetId)))throw Error('Deze identifier is al aan andere gegevens gekoppeld.');
+    }
+  }
+  function ensureTaskActions(time,explicit=new Set()){
+    const rules=list(time,'locationActions');let changed=false;
+    for(const entity of [...list(time,'themes'),...list(time,'subthemes')]){
+      const code=entity.taskCodeId||(taskIdPattern.test(entity.logCodeId||'')?entity.logCodeId:null);
+      if(!code||entity.logActionCode===code)continue;
+      const linked=rules.find(r=>r.logCodeId===code);
+      if(linked){
+        if(!explicit.has(code)&&(linked.type!=='task'||linked.targetId!==(entity.themeId||entity.id)||(linked.subthemeId||'')!==(entity.themeId?entity.id:'')))throw Error('Deze identifier is al aan een andere actie gekoppeld.');
+        entity.logActionCode=code;changed=true;continue;
+      }
+      const themeId=entity.themeId||entity.id;if(!list(time,'themes').some(t=>t.id===themeId))continue;
+      const rule={id:crypto.randomUUID(),trigger:'qr',logCodeId:code,name:entity.name,type:'task',selection:'fixed',targetId:themeId,subthemeId:entity.themeId?entity.id:'',note:entity.themeId?entity.name:'',repeatMode:'scan',enabled:true,days:[],start:'',end:''};
+      assertActionCode(rule,time);rules.push(rule);entity.logActionCode=code;changed=true;
+    }
+    if(changed)time.locationActions=rules;return changed;
+  }
+  function migrateTasks(){
+    const time=read(TIME);if(!ensureTaskActions(time))return;
+    localStorage.setItem(TIME,JSON.stringify(time));window.LogTimeModule?.reloadFromStorage?.({view:window.LogTimeModule.getView?.()||'home'});window.dispatchEvent(new Event('log-time-state-change'));
+  }
   function parse(value){
+    if(typeof value==='string'&&taskIdPattern.test(value))return {kind:'log-action',version:1,id:value};
+    if(typeof value==='string'&&value.startsWith('log-task:'))value=JSON.stringify({kind:'log-task',version:1,id:value.slice(9)});
     let p;try{p=JSON.parse(value);}catch(_){return null;}
-    if(!p||p.kind!=='log-code')return null;
+    if(!p)return null;
+    if(['log-task','log-action'].includes(p.kind)){
+      if(p.version!==1)throw Error('Deze taakcode gebruikt een niet ondersteunde versie.');
+      if(typeof p.id!=='string'||!/^[A-Za-z0-9_-]{12}$/.test(p.id))throw Error('Ongeldige taakidentifier.');
+      return {kind:p.kind,version:1,id:p.id};
+    }
+    if(p.kind!=='log-code')return null;
     if(value.length>4000||p.version!==1)throw Error('Deze Log-code is te groot of gebruikt een niet ondersteunde versie.');
-    if(!Array.isArray(p.entities)||p.entities.length>20||!Array.isArray(p.actions)||p.actions.length>2)throw Error('Ongeldige Log-code.');
+    if(!Array.isArray(p.entities)||p.entities.length>20||!Array.isArray(p.actions)||p.actions.length>20)throw Error('Ongeldige Log-code.');
     const text=(v,max=160)=>{if(typeof v!=='string'||!v.trim()||v.length>max)throw Error('Ongeldige gegevens in Log-code.');return v;};
     const ids=new Set();
     const entities=p.entities.map(e=>{
       if(!e||!types.includes(e.type))throw Error('Onbekend soort gegevens.');
       const n={type:e.type,id:text(e.id,80),name:text(e.name)};
+      if(e.taskCodeId!=null){if(!['theme','subtheme'].includes(e.type)||typeof e.taskCodeId!=='string'||!taskIdPattern.test(e.taskCodeId))throw Error('Ongeldige taakidentifier.');n.taskCodeId=e.taskCodeId;}
       if(ids.has(n.id))throw Error('Dubbele identifier in Log-code.');ids.add(n.id);
       for(const k of e.type==='location'?['address','parentId']:e.type==='person'?['email','phone']:e.type==='subtheme'?['themeId']:['color']){
         if(e[k]!=null&&e[k]!=='')n[k]=text(e[k],k.endsWith('Id')?80:160);
@@ -28,6 +144,8 @@
       return n;
     });
     const find=(id,type)=>entities.find(e=>e.id===id&&e.type===type);
+    const taskIds=new Set();
+    for(const e of entities.filter(e=>['theme','subtheme'].includes(e.type))){for(const id of new Set([e.id,e.taskCodeId].filter(Boolean))){if(taskIds.has(id))throw Error('Dubbele taakidentifier.');taskIds.add(id);}}
     for(const e of entities){
       if(e.type==='subtheme'&&!find(e.themeId,'theme'))throw Error('Het hoofdthema ontbreekt.');
       if(e.parentId&&!find(e.parentId,'location'))throw Error('De hoofdlocatie ontbreekt.');
@@ -38,6 +156,14 @@
     const actions=p.actions.map(a=>{
       if(!a||!['task','ride'].includes(a.type))throw Error('Deze actie wordt niet ondersteund.');
       const n={type:a.type};
+      if(a.logCodeId!=null){
+        if(a.type!=='task'||typeof a.logCodeId!=='string'||!taskIdPattern.test(a.logCodeId))throw Error('Ongeldige actie-identifier.');
+        n.logCodeId=a.logCodeId;n.name=text(a.name||'Taak starten',120);
+        if(a.note)n.note=text(a.note,500);
+        if(a.days){if(!Array.isArray(a.days)||a.days.some(d=>!Number.isInteger(d)||d<0||d>6))throw Error('Ongeldige dagen.');n.days=a.days;}
+        if(a.start||a.end){if(!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(a.start)||!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(a.end)||a.start===a.end)throw Error('Ongeldig tijdvak.');n.start=a.start;n.end=a.end;}
+        n.enabled=a.enabled!==false;
+      }
       if(a.type==='task'){
         if(!find(a.themeId,'theme'))throw Error('De taak mist een thema.');n.themeId=a.themeId;
         if(a.subthemeId){if(find(a.subthemeId,'subtheme')?.themeId!==a.themeId)throw Error('Subthema hoort niet bij dit thema.');n.subthemeId=a.subthemeId;}
@@ -46,35 +172,59 @@
       if(a.type==='ride'&&!n.locationId)throw Error('De rit mist een bestemming.');
       return n;
     });
+    if(new Set(actions.filter(a=>a.logCodeId).map(a=>a.logCodeId)).size!==actions.filter(a=>a.logCodeId).length)throw Error('Dubbele actie-identifier.');
     if(!entities.length)throw Error('Deze code bevat geen gegevens.');
     return {kind:'log-code',version:1,title:text(p.title||'Log-code',80),entities,actions};
   }
   function plan(payload){
-    const km=read(KM),time=read(TIME),map=new Map(),rows=[],remaining=[...payload.entities];
+    const km=read(KM),time=read(TIME),map=new Map(),rows=[],remaining=payload.entities.map(e=>({...e}));
+    if(payload.remote){
+      const codes=new Set([payload.remote.id,...payload.entities.flatMap(e=>[e.id,e.taskCodeId]).filter(Boolean),...payload.actions.map(a=>a.logCodeId).filter(Boolean)]);
+      if(list(time,'logConfigurations').some(c=>c.id!==payload.remote.id&&codes.has(c.id))||[...list(time,'themes'),...list(time,'subthemes'),...list(time,'locationActions')].some(e=>[e.id,e.logCodeId,e.taskCodeId].includes(payload.remote.id)))throw Error('Deze configuratie-identifier is al voor andere gegevens in gebruik.');
+    }
+    ensureTaskActions(time);
     while(remaining.length){
       const index=remaining.findIndex(e=>(!e.parentId||map.has(e.parentId))&&(!e.themeId||map.has(e.themeId)));
       if(index<0)throw Error('Onoplosbare verwijzingen.');
       const e=remaining.splice(index,1)[0],raw=e.type==='location'?km:time,key=collection[e.type];
+      if(['theme','subtheme'].includes(e.type)&&!e.taskCodeId&&taskIdPattern.test(e.id))e.taskCodeId=e.id;
       raw[key]=list(raw,key);const relation=e.parentId?{parentId:map.get(e.parentId)}:e.themeId?{themeId:map.get(e.themeId)}:{};
       const fields={...e,...relation};delete fields.type;delete fields.id;
-      const exact=raw[key].find(x=>x.logCodeId===e.id||x.id===e.id);
-      const candidates=exact?[exact]:raw[key].filter(x=>x.name===e.name&&Object.entries(fields).every(([k,v])=>String(x[k]??'')===String(v)));
+      const exact=raw[key].find(x=>x.logCodeId===e.id||x.taskCodeId===e.id||x.id===e.id);
+      const candidates=exact?[exact]:raw[key].filter(x=>x.name===e.name&&Object.entries(['theme','subtheme'].includes(e.type)?relation:fields).every(([k,v])=>String(x[k]??'')===String(v)));
       if(candidates.length>1)throw Error(`Meerdere bestaande vermeldingen voor “${e.name}”. Maak die eerst eenduidig.`);
       const found=candidates[0],changed=found&&Object.entries(fields).some(([k,v])=>String(found[k]??'')!==String(v));
+      if(found&&e.type==='subtheme'&&found.themeId!==relation.themeId)throw Error('Dit subthema is al gekoppeld aan een ander hoofdthema.');
+      if(found?.taskCodeId&&e.taskCodeId&&found.taskCodeId!==e.taskCodeId)throw Error('Dit item heeft al een andere taakcode. Bestaande koppeling blijft behouden.');
       const id=found?.id||crypto.randomUUID();map.set(e.id,id);
       if(!found)raw[key].push({...fields,...(e.type==='location'?{type:'other',shareRide:'never',useCount:0}:{}),id,logCodeId:e.id,usageCount:0,createdAt:new Date().toISOString()});
       else if(!found.logCodeId)found.logCodeId=e.id;
+      if(found&&e.taskCodeId)found.taskCodeId=e.taskCodeId;
       rows.push({entity:e,local:found||null,status:found?(changed?'Bestaand · lokale gegevens behouden':'Al aanwezig'):'Nieuw'});
     }
+    const owners=new Map();
+    for(const x of [...list(time,'themes'),...list(time,'subthemes')])for(const code of [x.logCodeId,x.taskCodeId,x.id].filter(c=>taskIdPattern.test(c||''))){if(owners.has(code)&&owners.get(code)!==x)throw Error('Een taakidentifier hoort bij meerdere items. Bestaande gegevens blijven behouden.');owners.set(code,x);}
+    const configured=payload.actions.filter(a=>a.logCodeId);
+    for(const a of configured){
+      const rules=list(time,'locationActions'),found=rules.find(r=>r.logCodeId===a.logCodeId);
+      const rule={id:found?.id||crypto.randomUUID(),trigger:'qr',logCodeId:a.logCodeId,name:a.name,type:'task',selection:'fixed',targetId:map.get(a.themeId),subthemeId:map.get(a.subthemeId)||'',note:a.note||'',repeatMode:'scan',enabled:a.enabled!==false,days:a.days||[],start:a.start||'',end:a.end||''};
+      assertActionCode(rule,time,true);
+      if(found&&(found.type!==rule.type||found.targetId!==rule.targetId||(found.subthemeId||'')!==rule.subthemeId))throw Error('Deze actie-identifier heeft al een andere koppeling.');
+      if(!found){rules.push(rule);time.locationActions=rules;}
+    }
+    ensureTaskActions(time,new Set(configured.map(a=>a.logCodeId)));
+    for(const rule of list(time,'locationActions').filter(r=>r.trigger==='qr'))assertActionCode(rule,time);
     return {km,time,map,rows};
   }
   function commit(payload){
-    // Repeat planning at confirmation. Writes are idempotent; a failed second store
-    // leaves imported references recoverable by retrying, never executes an action.
     const result=plan(payload);
+    if(payload.remote){
+      const configs=list(result.time,'logConfigurations').filter(c=>c.id!==payload.remote.id);
+      configs.push({id:payload.remote.id,version:payload.remote.version,payload});result.time.logConfigurations=configs;
+    }
     try{
       if(payload.entities.some(e=>e.type==='location'))localStorage.setItem(KM,JSON.stringify(result.km));
-      if(payload.entities.some(e=>e.type!=='location'))localStorage.setItem(TIME,JSON.stringify(result.time));
+      if(payload.remote||payload.entities.some(e=>e.type!=='location'))localStorage.setItem(TIME,JSON.stringify(result.time));
     }catch(_){throw Error('Opslaan niet voltooid. Mogelijk is een deel toegevoegd. Maak opslagruimte vrij en probeer opnieuw; bestaande gegevens worden herkend.');}
     window.dispatchEvent(new CustomEvent('log-km-state-change',{detail:{reason:'code-import'}}));
     window.LogTimeModule?.reloadFromStorage?.({view:'home'});
@@ -82,26 +232,75 @@
     return result;
   }
   function details(e){return [e.address,e.lat!=null?`${e.lat}, ${e.lng}`:'',e.email,e.phone].filter(Boolean).join(' · ');}
+  function previewTask(payload){
+    let resolved;try{resolved=resolveTask(payload.id);}catch(error){const panel=window.LogCardsUI.sheet('Log-code',`<p role="status">${esc(error.message)}</p><p>Scan eerst de configuratie-QR voor dit thema.</p><button class="btn full" data-task-back>Terug</button>`);panel.querySelector('[data-task-back]').onclick=()=>window.LogCardsUI.close();return;}
+    const {theme,sub}=resolved;
+    const panel=window.LogCardsUI.sheet('Taak herkend',`<h3>${esc(theme.name)}</h3><p>${esc(sub?.name||'Zonder subthema')}</p><button class="btn full cards-scan-action" data-start-compact-task>Taak starten</button><p class="cards-notice">Controleer de ingevulde taak en bevestig met Start.</p><p data-log-status role="status"></p>`);
+    panel.querySelector('[data-start-compact-task]').onclick=()=>{
+      const button=panel.querySelector('[data-start-compact-task]');if(button.disabled)return;button.disabled=true;
+      try{
+        const current=resolveTask(payload.id);
+        prepareTask({themeId:current.theme.id,subthemeId:current.sub?.id||'',locationName:'',note:current.sub?.name||''});
+      }catch(error){panel.querySelector('[data-log-status]').textContent=error.message;button.disabled=false;}
+    };
+  }
+  function resolveTask(id){
+    const time=read(TIME),matches=[...list(time,'themes').map(x=>({theme:x})),...list(time,'subthemes').map(x=>({sub:x}))].filter(r=>[r.sub?.logCodeId,r.sub?.taskCodeId,r.sub?.id,r.theme?.logCodeId,r.theme?.taskCodeId,r.theme?.id].includes(id));
+    if(!matches.length)throw Error('Deze Log-code is nog niet geconfigureerd.');
+    if(matches.length!==1)throw Error('Deze Log-code is niet eenduidig geconfigureerd.');
+    const {sub}=matches[0],theme=sub?list(time,'themes').find(t=>t.id===sub.themeId):matches[0].theme;
+    if(!theme)throw Error('Het hoofdthema van deze taak is niet beschikbaar.');
+    return {theme,sub};
+  }
+  function prepareTask(args){
+    // Validate before closing the scanner; showHome must run before opening the modal.
+    window.LogTimeModule.prepareFromCode(args);
+    window.LogCardsUI.close();
+  }
   function preview(payload){
+    if(lookupController){lookupController.abort();lookupController=null;}
+    if(['log-task','log-action'].includes(payload.kind)){
+      try{
+        const local=read(TIME),cached=list(local,'logConfigurations').find(c=>c.id===payload.id);
+        if(cached)return preview(cached.payload);
+        const known=[...list(local,'themes'),...list(local,'subthemes'),...list(local,'locationActions')].some(e=>[e.id,e.logCodeId,e.taskCodeId].includes(payload.id));
+        if(!known)return previewOnline(payload.id);
+        migrateTasks();
+        if(list(read(TIME),'locationActions').some(r=>r.logCodeId===payload.id)){
+          if(!window.LogLocationActions)throw Error('Acties zijn nog niet beschikbaar.');
+          return window.LogLocationActions.scanCode(payload.id);
+        }
+        const legacy=resolveTask(payload.id),entity=legacy.sub||legacy.theme;
+        if(entity.logActionCode){
+          if(!window.LogLocationActions)throw Error('Acties zijn nog niet beschikbaar.');
+          return window.LogLocationActions.scanCode(entity.logActionCode);
+        }
+        return previewTask(payload);
+      }catch(error){const p=window.LogCardsUI.sheet('Log-code',`<p role="status">${esc(error.message)}</p><button class="btn full" data-task-back>Terug</button>`);p.querySelector('[data-task-back]').onclick=()=>window.LogCardsUI.close();return;}
+    }
     const ui=window.LogCardsUI,result=plan(payload);
-    const panel=ui.sheet('Log-code herkennen',`<h3>${esc(payload.title)}</h3><p>Controleer deze gegevens. Bestaande waarden blijven behouden.</p>${result.rows.map(({entity:e,local,status})=>`<div class="log-code-row"><strong>${esc(e.name)}</strong><small>${esc({theme:'Thema',subtheme:'Subthema',location:'Locatie',person:'Persoon'}[e.type])} · ${esc(status)}</small><small>${esc(details(e))}</small>${local&&status.includes('lokale')?`<small>In Log: ${esc(local.name)} · ${esc(details(local))}</small>`:''}</div>`).join('')}<p>${payload.actions.length?'Na toevoegen kies je zelf een starter.':'Deze code is een informatiedrager zonder starter.'}</p><button class="btn full" data-import-code>Gegevens toevoegen / gebruiken</button><p data-log-status role="status"></p>`);
+    const panel=ui.sheet('Log-code herkennen',`<h3>${esc(payload.title)}</h3><p>Controleer deze gegevens. Bestaande waarden blijven behouden.</p>${result.rows.map(({entity:e,local,status})=>`<div class="log-code-row"><strong>${esc(e.name)}</strong><small>${esc({theme:'Thema',subtheme:'Subthema',location:'Locatie',person:'Persoon'}[e.type])} · ${esc(status)}</small><small>${esc(details(e))}</small>${local&&status.includes('lokale')?`<small>In Log: ${esc(local.name)} · ${esc(details(local))}</small>`:''}</div>`).join('')}<p>${payload.actions.length?'Na toevoegen kies je zelf een starter.':'Thema’s met een korte identifier krijgen een QR-actie in Acties. Overige gegevens worden alleen toegevoegd.'}</p><button class="btn full" data-import-code>Gegevens toevoegen / gebruiken</button><p data-log-status role="status"></p>`);
+    if(payload.remote){
+      const info=document.createElement('p');info.textContent=`Configuratie van sharon.life · versie ${payload.remote.version}. Toevoegen start geen taak.`;panel.querySelector('[data-import-code]').before(info);
+      for(const action of payload.actions){const row=document.createElement('p');row.textContent=`Actie: ${action.name||'Taak starten'} · ${payload.entities.find(e=>e.id===action.themeId)?.name||''} · ${payload.entities.find(e=>e.id===action.subthemeId)?.name||'Zonder subthema'}`;info.before(row);}
+      const back=document.createElement('button');back.className='btn full';back.textContent='Annuleren';back.onclick=()=>ui.close();info.after(back);
+    }
     panel.querySelector('[data-import-code]').onclick=()=>{
       try{const saved=commit(payload);ready(payload,saved);}catch(error){panel.querySelector('[data-log-status]').textContent=error.message;}
     };
   }
   function ready(payload,result){
-    const panel=window.LogCardsUI.sheet(payload.title,`<p>Gegevens zijn beschikbaar in Log. Personen staan in de module Personen.</p>${payload.actions.map((a,i)=>`<button class="btn full cards-scan-action" data-code-starter="${i}">${a.type==='task'?'Taak starten':'Rit voorbereiden'} · ${esc(payload.entities.find(e=>e.id===(a.type==='task'?(a.subthemeId||a.themeId):a.locationId))?.name)}</button>`).join('')}<p class="cards-notice">Een taak start na aantikken. Bij een rit controleer je eerst vertrekpunt, kilometerstand en type rit.</p><p data-log-status role="status"></p>`);
+    const panel=window.LogCardsUI.sheet(payload.title,`<p>Gegevens zijn beschikbaar in Log. Personen staan in de module Personen.</p>${payload.actions.map((a,i)=>`<button class="btn full cards-scan-action" data-code-starter="${i}">${a.type==='task'?'Taak starten':'Rit voorbereiden'} · ${esc(payload.entities.find(e=>e.id===(a.type==='task'?(a.subthemeId||a.themeId):a.locationId))?.name)}</button>`).join('')}<p class="cards-notice">Bij een taak controleer je eerst thema en optioneel subthema en bevestig je met Start. Bij een rit controleer je vertrekpunt, kilometerstand en type rit.</p><p data-log-status role="status"></p>`);
     panel.querySelectorAll('[data-code-starter]').forEach(button=>button.onclick=async()=>{
       if(button.disabled)return;button.disabled=true;
       try{
         const a=payload.actions[Number(button.dataset.codeStarter)],current=plan(payload);
-        // A deleted target must be reimported explicitly, never recreated by an action.
         if(current.rows.some(row=>row.status==='Nieuw'))throw Error('Gegevens zijn gewijzigd of verwijderd. Scan de code opnieuw.');
         const id=ref=>current.map.get(ref);
         const loc=list(read(KM),'locations').find(x=>x.id===id(a.locationId));
+        if(a.logCodeId)return preview({kind:'log-action',id:a.logCodeId,version:1});
         if(a.type==='task'){
-          window.LogTimeModule.startFromCard({themeId:id(a.themeId),subthemeId:id(a.subthemeId),locationName:loc?.name||''});
-          window.LogCardsUI.close();window.dispatchEvent(new CustomEvent('kmreg-shell-select-section',{detail:{section:'time'}}));
+          prepareTask({themeId:id(a.themeId),subthemeId:id(a.subthemeId)||'',locationName:loc?.name||''});
         }else{await window.LogRideStarter.prepare(id(a.locationId));window.LogCardsUI.close();}
       }catch(error){panel.querySelector('[data-log-status]').textContent=error.message;button.disabled=false;}
     });
@@ -111,32 +310,21 @@
     const groups=[['theme','Thema',list(time,'themes')],['subtheme','Subthema',list(time,'subthemes')],['location','Locatie',list(km,'locations')],['person','Persoon',list(time,'colleagues')]];
     const panel=window.LogCardsUI.sheet('Log-code maken',`<form data-log-builder><label>Titel<input name="title" maxlength="80" required></label>${groups.map(([type,label,items])=>`<div class="form-group" data-group="${type}"><label>${label}<select name="${type}">${options(items)}</select></label><div data-new="${type}" hidden><label>Naam<input name="${type}Name" maxlength="160"></label>${type==='location'?'<label>Adres<input name="address" maxlength="160"></label>':type==='person'?'<label>E-mail<input name="email" type="email" maxlength="160"></label><label>Telefoon<input name="phone" maxlength="80"></label>':''}</div></div>`).join('')}<label data-task-starter hidden><input type="checkbox" name="task"> Starter: taak starten</label><label data-ride-starter hidden><input type="checkbox" name="ride"> Starter: rit voorbereiden</label><p data-subtheme-help hidden>Het subthema hoort bij het gekozen thema.</p><p data-location-help hidden>De hoofdlocatie wordt samen met deze sublocatie opgenomen.</p><p data-person-help hidden>Iedereen die deze QR leest kan de opgenomen persoonsgegevens zien. Neem alleen gegevens op die je wilt delen.</p><label><input type="checkbox" name="consent" required> Ik wil deze gegevens in de code opnemen.</label><button class="btn full" type="submit">Inhoud controleren</button><p data-log-status role="status"></p></form>`);
     const form=panel.querySelector('form');
-    function show(selector,visible){
-      const node=panel.querySelector(selector);node.hidden=!visible;node.style.display=visible?'':'none';
-      node.querySelectorAll('input,select').forEach(input=>{input.disabled=!visible;});
-    }
+    const modes=document.createElement('div');modes.innerHTML='<button type="button" class="btn full" data-theme-config>Thema-configuratie (KIP)</button><button type="button" class="btn full" data-task-code>Compacte actie-QR</button><p>Of maak hieronder een algemene Log-code.</p>';form.before(modes);
+    modes.querySelector('[data-theme-config]').onclick=configBuilder;
+    modes.querySelector('[data-task-code]').onclick=taskBuilder;
+    function show(selector,visible){const node=panel.querySelector(selector);node.hidden=!visible;node.style.display=visible?'':'none';node.querySelectorAll('input,select').forEach(input=>{input.disabled=!visible;});}
     function fields(){
       const theme=form.elements.theme.value,location=form.elements.location.value,person=form.elements.person.value;
       const sub=form.elements.subtheme,previous=sub.value;
       sub.innerHTML=options(theme&&theme!=='new'?list(time,'subthemes').filter(item=>String(item.themeId)===theme):[]);
-      sub.value=[...sub.options].some(option=>option.value===previous)?previous:'';
-      if(!theme)sub.value='';
+      sub.value=[...sub.options].some(option=>option.value===previous)?previous:'';if(!theme)sub.value='';
       show('[data-group="subtheme"]',Boolean(theme));
-      for(const [type] of groups){
-        const input=form.elements[type],isNew=!input.disabled&&input.value==='new';
-        show('[data-new="'+type+'"]',isNew);
-        form.elements[type+'Name'].required=isNew;
-      }
-      show('[data-task-starter]',Boolean(theme));
-      show('[data-ride-starter]',Boolean(location));
-      if(!theme)form.elements.task.checked=false;
-      if(!location)form.elements.ride.checked=false;
-      show('[data-subtheme-help]',Boolean(sub.value));
-      show('[data-location-help]',Boolean(list(km,'locations').find(item=>String(item.id)===location)?.parentId));
-      show('[data-person-help]',Boolean(person));
+      for(const [type] of groups){const input=form.elements[type],isNew=!input.disabled&&input.value==='new';show('[data-new="'+type+'"]',isNew);form.elements[type+'Name'].required=isNew;}
+      show('[data-task-starter]',Boolean(theme));show('[data-ride-starter]',Boolean(location));if(!theme)form.elements.task.checked=false;if(!location)form.elements.ride.checked=false;
+      show('[data-subtheme-help]',Boolean(sub.value));show('[data-location-help]',Boolean(list(km,'locations').find(item=>String(item.id)===location)?.parentId));show('[data-person-help]',Boolean(person));
     }
-    for(const [type] of groups)form.elements[type].onchange=fields;
-    fields();
+    for(const [type] of groups)form.elements[type].onchange=fields;fields();
     form.onsubmit=event=>{
       event.preventDefault();try{
         if(!form.elements.consent.checked)throw Error('Bevestig welke gegevens je wilt delen.');
@@ -176,5 +364,49 @@
       }catch(error){panel.querySelector('[data-log-status]').textContent=error.message;}
     };
   }
-  window.LogCode={parse,plan,commit,preview,builder};
+  const kipThemes=[['KIP000000000','0 – Projectmanagement'],['KIP1a0000000','1a – Procesanalyse'],['KIP2b0000000','2b – API en gebruikersinterface'],['KIP2d0000000','2d – Systeemmodellen']];
+  function configBuilder(){
+    const time=read(TIME),themes=list(time,'themes');
+    const panel=window.LogCardsUI.sheet('Thema-configuratie maken',`<form><label>Thema<select name="theme"><option value="">Nieuw thema</option>${kipThemes.map(([id,name])=>`<option value="${id}">${esc(name)}</option>`).join('')}${themes.map((t,i)=>`<option value="local-${i}">Bestaand: ${esc(t.name)}</option>`).join('')}</select></label><label>Naam hoofdthema<input name="themeName" required maxlength="160"></label><label>Subthema’s (optioneel, één per regel)<textarea name="subs" rows="6"></textarea></label><p>Een hoofdthema kan altijd zonder subthema worden gebruikt. Bestaande gegevens blijven behouden; we voegen alleen ontbrekende gegevens en QR-koppelingen toe.</p><button class="btn full" type="submit">Configuratie controleren</button><p data-log-status role="status"></p></form>`);
+    const form=panel.querySelector('form');let selected=null,preset=null;
+    form.elements.theme.onchange=()=>{
+      const value=form.elements.theme.value;preset=kipThemes.find(([id])=>id===value)||null;
+      selected=value.startsWith('local-')?themes[Number(value.slice(6))]:themes.find(t=>t.logCodeId===preset?.[0]||t.name===preset?.[1]);
+      form.elements.themeName.value=selected?.name||preset?.[1]||'';
+      form.elements.subs.value=selected?list(time,'subthemes').filter(s=>s.themeId===selected.id).map(s=>s.name).join('\n'):'';
+    };
+    form.onsubmit=event=>{event.preventDefault();try{
+      const name=form.elements.themeName.value.trim();if(!name)throw Error('Vul een hoofdthema in.');
+      const localIds=new Map();
+      const entity=(type,item,name,id)=>{const code=item?.logCodeId||id||newCodeId();if(item)localIds.set(item.id,code);return {type,id:code,name:item?.name||name,...(item?.color?{color:item.color}:{}),taskCodeId:item?.taskCodeId||(taskIdPattern.test(code)?code:newCodeId())};};
+      const existing=selected||themes.find(t=>t.name===name),theme=entity('theme',existing,name);
+      const names=[...new Set(form.elements.subs.value.split('\n').map(s=>s.trim()).filter(Boolean))];
+      const entities=[theme,...names.map(name=>({...entity('subtheme',list(time,'subthemes').find(s=>s.themeId===existing?.id&&s.name===name),name),themeId:theme.id}))];
+      const actions=list(time,'locationActions').filter(r=>r.trigger==='qr'&&r.type==='task'&&r.selection!=='smart'&&r.targetId===existing?.id&&(!r.subthemeId||localIds.has(r.subthemeId))).map(r=>({type:'task',logCodeId:r.logCodeId,name:r.name,note:r.note||'',themeId:theme.id,subthemeId:localIds.get(r.subthemeId),days:r.days||[],start:r.start||'',end:r.end||'',enabled:r.enabled}));
+      const payload=parse(JSON.stringify({kind:'log-code',version:1,title:theme.name.slice(0,80),entities,actions}));
+      const value=JSON.stringify(payload);if(new TextEncoder().encode(value).length>1800)throw Error('Te veel gegevens voor één QR. Verdeel de subthema’s over meerdere configuratiecodes voor hetzelfde thema.');
+      const review=document.createElement('section');review.dataset.configReview='';review.innerHTML=`<h3>${esc(theme.name)}</h3>${names.length?'<ul>'+names.map(n=>`<li>${esc(n)}</li>`).join('')+'</ul>':'<p>Zonder subthema’s</p>'}<p>Bewaar dit thema, de subthema’s en bijbehorende QR-acties in Log en maak de deelbare configuratie-QR. Acties kun je daarna beheren onder Acties.</p><button class="btn full" data-save-config>Configuratie bewaren en QR maken</button><button class="btn full" data-config-back>Terug</button><p data-config-status role="status"></p>`;
+      panel.querySelector('[data-config-review]')?.remove();form.hidden=true;panel.append(review);
+      review.querySelector('[data-config-back]').onclick=()=>{review.remove();form.hidden=false;};
+      review.querySelector('[data-save-config]').onclick=()=>{try{commit(payload);window.LogCardsUI.edit(null,{value,format:'QR_CODE',name:'Configuratie · '+payload.title});}catch(error){review.querySelector('[data-config-status]').textContent=error.message;}};
+    }catch(error){panel.querySelector('[data-log-status]').textContent=error.message;}};
+  }
+  function taskBuilder(){
+    migrateTasks();
+    const time=read(TIME),themes=list(time,'themes');
+    const panel=window.LogCardsUI.sheet('Compacte actie-QR maken',`<form><label>Hoofdthema<select name="theme" required><option value="">Kies een thema</option>${themes.map(t=>`<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('')}</select></label><label>Subthema (optioneel)<select name="sub"><option value="">Geen subthema</option></select></label><p>De QR bevat alleen een taak-ID van 12 tekens. Scan op een ander apparaat eerst de configuratie-QR.</p><button type="submit" class="btn full">Actie-QR maken</button><p data-log-status role="status"></p></form>`);
+    const form=panel.querySelector('form');
+    form.elements.theme.onchange=()=>{form.elements.sub.innerHTML='<option value="">Geen subthema</option>'+list(time,'subthemes').filter(s=>s.themeId===form.elements.theme.value).map(s=>`<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('');};
+    form.onsubmit=event=>{event.preventDefault();try{
+      const fresh=read(TIME),theme=list(fresh,'themes').find(t=>t.id===form.elements.theme.value),sub=form.elements.sub.value?list(fresh,'subthemes').find(s=>s.id===form.elements.sub.value&&s.themeId===theme?.id):null;
+      if(!theme||(form.elements.sub.value&&!sub))throw Error('Kies een geldig hoofdthema en eventueel subthema.');
+      const item=sub||theme,id=item.taskCodeId||item.logCodeId;
+      if(!taskIdPattern.test(id||''))throw Error('Bewaar eerst een thema-configuratie voor dit thema via Log-code maken.');
+      resolveTask(id);
+      const action=list(fresh,'locationActions').find(r=>r.trigger==='qr'&&r.logCodeId===id);
+      if(!action||action.type!=='task'||action.targetId!==theme.id||(action.subthemeId||'')!==(sub?.id||''))throw Error('De gekoppelde actie is gewijzigd of verwijderd. Maak de QR vanuit Acties.');
+      window.LogCardsUI.edit(null,{value:id,format:'QR_CODE',name:theme.name+(sub?' · '+sub.name:'')});
+    }catch(error){panel.querySelector('[data-log-status]').textContent=error.message;}};
+  }
+  window.LogCode={newCodeId,assertActionCode,migrateTasks,parse,plan,commit,preview,builder,configBuilder,taskBuilder,resolveTask};
 })();

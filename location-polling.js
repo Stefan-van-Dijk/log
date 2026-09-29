@@ -1,7 +1,89 @@
 (function(){
   'use strict';
+  const BUILD='0.34.18';
+  window.LOG_BUILD=BUILD;
+  // Compatibility layer for modules promoted from the isolated test tree.
+  // On the live route these legacy test key names are transparently routed
+  // to the existing production stores; no test store is read or written.
+  const KEY_MAP=new Map([
+    ['kmreg-test-v4-data','kmreg-v4-data'],
+    ['urenregistratie.test.pwa.v1','urenregistratie.pwa.v1'],
+    ['log-test-location-action-visits-v1','log-location-action-visits-v1'],
+    ['log-test-action-snoozes-v1','log-action-snoozes-v1'],
+    ['log-test-action-transitions-v1','log-action-transitions-v1'],
+    ['log-test-smart-ride-departure-v1','log-smart-ride-departure-v1'],
+    ['log-test-sharing-v1','log-sharing-v1']
+  ]);
+  function installProductionKeyRouting(){
+    if(window.__logProductionKeyRoutingInstalled)return;
+    window.__logProductionKeyRoutingInstalled=true;
+    const proto=Storage.prototype;
+    const get=proto.getItem,set=proto.setItem,remove=proto.removeItem,keyFor=key=>KEY_MAP.get(String(key))||String(key);
+    proto.getItem=function(key){return get.call(this,keyFor(key));};
+    proto.setItem=function(key,value){return set.call(this,keyFor(key),value);};
+    proto.removeItem=function(key){return remove.call(this,keyFor(key));};
+    window.addEventListener('storage',event=>{
+      const legacy=[...KEY_MAP.entries()].find(([,live])=>live===event.key)?.[0];
+      if(!legacy)return;
+      try{window.dispatchEvent(new StorageEvent('storage',{key:legacy,oldValue:event.oldValue,newValue:event.newValue,url:event.url,storageArea:localStorage}));}catch(_){}
+    });
+    const bridge=(from,to)=>window.addEventListener(from,event=>window.dispatchEvent(new CustomEvent(to,{detail:event.detail})));
+    bridge('kmreg-test-shell-select-section','kmreg-shell-select-section');
+    bridge('kmreg-test-shell-open-settings','kmreg-shell-open-settings');
+  }
+  installProductionKeyRouting();
+  // Some promoted modules still inspect this compatibility build variable.
+  window.LOG_TEST_BUILD=BUILD;
+
   const listeners=new Set(),KM='kmreg-v4-data';
   let latest=null,pending=null,lastAttempt=0,visibleTrip='',started=false;
+
+  function syncVisibleBuild(){
+    window.LOG_BUILD=BUILD;
+    document.querySelectorAll('.km-shell-version-number').forEach(el=>{if(el.textContent!==BUILD)el.textContent=BUILD;});
+    document.querySelectorAll('.km-shell-version').forEach(el=>{const label=`Geladen versie ${BUILD}`;if(el.getAttribute('aria-label')!==label)el.setAttribute('aria-label',label);});
+  }
+  function loadBuildUI(){
+    if(document.querySelector('script[data-log-build-ui]'))return;
+    const script=document.createElement('script');
+    script.src=`./build-ui.js?v=${BUILD}`;
+    script.async=false;
+    script.dataset.logBuildUi='1';
+    document.head.appendChild(script);
+  }
+  function loadActionDetailsReset(){
+    if(document.querySelector('script[data-log-action-details-reset]'))return;
+    const script=document.createElement('script');
+    script.src=`./action-details-reset.js?v=${BUILD}`;
+    script.async=false;
+    script.dataset.logActionDetailsReset='1';
+    document.head.appendChild(script);
+  }
+  function loadSharingUI(){
+    const wanted=`sharing-private-ui.js?v=${BUILD}`;
+    const existing=[...document.querySelectorAll('script[data-log-sharing-ui]')];
+    if(existing.some(script=>script.src.includes(wanted)))return;
+    existing.forEach(script=>script.remove());
+    const ui=document.createElement('script');
+    ui.src=`./sharing-private-ui.js?v=${BUILD}`;
+    ui.async=false;
+    ui.dataset.logSharingUi='1';
+    document.head.appendChild(ui);
+  }
+  function loadSharing(){
+    const existing=document.querySelector('script[data-log-sharing]');
+    if(existing){
+      if(window.LogSharing)loadSharingUI();
+      else existing.addEventListener('load',loadSharingUI,{once:true});
+      return;
+    }
+    const script=document.createElement('script');
+    script.src=`./sharing.js?v=${BUILD}`;
+    script.async=false;
+    script.dataset.logSharing='1';
+    script.addEventListener('load',loadSharingUI,{once:true});
+    document.head.appendChild(script);
+  }
   function trip(){try{return JSON.parse(localStorage.getItem(KM)||'{}').activeTrip?.id||'';}catch(_){return '';}}
   function interval(){return trip()?60000:6000;}
   function request({maxAge=0}={}){
@@ -26,10 +108,13 @@
     const id=trip();if(id!==visibleTrip){visibleTrip=id;force=true;}
     if(force||Date.now()-lastAttempt>=interval())request().catch(()=>{});
   }
-  function start(){if(!started){started=true;setInterval(()=>poll(),1000);}poll(Date.now()-lastAttempt>1000);}
+  function start(){if(!started){started=true;setInterval(()=>poll(),1000);}poll(Date.now()-lastAttempt>1000);syncVisibleBuild();}
   window.LogLocationPolling={request,interval,subscribe(listener){listeners.add(listener);if(latest&&!document.hidden&&Date.now()-latest.timestamp<=interval())listener(latest);return()=>listeners.delete(listener);}};
   window.addEventListener('log-km-state-change',()=>poll());
-  window.addEventListener('pageshow',start);
-  document.addEventListener('visibilitychange',()=>{if(!document.hidden)poll(true);});
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
+  window.addEventListener('pageshow',()=>{start();syncVisibleBuild();setTimeout(syncVisibleBuild,100);});
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden){poll(true);syncVisibleBuild();}});
+  loadBuildUI();
+  loadActionDetailsReset();
+  loadSharing();
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{start();syncVisibleBuild();setTimeout(syncVisibleBuild,100);},{once:true});else start();
 })();

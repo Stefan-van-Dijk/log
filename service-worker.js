@@ -1,15 +1,19 @@
-const CACHE='kmreg-shell-0.34.2';
+const CACHE='kmreg-shell-0.34.18';
 const SHELL=[
   './',
   './index.html',
-  './location-polling.js?v=0.34.2',
+  './location-polling.js?v=0.34.18',
+  './build-ui.js?v=0.34.18',
+  './sharing.js?v=0.34.18',
+  './sharing-private-ui.js?v=0.34.18',
+  './action-details-reset.js?v=0.34.18',
   './swipe-policy.js?v=0.34.2',
   './swipe-ui.css?v=0.34.2',
   './cards.css?v=0.34.2',
-  './log-code.js?v=0.34.2',
-  './cards.js?v=0.34.2',
+  './log-code.js?v=0.34.18',
+  './cards.js?v=0.34.18',
   './people.js?v=0.34.2',
-  './location-actions.js?v=0.34.2',
+  './location-actions.js?v=0.34.18',
   './location-actions.css?v=0.34.2',
   './contact-import.js?v=0.34.2',
   './people.css?v=0.34.2',
@@ -22,18 +26,18 @@ const SHELL=[
   './shell-backup-archive.js?v=0.34.2',
   './shell-ui.js?v=0.34.2',
   './shell-ui-stable.js?v=0.34.2',
-  './shell-gestures.js?v=0.34.2',
+  './shell-gestures.js?v=0.34.18',
   './shell-location-status.js?v=0.34.2',
   './shell-removal-policy.js?v=0.34.2',
   './shell-quick-actions.js?v=0.34.2',
-  './shell-direct-actions.js?v=0.34.2',
+  './shell-direct-actions.js?v=0.34.18',
   './id-converter.html',
   './manifest.webmanifest',
   './app-icon.svg',
   './config/modules.json',
   './time/index.html',
   './time/filter-model.js?v=0.34.2',
-  './time/app.js?v=0.34.2',
+  './time/app.js?v=0.34.18',
   './time/styles.css?v=0.34.2',
   './time/home-layout.css?v=0.34.2',
   './time/home-layout.js?v=0.34.2',
@@ -52,15 +56,33 @@ self.addEventListener('activate',event=>{
       .then(keys=>Promise.all(keys.filter(key=>key.startsWith('kmreg-shell-')&&key!==CACHE).map(key=>caches.delete(key))))
       .then(()=>self.clients.claim())
       .then(()=>self.clients.matchAll({type:'window'}))
-      .then(clients=>Promise.all(clients.filter(client=>!new URL(client.url).pathname.startsWith(new URL('./test/',self.registration.scope).pathname)).map(client=>client.navigate(client.url).catch(()=>null))))
+      .then(clients=>Promise.all(clients.map(client=>client.navigate(client.url).catch(()=>null))))
   );
 });
+
+const NETWORK_FIRST_SCRIPTS=new Set([
+  'location-polling.js','build-ui.js','sharing.js','sharing-private-ui.js','action-details-reset.js',
+  'cards.js','log-code.js','location-actions.js','shell-direct-actions.js','shell-gestures.js','app.js'
+]);
 
 self.addEventListener('fetch',event=>{
   const req=event.request,url=new URL(req.url);
   if(req.method!=='GET'||url.origin!==self.location.origin)return;
-  if(url.pathname.startsWith(new URL('./test/',self.registration.scope).pathname))return;
   if(url.pathname.endsWith('/import.html'))return;
+  const filename=url.pathname.split('/').pop();
+  const isTimeApp=url.pathname.endsWith('/time/app.js');
+  if(NETWORK_FIRST_SCRIPTS.has(filename)&&(filename!=='app.js'||isTimeApp)){
+    event.respondWith(
+      fetch(new Request(req,{cache:'reload'}))
+        .then(resp=>{
+          const copy=resp.clone();
+          caches.open(CACHE).then(cache=>cache.put(req,copy));
+          return resp;
+        })
+        .catch(()=>caches.match(req))
+    );
+    return;
+  }
   if(url.pathname.endsWith('/id-converter.html')){
     event.respondWith(caches.match('./id-converter.html').then(cached=>cached||fetch(req)));
     return;
