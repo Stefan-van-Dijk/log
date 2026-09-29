@@ -1,6 +1,6 @@
 (function(){
   'use strict';
-  const BUILD='0.34.17';
+  const BUILD='0.34.18';
   window.LOG_TEST_BUILD=BUILD;
   const listeners=new Set(),KM='kmreg-test-v4-data';
   let latest=null,pending=null,lastAttempt=0,visibleTrip='',started=false;
@@ -12,7 +12,7 @@
   function loadTestBuildUI(){
     if(document.querySelector('script[data-log-test-build-ui]'))return;
     const script=document.createElement('script');
-    script.src='./test-build-ui.js?v=0.34.17';
+    script.src=`./test-build-ui.js?v=${BUILD}`;
     script.async=false;
     script.dataset.logTestBuildUi='1';
     document.head.appendChild(script);
@@ -26,9 +26,12 @@
     document.head.appendChild(script);
   }
   function loadSharingUI(){
-    if(document.querySelector('script[data-log-sharing-ui]'))return;
+    const wanted=`sharing-private-ui.js?v=${BUILD}`;
+    const existing=[...document.querySelectorAll('script[data-log-sharing-ui]')];
+    if(existing.some(script=>script.src.includes(wanted)))return;
+    existing.forEach(script=>script.remove());
     const ui=document.createElement('script');
-    ui.src='./sharing-private-ui.js?v=0.34.17';
+    ui.src=`./sharing-private-ui.js?v=${BUILD}`;
     ui.async=false;
     ui.dataset.logSharingUi='1';
     document.head.appendChild(ui);
