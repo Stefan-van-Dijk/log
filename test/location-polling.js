@@ -74,6 +74,14 @@
     script.dataset.logSharedDiffRights='1';
     document.head.appendChild(script);
   }
+  function loadSharedUpdateCompact(){
+    if(document.querySelector('script[data-log-shared-update-compact]'))return;
+    const script=document.createElement('script');
+    script.src=`./shared-update-compact.js?v=${BUILD}`;
+    script.async=false;
+    script.dataset.logSharedUpdateCompact='1';
+    document.head.appendChild(script);
+  }
   function trip(){try{return JSON.parse(localStorage.getItem(KM)||'{}').activeTrip?.id||'';}catch(_){return '';}}
   function interval(){return trip()?60000:6000;}
   function request({maxAge=0}={}){
@@ -109,5 +117,6 @@
   loadSharedSettingsUI();
   loadSharedConfigBridge();
   loadSharedDiffRights();
+  loadSharedUpdateCompact();
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{start();syncVisibleBuild();setTimeout(syncVisibleBuild,100);},{once:true});else start();
 })();
