@@ -1,8 +1,8 @@
-const CACHE='kmreg-test-shell-0.35.1-test.10';
+const CACHE='kmreg-test-shell-0.35.1-test.11';
 const SHELL=[
   './','./index.html',
   './shared-card-import.js?v=0.35.1-test.6','./shared-config-bridge.js?v=0.35.1-test.6','./shared-settings-ui.js?v=0.35.1-test.6','./shared-diff-rights.js?v=0.35.1-test.6','./location-polling.js?v=0.35.1-test.6',
-  './test-build-ui.js?v=0.35.1-test.10','./sharing.js?v=0.35.1-test.6','./sharing-private-ui.js?v=0.35.1-test.10','./collaboration.js?v=0.35.1-test.10',
+  './test-build-ui.js?v=0.35.1-test.11','./sharing.js?v=0.35.1-test.6','./sharing-private-ui.js?v=0.35.1-test.11','./collaboration.js?v=0.35.1-test.11',
   './action-details-reset.js?v=0.35.1-test.6','./swipe-policy.js?v=0.35.1-test.6','./swipe-ui.css?v=0.35.1-test.6','./cards.css?v=0.35.1-test.6','./log-code.js?v=0.35.1-test.6','./cards.js?v=0.35.1-test.6','./people.js?v=0.35.1-test.6','./location-actions.js?v=0.35.1-test.6','./location-actions.css?v=0.35.1-test.6','./contact-import.js?v=0.35.1-test.6','./people.css?v=0.35.1-test.6',
   './vendor/qrcode-2.0.4.js','./vendor/jsbarcode-3.12.1.min.js','./vendor/zxing-0.21.3.min.js','./log-json-v2.js?v=2.0.0','./log-ui.css?v=0.35.1-test.6','./removal-policy.js?v=0.35.1-test.6','./shell-backup-archive.js?v=0.35.1-test.6','./shell-ui.js?v=0.35.1-test.6','./shell-ui-stable.js?v=0.35.1-test.6','./shell-gestures.js?v=0.35.1-test.6','./shell-location-status.js?v=0.35.1-test.6','./shell-removal-policy.js?v=0.35.1-test.6','./shell-quick-actions.js?v=0.35.1-test.6','./shell-direct-actions.js?v=0.35.1-test.9',
   './id-converter.html','./manifest.webmanifest','./app-icon.svg','./config/modules.json','./time/index.html','./time/filter-model.js?v=0.35.1-test.6','./time/app.js?v=0.35.1-test.6','./time/styles.css?v=0.35.1-test.6','./time/home-layout.css?v=0.35.1-test.6','./time/home-layout.js?v=0.35.1-test.6','./time/home-top.css?v=0.35.1-test.6','./time/home-top.js?v=0.35.1-test.6','./time/removal-policy-ui.js?v=0.35.1-test.6'
