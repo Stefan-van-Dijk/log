@@ -1,11 +1,11 @@
-const CACHE='kmreg-test-shell-0.34.17';
+const CACHE='kmreg-test-shell-0.34.18';
 const SHELL=[
   './',
   './index.html',
-  './location-polling.js?v=0.34.17',
-  './test-build-ui.js?v=0.34.17',
+  './location-polling.js?v=0.34.18',
+  './test-build-ui.js?v=0.34.18',
   './sharing.js?v=0.34.10',
-  './sharing-private-ui.js?v=0.34.17',
+  './sharing-private-ui.js?v=0.34.18',
   './action-details-reset.js?v=0.34.12',
   './swipe-policy.js?v=0.34.5',
   './swipe-ui.css?v=0.34.5',
@@ -60,6 +60,16 @@ self.addEventListener('activate',event=>{
   );
 });
 
+function networkFirst(req){
+  return fetch(new Request(req,{cache:'reload'}))
+    .then(resp=>{
+      const copy=resp.clone();
+      caches.open(CACHE).then(cache=>cache.put(req,copy));
+      return resp;
+    })
+    .catch(()=>caches.match(req));
+}
+
 self.addEventListener('fetch',event=>{
   const req=event.request,url=new URL(req.url);
   if(req.method!=='GET'||url.origin!==self.location.origin)return;
@@ -68,16 +78,13 @@ self.addEventListener('fetch',event=>{
     event.respondWith(caches.match('./id-converter.html').then(cached=>cached||fetch(req)));
     return;
   }
-  if(url.pathname.endsWith('/shell-ui-stable.js')){
-    event.respondWith(
-      fetch(new Request(req,{cache:'reload'}))
-        .then(resp=>{
-          const copy=resp.clone();
-          caches.open(CACHE).then(cache=>cache.put(req,copy));
-          return resp;
-        })
-        .catch(()=>caches.match(req))
-    );
+  if(
+    url.pathname.endsWith('/location-polling.js')||
+    url.pathname.endsWith('/test-build-ui.js')||
+    url.pathname.endsWith('/sharing-private-ui.js')||
+    url.pathname.endsWith('/shell-ui-stable.js')
+  ){
+    event.respondWith(networkFirst(req));
     return;
   }
   if(url.pathname.endsWith('/config/modules.json')){
