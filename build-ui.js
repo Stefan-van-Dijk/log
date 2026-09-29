@@ -1,6 +1,6 @@
 (function(){
   'use strict';
-  const BUILD='0.34.18';
+  const BUILD='0.35';
   window.LOG_BUILD=BUILD;
 
   function installStyles(){
@@ -59,7 +59,7 @@
     const today=document.getElementById('today');
     if(today){
       const current=today.textContent||'';
-      const next=current.replace(/ · \d+\.\d+\.\d+$/,' · '+BUILD);
+      const next=current.replace(/ · \d+\.\d+(?:\.\d+)?$/,' · '+BUILD);
       if(next!==current)today.textContent=next;
     }
     document.querySelectorAll('.km-shell-version-number').forEach(node=>{if(node.textContent!==BUILD)node.textContent=BUILD;});
