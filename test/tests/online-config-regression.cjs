@@ -14,7 +14,7 @@ const respond=(data=fixture,status=200,type)=>w.fetch=async(url,options)=>{calls
 (async()=>{
  respond();const before=w.localStorage.getItem(TIME);await preview(fixture.logCodeId);
  assert.equal(w.localStorage.getItem(TIME),before,'fetch and preview do not write');assert.equal(prepared,null);
- assert.match(q('dialog').textContent,/sharon.life/);assert.match(q('dialog').textContent,/Procesanalyse algemeen/);assert.match(q('dialog').textContent,/Zonder subthema/);
+ assert.match(q('dialog').textContent,/Gedeelde configuratie/);assert.match(q('dialog').textContent,/Procesanalyse algemeen/);assert.match(q('dialog').textContent,/Zonder subthema/);
  q('[data-import-code]').click();let imported=get(TIME);assert.equal(imported.themes.length,2);assert.equal(imported.subthemes.length,1);assert.equal(imported.logConfigurations[0].id,fixture.logCodeId);assert.equal(imported.entries[0].id,'keep');assert.equal(imported.timer.sessionId,'keep');assert.equal(get(KM).trips[0].id,'keep-trip');assert.equal(prepared,null);
  const stored=w.localStorage.getItem(TIME);w.fetch=async()=>{throw Error('must remain offline')};await preview(fixture.logCodeId);q('[data-import-code]').click();assert.equal(w.localStorage.getItem(TIME),stored,'repeat import is idempotent');assert.equal(calls,1);
  await preview(fixture.actions[0].logCodeId);q('[data-qr-run]').click();assert.equal(prepared.themeId,imported.themes[1].id);assert.equal(prepared.subthemeId,'');

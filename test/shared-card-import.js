@@ -83,18 +83,20 @@
   }
   function preview(payload){
     const result=plan(payload),card=result.card;
-    const panel=window.LogCardsUI.sheet('Gedeelde kaart ophalen',`<h3>${esc(card.name)}</h3><p>Van sharon.life · ${esc(payload.id)}</p><div class="code-surface" data-shared-preview></div><p>${payload.locations.length} gekoppelde locatie(s)${payload.theme?' · thema'+(payload.subtheme?' en subthema':''):''}</p><p>${result.existing?'Deze kaart staat al in Log. Je lokale aanpassingen blijven behouden.':'Controleer de kaart en voeg deze daarna toe. Een gekoppelde taak of actie start niet automatisch.'}</p><button class="btn full" data-shared-import>${result.existing?'Kaart openen':'Kaart toevoegen'}</button><button class="btn secondary full" data-shared-cancel>Annuleren</button><p role="status" data-shared-status></p>`);
+    const panel=window.LogCardsUI.sheet('Gedeelde kaart ophalen',`<h3>${esc(card.name)}</h3><p>Code: ${esc(payload.id)}</p><div class="code-surface" data-shared-preview></div><p>${payload.locations.length} gekoppelde locatie(s)${payload.theme?' · thema'+(payload.subtheme?' en subthema':''):''}</p><p>${result.existing?'Deze kaart staat al in Log. Je lokale aanpassingen blijven behouden.':'Controleer de kaart en voeg deze daarna toe. Een gekoppelde taak of actie start niet automatisch.'}</p><button class="btn full" data-shared-import>${result.existing?'Kaart openen':'Kaart toevoegen'}</button><button class="btn secondary full" data-shared-cancel>Annuleren</button><p role="status" data-shared-status></p>`);
     window.LogCardsUI.renderCode(panel.querySelector('[data-shared-preview]'),card);
     panel.querySelector('[data-shared-cancel]').onclick=()=>window.LogCardsUI.close();
     panel.querySelector('[data-shared-import]').onclick=()=>{try{const saved=commit(payload);window.LogCardsModule.show(saved.id);}catch(error){panel.querySelector('[data-shared-status]').textContent=error.message;}};
   }
-  function prompt(){
-    const panel=window.LogCardsUI.sheet('Kaart ophalen',`<form><div class="form-group"><label for="sharedCardIdentifier">Identifier of gedeelde link</label><input id="sharedCardIdentifier" name="identifier" required autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Plak de identifier van 12 tekens"></div><p>Haal een gepubliceerde kaart op van sharon.life. Je hebt geen publicatiesleutel nodig.</p><button type="submit" class="btn full">Kaart ophalen</button><p role="status" data-shared-error></p></form>`);
+  function manualForm(){
+    return `<form><div class="form-group"><label for="sharedCardIdentifier">Code of gedeelde link</label><input id="sharedCardIdentifier" name="identifier" required autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Plak de code van 12 tekens"></div><button type="submit" class="btn full">Code openen</button><p role="status" data-shared-error></p></form>`;
+  }
+  function bindManual(panel){
     panel.querySelector('form').onsubmit=event=>{
       event.preventDefault();let id=panel.querySelector('input').value.trim();
       try{if(id.startsWith('https://')){const url=new URL(id);if(url.origin!=='https://sharon.life'||url.search||url.hash)throw Error();const match=url.pathname.match(/^\/log\/config\/([A-Za-z0-9_-]{12})\.json$/);if(!match)throw Error();id=match[1];}if(!/^[A-Za-z0-9_-]{12}$/.test(id))throw Error();window.LogCode.preview({kind:'log-action',version:1,id});}
-      catch(_){panel.querySelector('[data-shared-error]').textContent='Gebruik een identifier van 12 tekens of de gedeelde configuratielink van sharon.life.';}
+      catch(_){panel.querySelector('[data-shared-error]').textContent='Gebruik een code van 12 tekens of een geldige gedeelde link.';}
     };
   }
-  window.LogSharedCard={validate,plan,commit,preview,prompt,stored};
+  window.LogSharedCard={validate,plan,commit,preview,manualForm,bindManual,stored};
 })();

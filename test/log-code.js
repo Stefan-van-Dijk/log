@@ -46,7 +46,7 @@
   async function fetchConfiguration(id,signal){
     if(!taskIdPattern.test(id))throw Error('Ongeldige identifier.');
     const response=await fetch(configBase+id+'.json',{mode:'cors',credentials:'omit',redirect:'error',cache:'no-store',signal});
-    if(response.status===404)throw Error('Deze Log-code is nog niet geconfigureerd en is ook niet gevonden op sharon.life.');
+    if(response.status===404)throw Error('Deze code is niet gevonden. Controleer de code en probeer opnieuw.');
     if(!response.ok)throw Error('De configuratie kon niet worden opgehaald. Probeer later opnieuw.');
     if(!/^application\/json(?:\s*;|$)/i.test(response.headers.get('content-type')||''))throw Error('De website gaf geen JSON-configuratie terug.');
     const max=65536;
@@ -63,7 +63,7 @@
   }
   async function previewOnline(id){
     const controller=new AbortController();lookupController=controller;
-    const ui=window.LogCardsUI,panel=ui.sheet('Configuratie zoeken',`<p role="status" data-online-status>Deze Log-code is nog niet geconfigureerd. Zoeken op sharon.life…</p><button class="btn full" data-online-retry hidden>Opnieuw proberen</button><button class="btn full" data-task-back>Terug</button>`);
+    const ui=window.LogCardsUI,panel=ui.sheet('Configuratie zoeken',`<p role="status" data-online-status>Code zoeken…</p><button class="btn full" data-online-retry hidden>Opnieuw proberen</button><button class="btn full" data-task-back>Terug</button>`);
     panel.querySelector('[data-task-back]').onclick=()=>{controller.abort();ui.close();};
     panel.querySelector('[data-online-retry]').onclick=()=>preview({kind:'log-action',version:1,id});
     const timeout=setTimeout(()=>controller.abort(),12000);
@@ -72,7 +72,7 @@
       if(panel.isConnected&&lookupController===controller&&!controller.signal.aborted){if(payload.kind==='shared-card')window.LogSharedCard.plan(payload);else plan(payload);preview(payload);}
     }catch(error){
       if(panel.isConnected&&lookupController===controller){
-        panel.querySelector('[data-online-status]').textContent=error.name==='AbortError'?'Ophalen duurt te lang. Controleer je verbinding en probeer opnieuw.':error instanceof TypeError?'Geen verbinding met sharon.life. Controleer internet en probeer opnieuw.':error.message;
+        panel.querySelector('[data-online-status]').textContent=error.name==='AbortError'?'Ophalen duurt te lang. Controleer je verbinding en probeer opnieuw.':error instanceof TypeError?'Geen verbinding. Controleer internet en probeer opnieuw.':error.message;
         panel.querySelector('[data-online-retry]').hidden=false;
       }
     }finally{clearTimeout(timeout);if(lookupController===controller)lookupController=null;}
@@ -283,7 +283,7 @@
     const ui=window.LogCardsUI,result=plan(payload);
     const panel=ui.sheet('Log-code herkennen',`<h3>${esc(payload.title)}</h3><p>Controleer deze gegevens. Bestaande waarden blijven behouden.</p>${result.rows.map(({entity:e,local,status})=>`<div class="log-code-row"><strong>${esc(e.name)}</strong><small>${esc({theme:'Thema',subtheme:'Subthema',location:'Locatie',person:'Persoon'}[e.type])} · ${esc(status)}</small><small>${esc(details(e))}</small>${local&&status.includes('lokale')?`<small>In Log: ${esc(local.name)} · ${esc(details(local))}</small>`:''}</div>`).join('')}<p>${payload.actions.length?'Na toevoegen kies je zelf een starter.':'Thema’s met een korte identifier krijgen een QR-actie in Acties. Overige gegevens worden alleen toegevoegd.'}</p><button class="btn full" data-import-code>Gegevens toevoegen / gebruiken</button><p data-log-status role="status"></p>`);
     if(payload.remote){
-      const info=document.createElement('p');info.textContent=`Configuratie van sharon.life · versie ${payload.remote.version}. Toevoegen start geen taak.`;panel.querySelector('[data-import-code]').before(info);
+      const info=document.createElement('p');info.textContent=`Gedeelde configuratie · versie ${payload.remote.version}. Toevoegen start geen taak.`;panel.querySelector('[data-import-code]').before(info);
       for(const action of payload.actions){const row=document.createElement('p');row.textContent=`Actie: ${action.name||'Taak starten'} · ${payload.entities.find(e=>e.id===action.themeId)?.name||''} · ${payload.entities.find(e=>e.id===action.subthemeId)?.name||'Zonder subthema'}`;info.before(row);}
       const back=document.createElement('button');back.className='btn full';back.textContent='Annuleren';back.onclick=()=>ui.close();info.after(back);
     }

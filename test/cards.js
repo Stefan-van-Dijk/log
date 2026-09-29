@@ -93,9 +93,9 @@
   function mount(target) {
     if (root === target && $('[data-cards-list]',target)) return;
     root=target;lastSignature='';
-    root.innerHTML=`<section class="cards-module"><div class="cards-actions"><button type="button" class="btn" data-cards-scan>${icon}<span>Code scannen</span></button><button type="button" class="btn secondary" data-cards-fetch>Kaart ophalen</button><button type="button" class="btn secondary" data-cards-new>＋ Nieuwe kaart</button></div><button type="button" class="btn secondary full cards-log-create" data-cards-log>＋ Log-QR met gegevens en starters</button><div class="cards-filter"><label><span>Locatie</span><select data-cards-location>${locationOptions(filter,true)}</select></label><button type="button" data-cards-near>◎ In de buurt</button></div><p class="cards-notice" data-cards-notice role="status"></p><div data-cards-list></div></section>`;
+    root.innerHTML=`<section class="cards-module"><div class="cards-actions"><button type="button" class="btn" data-cards-scan>${icon}<span>Code scannen</span></button><button type="button" class="btn secondary" data-cards-new>＋ Nieuwe kaart</button></div><button type="button" class="btn secondary full cards-log-create" data-cards-log>＋ Log-QR met gegevens en starters</button><div class="cards-filter"><label><span>Locatie</span><select data-cards-location>${locationOptions(filter,true)}</select></label><button type="button" data-cards-near>◎ In de buurt</button></div><p class="cards-notice" data-cards-notice role="status"></p><div data-cards-list></div></section>`;
     $('[data-cards-location]',root).value=filter;
-    root.onclick=event=>{const b=event.target.closest('button');if(!b)return;const row=b.closest('.code-card-swipe');if(row && b.dataset.cardOpen && Date.now()<Number(row.dataset.suppressUntil||0)){event.preventDefault();return;}if(b.hasAttribute('data-cards-fetch'))window.LogSharedCard.prompt();if(b.hasAttribute('data-cards-log'))window.LogCode.builder();if(b.hasAttribute('data-cards-new'))edit();if(b.hasAttribute('data-cards-scan'))scanner();if(b.hasAttribute('data-cards-near'))findNearby();if(b.dataset.cardEdit){setSwipe(row,false);edit(b.dataset.cardEdit);}if(b.dataset.cardDelete)removeCard(b.dataset.cardDelete);if(b.dataset.cardOpen){if(row?.classList.contains('actions-open'))setSwipe(row,false);else show(b.dataset.cardOpen)}};
+    root.onclick=event=>{const b=event.target.closest('button');if(!b)return;const row=b.closest('.code-card-swipe');if(row && b.dataset.cardOpen && Date.now()<Number(row.dataset.suppressUntil||0)){event.preventDefault();return;}if(b.hasAttribute('data-cards-log'))window.LogCode.builder();if(b.hasAttribute('data-cards-new'))edit();if(b.hasAttribute('data-cards-scan'))scanner();if(b.hasAttribute('data-cards-near'))findNearby();if(b.dataset.cardEdit){setSwipe(row,false);edit(b.dataset.cardEdit);}if(b.dataset.cardDelete)removeCard(b.dataset.cardDelete);if(b.dataset.cardOpen){if(row?.classList.contains('actions-open'))setSwipe(row,false);else show(b.dataset.cardOpen)}};
     $('[data-cards-location]',root).onchange=event=>{filter=event.target.value;renderList()};
     renderList();
   }
@@ -241,8 +241,8 @@
     return decoder.decodeBitmap(new window.ZXing.BinaryBitmap(new window.ZXing.HybridBinarizer(source)));
   }
   function scanner() {
-    const panel=sheet('Code scannen',`<p>Richt de camera op een QR-code of barcode.</p><video class="cards-video" playsinline muted autoplay></video><button type="button" class="btn full" data-camera-start>Camera starten</button><label class="cards-photo btn secondary">Code uit foto lezen<input type="file" accept="image/*" data-card-photo></label><button type="button" class="cards-link" data-manual>Zelf inhoud invoeren</button>`);
-    $('[data-manual]',panel).onclick=()=>edit();
+    const panel=sheet('Code scannen',`<p>Richt de camera op een QR-code of barcode.</p><video class="cards-video" playsinline muted autoplay></video><button type="button" class="btn full" data-camera-start>Camera starten</button><label class="cards-photo btn secondary">Code uit foto lezen<input type="file" accept="image/*" data-card-photo></label><details class="cards-content-details" data-manual-code><summary>Code handmatig invoeren</summary>${window.LogSharedCard.manualForm()}</details>`);
+    window.LogSharedCard.bindManual($('[data-manual-code]',panel));
     const start=$('[data-camera-start]',panel);
     start.onclick=async()=>{
       if(start.disabled)return;

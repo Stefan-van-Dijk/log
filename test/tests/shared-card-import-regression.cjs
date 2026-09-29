@@ -2,6 +2,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),{JSDOM}=require('jsdom');
 const base=path.resolve(__dirname,'..'),KM='kmreg-test-v4-data',TIME='urenregistratie.test.pwa.v1';
 const dom=new JSDOM('<body><main></main></body>',{url:'https://stefan-van-dijk.github.io/log/test/',runScripts:'outside-only'}),w=dom.window,d=w.document;
+w.HTMLMediaElement.prototype.pause=function(){};
 w.TextEncoder=TextEncoder;w.TextDecoder=TextDecoder;w.HTMLDialogElement.prototype.showModal=function(){this.open=true};w.HTMLDialogElement.prototype.close=function(){this.open=false};
 const get=k=>JSON.parse(w.localStorage.getItem(k)||'{}'),set=(k,v)=>w.localStorage.setItem(k,JSON.stringify(v)),q=s=>d.querySelector(s);
 const initialKm={trips:[{id:'ride'}],activeTrip:{id:'active'},trackPoints:[{id:'gps',tripId:'ride'}],locations:[{id:'l',name:'My own location'}],cards:[],settings:{name:'Keep me'}};
@@ -30,15 +31,15 @@ const lookup=()=>w.LogCode.preview(w.LogCode.parse(fixture.id));
  // A failed KM write rolls back the preceding theme write.
  respond();await lookup();const proto=w.Storage.prototype,old=proto.setItem;proto.setItem=function(k,v){if(k===KM)throw Error('quota');return old.call(this,k,v)};q('[data-shared-import]').click();proto.setItem=old;assert.match(q('[data-shared-status]').textContent,/Opslaan is niet gelukt/);assert.deepEqual(get(TIME),initialTime);assert.deepEqual(get(KM),initialKm);
  // Manual input rejects other origins; valid public links use the same preview.
- w.LogSharedCard.prompt();q('input').value='https://evil.example/log/config/'+fixture.id+'.json';q('form').dispatchEvent(new w.Event('submit',{cancelable:true}));assert.match(q('[data-shared-error]').textContent,/12 tekens/);
- q('input').value='https://sharon.life/log/config/'+fixture.id+'.json';q('form').dispatchEvent(new w.Event('submit',{cancelable:true}));await new Promise(r=>setTimeout(r,10));assert.ok(q('[data-shared-import]'));
+ w.LogCardsModule.mount(q('main'));q('[data-cards-scan]').click();assert.equal(q('[data-manual-code]').open,false);q('[data-manual-code]').open=true;q('#sharedCardIdentifier').value='https://evil.example/log/config/'+fixture.id+'.json';q('form').dispatchEvent(new w.Event('submit',{cancelable:true}));assert.match(q('[data-shared-error]').textContent,/12 tekens/);
+ q('#sharedCardIdentifier').value='https://sharon.life/log/config/'+fixture.id+'.json';q('form').dispatchEvent(new w.Event('submit',{cancelable:true}));await new Promise(r=>setTimeout(r,10));assert.ok(q('[data-shared-import]'));
  // Normal app save/normalize keeps the card's import identity.
  reset();respond();await lookup();q('[data-shared-import]').click();
  const normalizeSource=fs.readFileSync(path.join(base,'index.html'),'utf8').match(/function normalize\(x\)\{[^\n]+/)[0];
  const normalize=new Function('DEFAULT',normalizeSource+';return normalize;')({settings:{}});
  set(KM,normalize(get(KM)));w.fetch=()=>{throw Error('offline after normal save')};await lookup();assert.equal(get(KM).cards.length,1);assert.ok(q('.cards-display'));
- // The explicit retrieve button opens a manual identifier form.
- w.LogCardsUI.close();w.LogCardsModule.mount(q('main'));q('[data-cards-fetch]').click();assert.ok(q('#sharedCardIdentifier'));w.LogCardsModule.unmount();
+ // Manual input is collapsed under the scanner, with no separate retrieve button.
+ w.LogCardsUI.close();w.LogCardsModule.mount(q('main'));assert.equal(q('[data-cards-fetch]'),null);q('[data-cards-scan]').click();assert.equal(q('[data-manual-code]').open,false);assert.ok(q('#sharedCardIdentifier'));assert.doesNotMatch(q('dialog').textContent,/sharon\.life|publicatiesleutel/i);w.LogCardsModule.unmount();
  // Rendering remote titles treats markup as text.
  reset();const xss=structuredClone(fixture);xss.objects.cards[0].name='<img src=x onerror=alert(1)>';respond(xss);await lookup();assert.equal(q('[data-shared-preview]').parentNode.querySelector('img'),null);
  console.log('Shared cards: preview, cancellation, import/dependency remapping, local preservation, offline repeat/reload, malformed data, 404, close-during-fetch, storage rollback, manual link and escaping passed.');w.close();

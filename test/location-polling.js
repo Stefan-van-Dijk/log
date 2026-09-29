@@ -1,6 +1,6 @@
 (function(){
   'use strict';
-  const BUILD='0.35.1-test.1';
+  const BUILD='0.35.1-test.2';
   window.LOG_TEST_BUILD=BUILD;
   const listeners=new Set(),KM='kmreg-test-v4-data';
   let latest=null,pending=null,lastAttempt=0,visibleTrip='',started=false;
@@ -20,7 +20,7 @@
   function loadActionDetailsReset(){
     if(document.querySelector('script[data-log-action-details-reset]'))return;
     const script=document.createElement('script');
-    script.src='./action-details-reset.js?v=0.35.1-test.1';
+    script.src='./action-details-reset.js?v=0.35.1-test.2';
     script.async=false;
     script.dataset.logActionDetailsReset='1';
     document.head.appendChild(script);
@@ -44,7 +44,7 @@
       return;
     }
     const script=document.createElement('script');
-    script.src='./sharing.js?v=0.35.1-test.1';
+    script.src='./sharing.js?v=0.35.1-test.2';
     script.async=false;
     script.dataset.logSharing='1';
     script.addEventListener('load',loadSharingUI,{once:true});

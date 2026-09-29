@@ -1,5 +1,11 @@
 # Log — Ontwikkelbacklog
 
+## Test 0.35.1-test.2 — Handmatige code onder scanner
+
+- Aparte knop Kaart ophalen verwijderd. Code scannen bevat onder het cameravlak de standaard ingeklapte optie Code handmatig invoeren. Pas na openen verschijnen het invoerveld en Code openen.
+- Website- en publicatiesleutelvermeldingen verwijderd uit de ophaalvensters, inclusief laad- en foutmeldingen. Ophaalwerking en bevestiging blijven gelijk.
+- Gerichte bestaande regressies voor gedeelde kaarten en online configuraties bijgewerkt en uitgevoerd. Alleen test/** aangepast; live blijft 0.35.
+
 ## Test 0.35.1-test.1 — Gedeelde kaart ophalen
 
 - Kaarten → Kaart ophalen: identifier (12 tekens) of sharon.life-configuratielink plakken. Bestaande QR-scanner/fotoherkenning gebruikt dezelfde ophaalroute. Geen publicatiesleutel nodig voor ophalen.
