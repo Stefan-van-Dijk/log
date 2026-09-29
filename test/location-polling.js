@@ -1,6 +1,6 @@
 (function(){
   'use strict';
-  const BUILD='0.35.1-test.3';
+  const BUILD='0.35.1-test.4';
   window.LOG_TEST_BUILD=BUILD;
   const listeners=new Set(),KM='kmreg-test-v4-data';
   let latest=null,pending=null,lastAttempt=0,visibleTrip='',started=false;
@@ -50,6 +50,14 @@
     script.addEventListener('load',loadSharingUI,{once:true});
     document.head.appendChild(script);
   }
+  function loadSharedSettingsUI(){
+    if(document.querySelector('script[data-log-shared-settings-ui]'))return;
+    const script=document.createElement('script');
+    script.src=`./shared-settings-ui.js?v=${BUILD}`;
+    script.async=false;
+    script.dataset.logSharedSettingsUi='1';
+    document.head.appendChild(script);
+  }
   function trip(){try{return JSON.parse(localStorage.getItem(KM)||'{}').activeTrip?.id||'';}catch(_){return '';}}
   function interval(){return trip()?60000:6000;}
   function request({maxAge=0}={}){
@@ -82,5 +90,6 @@
   loadTestBuildUI();
   loadActionDetailsReset();
   loadSharing();
+  loadSharedSettingsUI();
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{start();syncVisibleBuild();setTimeout(syncVisibleBuild,100);},{once:true});else start();
 })();
