@@ -12,7 +12,7 @@ let rowsQueued=false;
 
 const read=(key=STORE)=>{try{const v=JSON.parse(localStorage.getItem(key)||'{}');return v&&typeof v==='object'?v:{};}catch(_){return {};}};
 const write=v=>localStorage.setItem(STORE,JSON.stringify(v));
-const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
+const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 function collaborationStore(state=read()){
   state.collaboration=state.collaboration&&typeof state.collaboration==='object'?state.collaboration:{};
@@ -27,12 +27,21 @@ function setAccess(id,enabled,extra={}){
 }
 function canEdit(id){return Boolean(read().collaboration?.[id]?.enabled===true);}
 function isOwner(id){const info=read().published?.[id];return Boolean(info&&info.type==='card');}
+function canonical(value){return JSON.stringify({schema:value?.schema,kind:value?.kind,title:value?.title,root:value?.root,objects:value?.objects});}
+function syncStatusBaseline(id){
+  try{
+    const status=read(STATUS_STORE);status.items=status.items&&typeof status.items==='object'?status.items:{};
+    const current=status.items[id]||{},bundle=baseBundle(id);
+    status.items[id]={...current,kind:'bundle',signature:canonical(bundle)};
+    localStorage.setItem(STATUS_STORE,JSON.stringify(status));
+  }catch(_){}
+}
 function markPublish(id,revision){
   const state=read(),items=collaborationStore(state);
   items[id]={...items[id],enabled:true,publishedAt:new Date().toISOString(),revision:Number(revision)||Number(items[id]?.revision)||1};
   const info=state.published?.[id];
-  if(info){info.revision=Number(revision)||Number(info.revision)||1;info.publishedAt=new Date().toISOString();}
-  write(state);queueRows();
+  if(info){info.revision=Number(revision)||Number(info.revision)||1;info.publishedAt=new Date().toISOString();info.signature=canonical(baseBundle(id));}
+  write(state);syncStatusBaseline(id);queueRows();
 }
 
 function localCardById(id){const km=read(KM),cards=Array.isArray(km.cards)?km.cards:[];return cards.find(card=>String(card.id)===String(id))||null;}
@@ -93,7 +102,7 @@ async function disable(id){
   const key=String(read().key||'');if(!key)throw Error('De publicatiekoppeling ontbreekt op dit apparaat.');
   const result=await request(baseBundle(id),{'X-Log-Publish-Key':key,'X-Log-Collaboration':'off'});
   setAccess(id,false,{owner:true,stopped:false});
-  const state=read(),info=state.published?.[id];if(info){info.revision=Number(result.revision)||Number(info.revision)||1;info.publishedAt=new Date().toISOString();write(state);}queueRows();return result;
+  const state=read(),info=state.published?.[id];if(info){info.revision=Number(result.revision)||Number(info.revision)||1;info.publishedAt=new Date().toISOString();info.signature=canonical(baseBundle(id));write(state);}syncStatusBaseline(id);queueRows();return result;
 }
 async function publishCollaborative(id){
   const remote=await syncRemoteAccess(id,{requireActive:true});
@@ -115,7 +124,6 @@ async function stopSharing(id){
   queueRows();window.dispatchEvent(new Event('log-shell-view-refresh'));return true;
 }
 
-function canonical(value){return JSON.stringify({schema:value?.schema,kind:value?.kind,title:value?.title,root:value?.root,objects:value?.objects});}
 async function showCollaborativeStatus(type,localId){
   const id=identifierForItem(type,localId);if(!id)return false;
   const ui=window.LogCardsUI;if(!ui?.sheet)return false;
