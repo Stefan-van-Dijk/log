@@ -1,4 +1,4 @@
-const CACHE='kmreg-test-shell-0.35.1-test.2';
+const CACHE='kmreg-test-shell-0.35.1-test.3';
 const SHELL=[
   './',
   './index.html',
@@ -80,6 +80,7 @@ self.addEventListener('fetch',event=>{
     return;
   }
   if(
+    url.pathname.endsWith('/shared-card-import.js')||
     url.pathname.endsWith('/location-polling.js')||
     url.pathname.endsWith('/test-build-ui.js')||
     url.pathname.endsWith('/sharing-private-ui.js')||
