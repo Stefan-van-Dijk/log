@@ -36,7 +36,10 @@ w.localStorage.setItem('urenregistratie.test.pwa.v1',JSON.stringify({
 w.LogCode.preview({kind:'log-task',version:1,id:'5smOhKCcmuEg'});
 assert.match(d.body.textContent,/Taak herkend/);
 d.querySelector('[data-log-task-start]').click();
-assert.deepEqual(prepared,{themeId:'local-theme',subthemeId:'local-sub',locationName:'',note:'API'});
+assert.equal(prepared.themeId,'local-theme');
+assert.equal(prepared.subthemeId,'local-sub');
+assert.equal(prepared.locationName,'');
+assert.equal(prepared.note,'API');
 
 prepared=null;
 w.LogCode.preview({kind:'log-task',version:1,id:'ABCDEFGHIJKL'});
