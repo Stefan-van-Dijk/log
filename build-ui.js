@@ -57,14 +57,23 @@
     window.LOG_BUILD=BUILD;
     installStyles();
     const today=document.getElementById('today');
-    if(today&&/ · \d+\.\d+\.\d+$/.test(today.textContent||''))today.textContent=today.textContent.replace(/ · \d+\.\d+\.\d+$/,' · '+BUILD);
+    if(today){
+      const current=today.textContent||'';
+      const next=current.replace(/ · \d+\.\d+\.\d+$/,' · '+BUILD);
+      if(next!==current)today.textContent=next;
+    }
     document.querySelectorAll('.km-shell-version-number').forEach(node=>{if(node.textContent!==BUILD)node.textContent=BUILD;});
-    document.querySelectorAll('.km-shell-version').forEach(node=>node.setAttribute('aria-label',`Geladen versie ${BUILD}`));
+    document.querySelectorAll('.km-shell-version').forEach(node=>{const label=`Geladen versie ${BUILD}`;if(node.getAttribute('aria-label')!==label)node.setAttribute('aria-label',label);});
   }
 
   function init(){
     render();
-    const observer=new MutationObserver(()=>render());
+    let queued=false;
+    const observer=new MutationObserver(()=>{
+      if(queued)return;
+      queued=true;
+      requestAnimationFrame(()=>{queued=false;render();});
+    });
     observer.observe(document.body,{childList:true,subtree:true});
     window.addEventListener('pageshow',render);
     window.addEventListener('log-shell-view-refresh',render);
