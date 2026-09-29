@@ -1,6 +1,6 @@
 (function(){
   'use strict';
-  const BUILD='0.35.1-test.4';
+  const BUILD='0.35.1-test.5';
   window.LOG_TEST_BUILD=BUILD;
   const listeners=new Set(),KM='kmreg-test-v4-data';
   let latest=null,pending=null,lastAttempt=0,visibleTrip='',started=false;
@@ -20,7 +20,7 @@
   function loadActionDetailsReset(){
     if(document.querySelector('script[data-log-action-details-reset]'))return;
     const script=document.createElement('script');
-    script.src='./action-details-reset.js?v=0.35.1-test.2';
+    script.src=`./action-details-reset.js?v=${BUILD}`;
     script.async=false;
     script.dataset.logActionDetailsReset='1';
     document.head.appendChild(script);
@@ -44,7 +44,7 @@
       return;
     }
     const script=document.createElement('script');
-    script.src='./sharing.js?v=0.35.1-test.2';
+    script.src=`./sharing.js?v=${BUILD}`;
     script.async=false;
     script.dataset.logSharing='1';
     script.addEventListener('load',loadSharingUI,{once:true});
@@ -56,6 +56,14 @@
     script.src=`./shared-settings-ui.js?v=${BUILD}`;
     script.async=false;
     script.dataset.logSharedSettingsUi='1';
+    document.head.appendChild(script);
+  }
+  function loadSharedConfigBridge(){
+    if(document.querySelector('script[data-log-shared-config-bridge]'))return;
+    const script=document.createElement('script');
+    script.src=`./shared-config-bridge.js?v=${BUILD}`;
+    script.async=false;
+    script.dataset.logSharedConfigBridge='1';
     document.head.appendChild(script);
   }
   function trip(){try{return JSON.parse(localStorage.getItem(KM)||'{}').activeTrip?.id||'';}catch(_){return '';}}
@@ -91,5 +99,6 @@
   loadActionDetailsReset();
   loadSharing();
   loadSharedSettingsUI();
+  loadSharedConfigBridge();
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{start();syncVisibleBuild();setTimeout(syncVisibleBuild,100);},{once:true});else start();
 })();
