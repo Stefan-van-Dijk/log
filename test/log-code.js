@@ -12,6 +12,7 @@
   const configBase='https://sharon.life/log/config/';
   let lookupController=null;
   function onlinePayload(document,id){
+    if(document?.kind==='log-config'&&document?.objects)return window.LogSharedCard.validate(document,id);
     if(!document||document.logCodeId!==id||!taskIdPattern.test(id))throw Error('De configuratie hoort niet bij deze identifier.');
     let value;
     if(['log-config','log-config-example'].includes(document.type)){
@@ -68,7 +69,7 @@
     const timeout=setTimeout(()=>controller.abort(),12000);
     try{
       const payload=await fetchConfiguration(id,controller.signal);
-      if(panel.isConnected&&lookupController===controller&&!controller.signal.aborted){plan(payload);preview(payload);}
+      if(panel.isConnected&&lookupController===controller&&!controller.signal.aborted){if(payload.kind==='shared-card')window.LogSharedCard.plan(payload);else plan(payload);preview(payload);}
     }catch(error){
       if(panel.isConnected&&lookupController===controller){
         panel.querySelector('[data-online-status]').textContent=error.name==='AbortError'?'Ophalen duurt te lang. Controleer je verbinding en probeer opnieuw.':error instanceof TypeError?'Geen verbinding met sharon.life. Controleer internet en probeer opnieuw.':error.message;
@@ -259,12 +260,13 @@
   }
   function preview(payload){
     if(lookupController){lookupController.abort();lookupController=null;}
+    if(payload.kind==='shared-card')return window.LogSharedCard.preview(payload);
     if(['log-task','log-action'].includes(payload.kind)){
       try{
         const local=read(TIME),cached=list(local,'logConfigurations').find(c=>c.id===payload.id);
         if(cached)return preview(cached.payload);
         const known=[...list(local,'themes'),...list(local,'subthemes'),...list(local,'locationActions')].some(e=>[e.id,e.logCodeId,e.taskCodeId].includes(payload.id));
-        if(!known)return previewOnline(payload.id);
+        if(!known){const card=window.LogSharedCard?.stored(payload.id);if(card)return window.LogCardsModule.show(card.id);return previewOnline(payload.id);}
         migrateTasks();
         if(list(read(TIME),'locationActions').some(r=>r.logCodeId===payload.id)){
           if(!window.LogLocationActions)throw Error('Acties zijn nog niet beschikbaar.');

@@ -93,9 +93,9 @@
   function mount(target) {
     if (root === target && $('[data-cards-list]',target)) return;
     root=target;lastSignature='';
-    root.innerHTML=`<section class="cards-module"><div class="cards-actions"><button type="button" class="btn" data-cards-scan>${icon}<span>Code scannen</span></button><button type="button" class="btn secondary" data-cards-new>＋ Nieuwe kaart</button></div><button type="button" class="btn secondary full cards-log-create" data-cards-log>＋ Log-QR met gegevens en starters</button><div class="cards-filter"><label><span>Locatie</span><select data-cards-location>${locationOptions(filter,true)}</select></label><button type="button" data-cards-near>◎ In de buurt</button></div><p class="cards-notice" data-cards-notice role="status"></p><div data-cards-list></div></section>`;
+    root.innerHTML=`<section class="cards-module"><div class="cards-actions"><button type="button" class="btn" data-cards-scan>${icon}<span>Code scannen</span></button><button type="button" class="btn secondary" data-cards-fetch>Kaart ophalen</button><button type="button" class="btn secondary" data-cards-new>＋ Nieuwe kaart</button></div><button type="button" class="btn secondary full cards-log-create" data-cards-log>＋ Log-QR met gegevens en starters</button><div class="cards-filter"><label><span>Locatie</span><select data-cards-location>${locationOptions(filter,true)}</select></label><button type="button" data-cards-near>◎ In de buurt</button></div><p class="cards-notice" data-cards-notice role="status"></p><div data-cards-list></div></section>`;
     $('[data-cards-location]',root).value=filter;
-    root.onclick=event=>{const b=event.target.closest('button');if(!b)return;const row=b.closest('.code-card-swipe');if(row && b.dataset.cardOpen && Date.now()<Number(row.dataset.suppressUntil||0)){event.preventDefault();return;}if(b.hasAttribute('data-cards-log'))window.LogCode.builder();if(b.hasAttribute('data-cards-new'))edit();if(b.hasAttribute('data-cards-scan'))scanner();if(b.hasAttribute('data-cards-near'))findNearby();if(b.dataset.cardEdit){setSwipe(row,false);edit(b.dataset.cardEdit);}if(b.dataset.cardDelete)removeCard(b.dataset.cardDelete);if(b.dataset.cardOpen){if(row?.classList.contains('actions-open'))setSwipe(row,false);else show(b.dataset.cardOpen)}};
+    root.onclick=event=>{const b=event.target.closest('button');if(!b)return;const row=b.closest('.code-card-swipe');if(row && b.dataset.cardOpen && Date.now()<Number(row.dataset.suppressUntil||0)){event.preventDefault();return;}if(b.hasAttribute('data-cards-fetch'))window.LogSharedCard.prompt();if(b.hasAttribute('data-cards-log'))window.LogCode.builder();if(b.hasAttribute('data-cards-new'))edit();if(b.hasAttribute('data-cards-scan'))scanner();if(b.hasAttribute('data-cards-near'))findNearby();if(b.dataset.cardEdit){setSwipe(row,false);edit(b.dataset.cardEdit);}if(b.dataset.cardDelete)removeCard(b.dataset.cardDelete);if(b.dataset.cardOpen){if(row?.classList.contains('actions-open'))setSwipe(row,false);else show(b.dataset.cardOpen)}};
     $('[data-cards-location]',root).onchange=event=>{filter=event.target.value;renderList()};
     renderList();
   }
@@ -291,7 +291,7 @@
       notice=count?`${count} ${count===1?'kaart past':'kaarten passen'} bij locaties in de buurt · bovenaan gezet.`:'Geen gekoppelde kaarten in de buurt. Alle kaarten blijven beschikbaar.';renderList();
     },()=>{if(root!==target)return;button.disabled=false;notice='Locatie niet beschikbaar. Kies zelf een locatie.';renderList()}, {enableHighAccuracy:true,timeout:10000,maximumAge:30000});
   }
-  window.LogCardsUI={sheet,close,edit};
+  window.LogCardsUI={sheet,close,edit,renderCode,validate(card){validate(card);makeCode(card);}};
   window.LogCardsModule={mount,show,closeSwipe:row=>setSwipe(row,false),unmount(){if(root){close();root=null;}},search(value){query=String(value||'').toLocaleLowerCase('nl');return renderList()},refresh};
   window.addEventListener('log-km-state-change',refresh);
   window.addEventListener('storage',event=>{if(event.key==='kmreg-test-v4-data')refresh()});

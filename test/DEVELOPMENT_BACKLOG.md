@@ -1,5 +1,13 @@
 # Log — Ontwikkelbacklog
 
+## Test 0.35.1-test.1 — Gedeelde kaart ophalen
+
+- Kaarten → Kaart ophalen: identifier (12 tekens) of sharon.life-configuratielink plakken. Bestaande QR-scanner/fotoherkenning gebruikt dezelfde ophaalroute. Geen publicatiesleutel nodig voor ophalen.
+- Ondersteunt het door Delen gepubliceerde `log-config`-formaat met `root.type=card`. Voorbeeld van QR/barcode, daarna expliciet Kaart toevoegen. Bijbehorende locatiehiërarchie en taakthema/subthema krijgen lokale IDs; geen automatische actie of timerstart.
+- Bestaande ritten, GPS, timers, instellingen en eigen objecten blijven behouden. Importidentiteit blijft bij de kaart opgeslagen, ook na reguliere app-opslag. Opnieuw ophalen opent de lokale kaart offline en bewaart lokale aanpassingen. Nieuwe online revisies vervangen die nog niet.
+- Gerichte regressies: preview/annuleren, import, relaties, herstart/offline, reguliere normalisatie, foutieve gegevens, opslagfout met rollback, 404, sluiten tijdens laden, handmatige link en HTML-escaping. Bestaande online-configregressie slaagt. De oudere brede cards-regressie faalt in zowel de ongewijzigde basis als deze versie bij de bestaande Log-QR-builder (regel 72); los van kaart ophalen.
+- Alleen test/** gewijzigd; live blijft 0.35. Thema’s/acties als zelfstandig gedeelde bundel ophalen valt buiten deze kaarttest.
+
 ## Test 0.34.5 — Online configuraties op sharon.life
 
 Geïmplementeerd en gericht getest in `test/**`; productie blijft 0.34.2.
