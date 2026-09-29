@@ -1,6 +1,6 @@
 (function(){
   'use strict';
-  const BUILD='0.34.14';
+  const BUILD='0.34.15';
   window.LOG_TEST_BUILD=BUILD;
   const listeners=new Set(),KM='kmreg-test-v4-data';
   let latest=null,pending=null,lastAttempt=0,visibleTrip='',started=false;
@@ -8,6 +8,14 @@
   function syncVisibleBuild(){
     document.querySelectorAll('.km-shell-version-number').forEach(el=>{if(el.textContent!==BUILD)el.textContent=BUILD;});
     document.querySelectorAll('.km-shell-version').forEach(el=>{const label=`Geladen testversie ${BUILD}`;if(el.getAttribute('aria-label')!==label)el.setAttribute('aria-label',label);});
+  }
+  function loadTestBuildUI(){
+    if(document.querySelector('script[data-log-test-build-ui]'))return;
+    const script=document.createElement('script');
+    script.src='./test-build-ui.js?v=0.34.15';
+    script.async=false;
+    script.dataset.logTestBuildUi='1';
+    document.head.appendChild(script);
   }
   function loadActionDetailsReset(){
     if(document.querySelector('script[data-log-action-details-reset]'))return;
@@ -68,6 +76,7 @@
   window.addEventListener('log-km-state-change',()=>poll());
   window.addEventListener('pageshow',()=>{start();syncVisibleBuild();setTimeout(syncVisibleBuild,100);});
   document.addEventListener('visibilitychange',()=>{if(!document.hidden){poll(true);syncVisibleBuild();}});
+  loadTestBuildUI();
   loadActionDetailsReset();
   loadSharing();
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{start();syncVisibleBuild();setTimeout(syncVisibleBuild,100);},{once:true});else start();
