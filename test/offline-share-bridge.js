@@ -57,18 +57,38 @@ async function directReactivate(id,root=localSharedRoot(id)){
   window.dispatchEvent(new Event('log-shell-view-refresh'));
   return result;
 }
-function recoveryFallback(id,root,message=''){
+async function shareAsNew(root,id){
+  if(!root?.object?.id)throw Error('Op dit apparaat is geen lokale kopie gevonden.');
+  if(root.type!=='card')throw Error('Opnieuw delen met een nieuwe identifier is hier nog alleen voor kaarten beschikbaar.');
+  if(!window.LogCollaboration?.shareAsNew)throw Error('Opnieuw delen is nog niet beschikbaar.');
+  return window.LogCollaboration.shareAsNew(root.object.id,id);
+}
+function recoveryPanel(id,root,state={},message=''){
   const ui=window.LogCardsUI;if(!ui?.sheet||!root?.object?.id)return false;
-  const panel=ui.sheet('Gedeelde kaart herstellen',`
-    <p>De lokale kaart is nog aanwezig en gekoppeld aan <strong>${id}</strong>.</p>
-    <p class="cards-notice">${message||'De online deelstatus kon niet worden gelezen. Log kan de herstelactie wel rechtstreeks aan de server voorleggen.'}</p>
-    <button class="btn full" data-offline-direct-reactivate>Opnieuw online zetten</button>
+  const revoked=state.revoked===true;
+  const mode=['owner','collaborators','new-id'].includes(state.reactivationMode)?state.reactivationMode:(rawSharingState()?.collaboration?.[id]?.reactivationMode||'owner');
+  const title=revoked?'Identifier ingetrokken':'Gedeelde kaart herstellen';
+  const explanation=revoked
+    ?'Deze identifier is definitief ingetrokken. Je lokale kaart blijft behouden en kan als nieuwe deling worden gepubliceerd.'
+    :mode==='new-id'
+      ?'Deze bron staat offline. Volgens het herstelrecht moet opnieuw delen een nieuwe identifier krijgen.'
+      :mode==='collaborators'
+        ?'Deze bron staat offline. Iedereen met deze identifier en een lokale kopie mag dezelfde identifier opnieuw online zetten.'
+        :'Deze bron staat offline. Alleen de oorspronkelijke deler mag dezelfde identifier opnieuw online zetten.';
+  const primary=revoked||mode==='new-id'
+    ?'<button class="btn full" data-offline-share-new>Opnieuw delen met nieuwe identifier</button>'
+    :'<button class="btn full" data-offline-direct-reactivate>Opnieuw online zetten</button>';
+  const panel=ui.sheet(title,`
+    <p>${explanation}</p>
+    <p class="cards-notice">${message||`Identifier: ${id}`}</p>
+    ${primary}
     <button class="btn secondary full" data-offline-open-local>Lokale kaart openen</button>
     <button class="btn secondary full" data-offline-share-close>Sluiten</button>
     <p role="status" data-offline-share-status></p>`);
   panel.querySelector('[data-offline-share-close]').onclick=()=>ui.close();
   panel.querySelector('[data-offline-open-local]').onclick=()=>{ui.close();window.LogCardsModule?.show?.(root.object.id);};
-  panel.querySelector('[data-offline-direct-reactivate]').onclick=async event=>{
+  const reactivate=panel.querySelector('[data-offline-direct-reactivate]');
+  if(reactivate)reactivate.onclick=async event=>{
     const button=event.currentTarget,status=panel.querySelector('[data-offline-share-status]');button.disabled=true;
     try{
       const result=await directReactivate(id,root);
@@ -76,7 +96,16 @@ function recoveryFallback(id,root,message=''){
       setTimeout(()=>{ui.close();window.LogCardsModule?.show?.(root.object.id);},350);
     }catch(error){status.textContent=error?.message||'Herstellen is niet gelukt.';button.disabled=false;}
   };
+  const asNew=panel.querySelector('[data-offline-share-new]');
+  if(asNew)asNew.onclick=async event=>{
+    const button=event.currentTarget,status=panel.querySelector('[data-offline-share-status]');button.disabled=true;
+    try{ui.close();await shareAsNew(root,id);}
+    catch(error){status.textContent=error?.message||'Opnieuw delen is niet gelukt.';button.disabled=false;}
+  };
   return true;
+}
+function recoveryFallback(id,root,message=''){
+  return recoveryPanel(id,root,rawSharingState()?.collaboration?.[id]||{},message||'De online deelstatus kon niet worden gelezen. Log kan de lokale herstelactie wel rechtstreeks aan de server voorleggen.');
 }
 async function openRecoveryForIdentifier(id){
   if(!VALID.test(String(id||''))||!window.LogCollaboration)return false;
@@ -85,10 +114,7 @@ async function openRecoveryForIdentifier(id){
   try{remote=await window.LogCollaboration.syncRemoteAccess(id);}catch(error){statusError=error;}
   const state=remote?.state||{};
   if(state.offline||state.revoked){
-    if(root?.object?.id){
-      await window.LogCollaboration.showSharedStatus(root.type||'card',root.object.id,null);
-      return true;
-    }
+    if(root?.object?.id)return recoveryPanel(id,root,state);
     const ui=window.LogCardsUI;
     if(ui?.sheet){
       const title=state.revoked?'Identifier ingetrokken':'Gedeelde kaart offline';
@@ -99,9 +125,7 @@ async function openRecoveryForIdentifier(id){
       panel.querySelector('[data-offline-share-close]').onclick=()=>ui.close();return true;
     }
   }
-  if(statusError&&root?.object?.id){
-    return recoveryFallback(id,root,'De online deelstatus kon niet worden geladen. Dit blokkeert de lokale herstelactie niet.');
-  }
+  if(statusError&&root?.object?.id)return recoveryFallback(id,root,'De online deelstatus kon niet worden geladen. Dit blokkeert de lokale herstelactie niet.');
   return false;
 }
 function augmentOpenCard(cardId){
@@ -131,10 +155,7 @@ function patchSharedOpen(){
   if(!shared?.openByIdentifier)return false;
   if(shared.openByIdentifier.__offlineRecoveryBridge)return true;
   const original=shared.openByIdentifier.bind(shared);
-  const wrapped=async id=>{
-    if(await openRecoveryForIdentifier(id))return true;
-    return original(id);
-  };
+  const wrapped=async id=>{if(await openRecoveryForIdentifier(id))return true;return original(id);};
   wrapped.__offlineRecoveryBridge=true;wrapped.__original=original;shared.openByIdentifier=wrapped;
   if(window.LogSharedCard)window.LogSharedCard.openByIdentifier=wrapped;
   return true;
@@ -178,8 +199,8 @@ function patchManualInput(){
         }
         await window.LogSharedConfig.openByIdentifier(id);
       }catch(error){
-        const root=(()=>{try{return localSharedRoot(parseIdentifier(input.value));}catch(_){return null;}})();
-        if(root?.object?.id&&recoveryFallback(parseIdentifier(input.value),root,'De online bron kon niet worden geladen. Je lokale kopie kan wel rechtstreeks opnieuw online worden gezet.'))return;
+        let id='',root=null;try{id=parseIdentifier(input.value);root=localSharedRoot(id);}catch(_){}
+        if(root?.object?.id&&recoveryFallback(id,root,'De online bron kon niet worden geladen. Je lokale kopie kan wel rechtstreeks opnieuw online worden gezet.'))return;
         if(status)status.textContent=error?.message||'De gedeelde gegevens konden niet worden geopend.';
       }
     };
