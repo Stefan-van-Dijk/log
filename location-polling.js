@@ -7,6 +7,7 @@
   // to the existing production stores; no test store is read or written.
   const KEY_MAP=new Map([
     ['kmreg-test-v4-data','kmreg-v4-data'],
+    ['kmreg-test-shell-section-v1','kmreg-shell-section-v1'],
     ['urenregistratie.test.pwa.v1','urenregistratie.pwa.v1'],
     ['log-test-location-action-visits-v1','log-location-action-visits-v1'],
     ['log-test-action-snoozes-v1','log-action-snoozes-v1'],
