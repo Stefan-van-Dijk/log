@@ -2,8 +2,12 @@
 'use strict';
 
 const VALID=/^[A-Za-z0-9_-]{12}$/;
+const ENDPOINT='https://sharon.life/log/api/publish.php';
 let attempts=0;
 
+function rawSharingState(){
+  try{const value=JSON.parse(localStorage.getItem('log-test-sharing-v1')||'{}');return value&&typeof value==='object'?value:{};}catch(_){return {};}
+}
 function localSharedRoot(id){
   try{return window.LogSharedConfig?.storedRoot?.(id)||null;}catch(_){return null;}
 }
@@ -12,8 +16,7 @@ function identifierForCard(cardId){
 }
 function labelFor(id){
   try{
-    const state=JSON.parse(localStorage.getItem('log-test-sharing-v1')||'{}');
-    const meta=state?.collaboration?.[id]||{};
+    const meta=rawSharingState()?.collaboration?.[id]||{};
     if(meta.revoked)return 'Als nieuwe deling publiceren';
     if(meta.offline)return meta.reactivationMode==='new-id'?'Opnieuw delen':'Opnieuw online zetten';
     return meta.collaboration?'Delen / publiceren':'Deling beheren';
@@ -31,26 +34,73 @@ function parseIdentifier(value){
   if(!VALID.test(id))throw Error('Gebruik een identifier van 12 tekens of een geldige gedeelde link.');
   return id;
 }
+function localBundle(id,root=localSharedRoot(id)){
+  if(!root?.object?.id)throw Error('Op dit apparaat is geen lokale kopie van deze deling gevonden.');
+  if(!window.LogSharing?.buildBundle)throw Error('Delen is nog niet beschikbaar.');
+  const bundle=window.LogSharing.buildBundle(root.type||'card',root.object.id);
+  bundle.id=id;
+  return bundle;
+}
+async function directReactivate(id,root=localSharedRoot(id)){
+  const bundle=localBundle(id,root),sharing=rawSharingState();
+  const headers={'Content-Type':'application/json','Accept':'application/json','X-Log-Sharing-Action':'reactivate'};
+  if(String(sharing.key||'').trim())headers['X-Log-Publish-Key']=String(sharing.key).trim();
+  let response;
+  try{
+    response=await fetch(ENDPOINT,{method:'POST',headers,body:JSON.stringify(bundle),cache:'no-store'});
+  }catch(_){
+    throw Error('De herstelactie kon de server niet bereiken. De lokale kaart is behouden.');
+  }
+  let result={};try{result=await response.json();}catch(_){}
+  if(!response.ok)throw Error(result.error||`Opnieuw online zetten is niet gelukt (${response.status}).`);
+  try{await window.LogCollaboration?.syncRemoteAccess?.(id);}catch(_){}
+  window.dispatchEvent(new Event('log-shell-view-refresh'));
+  return result;
+}
+function recoveryFallback(id,root,message=''){
+  const ui=window.LogCardsUI;if(!ui?.sheet||!root?.object?.id)return false;
+  const panel=ui.sheet('Gedeelde kaart herstellen',`
+    <p>De lokale kaart is nog aanwezig en gekoppeld aan <strong>${id}</strong>.</p>
+    <p class="cards-notice">${message||'De online deelstatus kon niet worden gelezen. Log kan de herstelactie wel rechtstreeks aan de server voorleggen.'}</p>
+    <button class="btn full" data-offline-direct-reactivate>Opnieuw online zetten</button>
+    <button class="btn secondary full" data-offline-open-local>Lokale kaart openen</button>
+    <button class="btn secondary full" data-offline-share-close>Sluiten</button>
+    <p role="status" data-offline-share-status></p>`);
+  panel.querySelector('[data-offline-share-close]').onclick=()=>ui.close();
+  panel.querySelector('[data-offline-open-local]').onclick=()=>{ui.close();window.LogCardsModule?.show?.(root.object.id);};
+  panel.querySelector('[data-offline-direct-reactivate]').onclick=async event=>{
+    const button=event.currentTarget,status=panel.querySelector('[data-offline-share-status]');button.disabled=true;
+    try{
+      const result=await directReactivate(id,root);
+      status.textContent=`De deling staat weer online${result.revision?` · revisie ${Number(result.revision)}`:''}.`;
+      setTimeout(()=>{ui.close();window.LogCardsModule?.show?.(root.object.id);},350);
+    }catch(error){status.textContent=error?.message||'Herstellen is niet gelukt.';button.disabled=false;}
+  };
+  return true;
+}
 async function openRecoveryForIdentifier(id){
   if(!VALID.test(String(id||''))||!window.LogCollaboration)return false;
-  let remote=null;
-  try{remote=await window.LogCollaboration.syncRemoteAccess(id);}catch(_){}
-  const state=remote?.state||{};
-  if(!state.offline&&!state.revoked)return false;
   const root=localSharedRoot(id);
-  if(root?.object?.id){
-    await window.LogCollaboration.showSharedStatus(root.type||'card',root.object.id,null);
-    return true;
+  let remote=null,statusError=null;
+  try{remote=await window.LogCollaboration.syncRemoteAccess(id);}catch(error){statusError=error;}
+  const state=remote?.state||{};
+  if(state.offline||state.revoked){
+    if(root?.object?.id){
+      await window.LogCollaboration.showSharedStatus(root.type||'card',root.object.id,null);
+      return true;
+    }
+    const ui=window.LogCardsUI;
+    if(ui?.sheet){
+      const title=state.revoked?'Identifier ingetrokken':'Gedeelde kaart offline';
+      const text=state.revoked
+        ?'Deze identifier is definitief ingetrokken. Op dit apparaat is geen lokale kopie gevonden om opnieuw te delen.'
+        :'Deze gedeelde kaart staat offline. Op dit apparaat is geen lokale kopie gevonden om opnieuw online te zetten.';
+      const panel=ui.sheet(title,`<p>${text}</p><button class="btn full" data-offline-share-close>Sluiten</button>`);
+      panel.querySelector('[data-offline-share-close]').onclick=()=>ui.close();return true;
+    }
   }
-  const ui=window.LogCardsUI;
-  if(ui?.sheet){
-    const title=state.revoked?'Identifier ingetrokken':'Gedeelde kaart offline';
-    const text=state.revoked
-      ?'Deze identifier is definitief ingetrokken. Op dit apparaat is geen lokale kopie gevonden om opnieuw te delen.'
-      :'Deze gedeelde kaart staat offline. Op dit apparaat is geen lokale kopie gevonden om opnieuw online te zetten.';
-    const panel=ui.sheet(title,`<p>${text}</p><button class="btn full" data-offline-share-close>Sluiten</button>`);
-    panel.querySelector('[data-offline-share-close]').onclick=()=>ui.close();
-    return true;
+  if(statusError&&root?.object?.id){
+    return recoveryFallback(id,root,'De online deelstatus kon niet worden geladen. Dit blokkeert de lokale herstelactie niet.');
   }
   return false;
 }
@@ -61,10 +111,7 @@ function augmentOpenCard(cardId){
   const body=panel?.querySelector('.cards-dialog-body');
   if(!body||body.querySelector('[data-shared-card-manage]'))return;
   const button=document.createElement('button');
-  button.type='button';
-  button.className='btn secondary full';
-  button.dataset.sharedCardManage='1';
-  button.textContent=labelFor(id);
+  button.type='button';button.className='btn secondary full';button.dataset.sharedCardManage='1';button.textContent=labelFor(id);
   button.onclick=async()=>{
     button.disabled=true;
     try{
@@ -88,9 +135,7 @@ function patchSharedOpen(){
     if(await openRecoveryForIdentifier(id))return true;
     return original(id);
   };
-  wrapped.__offlineRecoveryBridge=true;
-  wrapped.__original=original;
-  shared.openByIdentifier=wrapped;
+  wrapped.__offlineRecoveryBridge=true;wrapped.__original=original;shared.openByIdentifier=wrapped;
   if(window.LogSharedCard)window.LogSharedCard.openByIdentifier=wrapped;
   return true;
 }
@@ -99,15 +144,8 @@ function patchCards(){
   if(!cards?.show)return false;
   if(cards.show.__offlineRecoveryBridge)return true;
   const original=cards.show.bind(cards);
-  const wrapped=function(id,recognized){
-    const result=original(id,recognized);
-    setTimeout(()=>augmentOpenCard(id),0);
-    return result;
-  };
-  wrapped.__offlineRecoveryBridge=true;
-  wrapped.__original=original;
-  cards.show=wrapped;
-  return true;
+  const wrapped=function(id,recognized){const result=original(id,recognized);setTimeout(()=>augmentOpenCard(id),0);return result;};
+  wrapped.__offlineRecoveryBridge=true;wrapped.__original=original;cards.show=wrapped;return true;
 }
 function patchLogCode(){
   const code=window.LogCode;
@@ -115,15 +153,10 @@ function patchLogCode(){
   if(code.preview.__offlineRecoveryBridge)return true;
   const original=code.preview.bind(code);
   const wrapped=function(payload){
-    if(payload?.kind==='log-action'&&VALID.test(String(payload.id||''))&&localSharedRoot(payload.id)){
-      return window.LogSharedConfig?.openByIdentifier?.(payload.id);
-    }
+    if(payload?.kind==='log-action'&&VALID.test(String(payload.id||''))&&localSharedRoot(payload.id))return window.LogSharedConfig?.openByIdentifier?.(payload.id);
     return original(payload);
   };
-  wrapped.__offlineRecoveryBridge=true;
-  wrapped.__original=original;
-  code.preview=wrapped;
-  return true;
+  wrapped.__offlineRecoveryBridge=true;wrapped.__original=original;code.preview=wrapped;return true;
 }
 function patchManualInput(){
   const shared=window.LogSharedCard;
@@ -132,37 +165,29 @@ function patchManualInput(){
   const original=shared.bindManual.bind(shared);
   const wrapped=function(panel){
     original(panel);
-    const form=panel?.querySelector?.('form');
-    const input=form?.querySelector?.('input');
-    const status=panel?.querySelector?.('[data-shared-error]');
+    const form=panel?.querySelector?.('form'),input=form?.querySelector?.('input'),status=panel?.querySelector?.('[data-shared-error]');
     if(!form||!input)return;
     form.onsubmit=async event=>{
-      event.preventDefault();
-      if(status)status.textContent='';
-      let id='';
+      event.preventDefault();if(status)status.textContent='';
       try{
-        id=parseIdentifier(input.value);
-        if(status)status.textContent='Deelstatus controleren…';
-        if(await openRecoveryForIdentifier(id))return;
-        if(status)status.textContent='';
+        const id=parseIdentifier(input.value),root=localSharedRoot(id);
+        if(root?.object?.id){
+          if(status)status.textContent='Deelstatus controleren…';
+          if(await openRecoveryForIdentifier(id))return;
+          if(status)status.textContent='';
+        }
         await window.LogSharedConfig.openByIdentifier(id);
       }catch(error){
-        if(status)status.textContent=error?.message==='Load failed'
-          ?'De gedeelde bron kan niet rechtstreeks worden geladen. Controleer of deze offline staat via de lokale kaart.'
-          :(error?.message||'De gedeelde gegevens konden niet worden geopend.');
+        const root=(()=>{try{return localSharedRoot(parseIdentifier(input.value));}catch(_){return null;}})();
+        if(root?.object?.id&&recoveryFallback(parseIdentifier(input.value),root,'De online bron kon niet worden geladen. Je lokale kopie kan wel rechtstreeks opnieuw online worden gezet.'))return;
+        if(status)status.textContent=error?.message||'De gedeelde gegevens konden niet worden geopend.';
       }
     };
   };
-  wrapped.__offlineRecoveryBridge=true;
-  wrapped.__original=original;
-  shared.bindManual=wrapped;
-  return true;
+  wrapped.__offlineRecoveryBridge=true;wrapped.__original=original;shared.bindManual=wrapped;return true;
 }
 function install(){
-  const a=patchSharedOpen();
-  const b=patchCards();
-  const c=patchLogCode();
-  const d=patchManualInput();
+  const a=patchSharedOpen(),b=patchCards(),c=patchLogCode(),d=patchManualInput();
   if(!(a&&b&&c&&d)&&attempts++<240)setTimeout(install,50);
 }
 
