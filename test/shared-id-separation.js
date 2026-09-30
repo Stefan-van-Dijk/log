@@ -5,6 +5,7 @@ const KM='kmreg-test-v4-data';
 const TIME='urenregistratie.test.pwa.v1';
 const UPDATE_STORE='log-test-shared-config-updates-v2';
 const SHARING_STORE='log-test-sharing-v1';
+const ID_STORE='log-test-shared-local-ids-v1';
 const LOCAL=/^[A-Za-z0-9_-]{8}$/;
 const SHARED=/^[A-Za-z0-9_-]{12}$/;
 const ALPHABET='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
@@ -28,6 +29,31 @@ function configurationForCard(cardId,sharing,card=null){
   if(SHARED.test(String(direct||'')))return String(direct);
   const source=card?.sharedSource?.configurationId;
   return SHARED.test(String(source||''))?String(source):'';
+}
+function identityKey(configurationId,sourceId){return SHARED.test(String(configurationId||''))?`card:${configurationId}:${String(sourceId??'')}`:'';}
+function identities(value=read(ID_STORE)){
+  value.items=value.items&&typeof value.items==='object'?value.items:{};
+  return value;
+}
+function stableLocalId(configurationId,sourceId,oldId,used,updates,sharing,identityState){
+  const key=identityKey(configurationId,sourceId);
+  const candidates=[];
+  if(key&&LOCAL.test(String(identityState.items[key]||'')))candidates.push(String(identityState.items[key]));
+  const meta=updates?.configurations?.[configurationId];
+  if(LOCAL.test(String(meta?.localRootId||'')))candidates.push(String(meta.localRootId));
+  for(const [rootKey,value] of Object.entries(sharing?.roots||{})){
+    if(String(value)!==String(configurationId)||!rootKey.startsWith('card:'))continue;
+    const candidate=rootKey.slice(5);if(LOCAL.test(candidate))candidates.push(candidate);
+  }
+  for(const candidate of candidates){
+    if(candidate===oldId||!used.has(candidate)){
+      if(key)identityState.items[key]=candidate;
+      return candidate;
+    }
+  }
+  const next=randomLocalId(used);
+  if(key)identityState.items[key]=next;
+  return next;
 }
 function updateReferences(remap,cards,time,updates,sharing){
   if(!remap.size)return;
@@ -65,17 +91,23 @@ function updateReferences(remap,cards,time,updates,sharing){
     if(meta&&remap.has(String(meta.localRootId||'')))meta.localRootId=remap.get(String(meta.localRootId));
   }
 }
-function normalizeCards(cards,time,updates,sharing){
+function normalizeCards(cards,time,updates,sharing,identityState){
   const used=new Set();
   for(const card of cards)if(LOCAL.test(String(card?.id||'')))used.add(String(card.id));
   const remap=new Map();
 
   for(const card of cards){
     const oldId=String(card?.id||'');
-    if(LOCAL.test(oldId))continue;
     const configurationId=configurationForCard(oldId,sharing,card);
     const sourceId=String(card?.sharedSource?.sourceId??oldId);
-    const nextId=randomLocalId(used);used.add(nextId);remap.set(oldId,nextId);
+    if(LOCAL.test(oldId)){
+      const key=identityKey(configurationId,sourceId);if(key)identityState.items[key]=oldId;
+      continue;
+    }
+    const nextId=configurationId
+      ?stableLocalId(configurationId,sourceId,oldId,used,updates,sharing,identityState)
+      :randomLocalId(used);
+    used.add(nextId);remap.set(oldId,nextId);
 
     if(configurationId){
       card.sharedSource={
@@ -95,9 +127,10 @@ function migrate(options={}){
   if(migrating)return {changed:false,count:0};
   migrating=true;
   try{
-    const km=read(KM),time=read(TIME),updates=read(UPDATE_STORE),sharing=read(SHARING_STORE);
+    const km=read(KM),time=read(TIME),updates=read(UPDATE_STORE),sharing=read(SHARING_STORE),identityState=identities();
     const cards=Array.isArray(km.cards)?km.cards:[];
-    const remap=normalizeCards(cards,time,updates,sharing);
+    const remap=normalizeCards(cards,time,updates,sharing,identityState);
+    write(ID_STORE,identityState);
     if(!remap.size)return {changed:false,count:0};
 
     km.cards=cards;
@@ -119,8 +152,9 @@ function patchCardSave(){
   const original=api.save.bind(api);
   const wrapped=function(cards){
     const list=Array.isArray(cards)?cards:[];
-    const time=read(TIME),updates=read(UPDATE_STORE),sharing=read(SHARING_STORE);
-    const remap=normalizeCards(list,time,updates,sharing);
+    const time=read(TIME),updates=read(UPDATE_STORE),sharing=read(SHARING_STORE),identityState=identities();
+    const remap=normalizeCards(list,time,updates,sharing,identityState);
+    write(ID_STORE,identityState);
     if(remap.size){write(TIME,time);write(UPDATE_STORE,updates);write(SHARING_STORE,sharing);}
     return original(list);
   };
