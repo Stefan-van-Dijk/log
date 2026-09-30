@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const BUILD='0.35.1-test.25';
+  const BUILD='0.35.1-test.26';
   window.LOG_TEST_BUILD=BUILD;
 
   function installStyles(){
@@ -29,6 +29,7 @@
     ensureScript(`./shared-id-separation.js?v=${BUILD}`,'logSharedIdSeparation');
     ensureScript(`./offline-share-bridge.js?v=${BUILD}`,'logOfflineShareBridge');
     ensureScript(`./qr-action-direct.js?v=${BUILD}`,'logDirectQrAction');
+    ensureScript(`./task-replace-finish.js?v=${BUILD}`,'logTaskReplaceFinish');
   }
 
   function render(){installStyles();const settings=document.getElementById('kmShellSettingsButton');if(settings){let badge=settings.querySelector('.log-test-build-badge');if(!badge){badge=document.createElement('span');badge.className='log-test-build-badge';settings.appendChild(badge);}if(badge.textContent!==`TEST ${BUILD}`)badge.textContent=`TEST ${BUILD}`;}document.querySelectorAll('.km-shell-version-number').forEach(node=>{if(node.textContent!==BUILD)node.textContent=BUILD;});document.querySelectorAll('.km-shell-version').forEach(node=>node.setAttribute('aria-label',`Geladen testversie ${BUILD}`));}
