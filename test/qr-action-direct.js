@@ -7,6 +7,7 @@
   const RECENT_MS=1500;
   const running=new Set();
   const recent=new Map();
+  const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   let attempts=0,patchAttempts=0;
   let originalParse=null,originalPreview=null;
 
@@ -16,7 +17,7 @@
   function cards(){const km=read(KM);return Array.isArray(km.cards)?km.cards:[];}
   function rules(){const time=read(TIME);return Array.isArray(time.locationActions)?time.locationActions:[];}
   function cardMatches(value){return cards().filter(card=>String(card?.value??'')===String(value??''));}
-  function actionCode(rule){return String(rule?.actionCodeId||rule?.logCodeId||'');}
+  function actionCode(rule){const explicit=String(rule?.actionCodeId||'');return VALID.test(explicit)?explicit:String(rule?.logCodeId||'');}
   function actionMatches(value){return rules().filter(rule=>rule?.trigger==='qr'&&actionCode(rule)===String(value||''));}
 
   function migrateActionCodeIds(){
@@ -24,8 +25,8 @@
     for(const rule of items){
       if(rule?.trigger!=='qr')continue;
       const legacy=String(rule.logCodeId||''),current=String(rule.actionCodeId||'');
-      if(!current&&VALID.test(legacy)){rule.actionCodeId=legacy;changed=true;}
-      else if(VALID.test(current)&&!legacy){rule.logCodeId=current;changed=true;}
+      if(VALID.test(legacy)&&current!==legacy){rule.actionCodeId=legacy;changed=true;}
+      else if(!legacy&&VALID.test(current)){rule.logCodeId=current;changed=true;}
     }
     if(!changed)return false;
     time.locationActions=items;
@@ -87,7 +88,7 @@
     }
 
     try{
-      const payload=originalParse?.(raw)??window.LogCode?.parse?.(raw);
+      const payload=originalParse?originalParse(raw):window.LogCode?.parse?.(raw);
       if(payload)return {kind:'payload',payload,value:raw};
     }catch(error){return {kind:'invalid-payload',error,value:raw};}
     return {kind:'unknown',value:raw};
@@ -118,11 +119,10 @@
     const ui=window.LogCardsUI;if(!ui?.sheet)return originalPreview?.(payload);
     let resolved;
     try{resolved=window.LogCode.resolveTask(payload.id);}catch(error){
-      const panel=ui.sheet('Taak niet beschikbaar',`<p role="status">${String(error.message||'Taak niet beschikbaar.')}</p><button class="btn full" data-log-task-close>Terug</button>`);
+      const panel=ui.sheet('Taak niet beschikbaar',`<p role="status">${esc(error.message||'Taak niet beschikbaar.')}</p><button class="btn full" data-log-task-close>Terug</button>`);
       panel.querySelector('[data-log-task-close]').onclick=()=>ui.close();return panel;
     }
     const theme=resolved.theme,sub=resolved.sub||resolved.subtheme||null;
-    const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const panel=ui.sheet('Taak herkend',`<h3>${esc(theme?.name||'Thema')}</h3>${sub?`<p>${esc(sub.name||'Subthema')}</p>`:''}<button class="btn full cards-scan-action" data-log-task-start>Taak starten</button><p role="status" data-log-task-status></p>`);
     panel.querySelector('[data-log-task-start]').onclick=()=>{
       const button=panel.querySelector('[data-log-task-start]');if(button.disabled)return;button.disabled=true;
