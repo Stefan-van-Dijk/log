@@ -126,8 +126,37 @@
       const qr=window.qrcode(0,'M');
       window.qrcode.stringToBytes=text=>Array.from(new TextEncoder().encode(text));
       qr.addData(value,'Byte');qr.make();
-      return qr.createSvgTag({cellSize:5,margin:12,scalable:true});
+      return qr.createSvgTag({cellSize:5,margin:20,scalable:true});
     }catch(_){return'<div class="log-public-qr-fallback">QR-code kon niet worden gemaakt</div>';}
+  }
+  function qrPngBlob(value){
+    if(typeof window.qrcode!=='function')return Promise.reject(new Error('QR-code niet beschikbaar.'));
+    try{
+      const qr=window.qrcode(0,'M');
+      window.qrcode.stringToBytes=text=>Array.from(new TextEncoder().encode(text));
+      qr.addData(String(value??''),'Byte');qr.make();
+      const modules=qr.getModuleCount(),cell=10,quiet=4,size=(modules+quiet*2)*cell;
+      const canvas=document.createElement('canvas');canvas.width=size;canvas.height=size;
+      const context=canvas.getContext('2d',{alpha:false});
+      if(!context)throw new Error('Afbeelding kon niet worden gemaakt.');
+      context.fillStyle='#fff';context.fillRect(0,0,size,size);context.fillStyle='#000';
+      for(let row=0;row<modules;row++)for(let col=0;col<modules;col++)if(qr.isDark(row,col))context.fillRect((col+quiet)*cell,(row+quiet)*cell,cell,cell);
+      return new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('Afbeelding kon niet worden gemaakt.')),'image/png'));
+    }catch(error){return Promise.reject(error);}
+  }
+  async function copyQrImage(value){
+    if(!navigator.clipboard?.write||typeof ClipboardItem!=='function')return false;
+    try{
+      const item=new ClipboardItem({'image/png':qrPngBlob(value)});
+      await navigator.clipboard.write([item]);
+      return true;
+    }catch(_){
+      try{
+        const blob=await qrPngBlob(value);
+        await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);
+        return true;
+      }catch(__){return false;}
+    }
   }
   async function copy(text){try{await navigator.clipboard.writeText(text);return true;}catch(_){return false;}}
 
@@ -172,7 +201,11 @@
     const statusText=status.state==='current'?'Actueel':status.state==='changed'?'Wijzigingen klaar om te publiceren':'Vergelijking nog niet beschikbaar';
     const statusClass=status.state==='current'?'current':status.state==='changed'?'changed':'unknown';
     const updateButton=status.state==='current'?'':`<button type="button" class="btn" data-public-update>${status.state==='changed'?'Update publiceren':'Opnieuw publiceren'}</button>`;
-    const d=dialog(bundle.title,`<div class="log-public-qr">${qrSvg(bundle.id)}</div><div class="log-public-identifier">${esc(bundle.id)}</div><div class="log-public-meta"><span>Revisie ${Number(info.revision)||1}</span><span class="log-public-badge ${statusClass}">${esc(statusText)}</span></div><p class="log-public-note">Scan deze QR-code in Log om deze publieke configuratie op te halen.</p><div class="log-public-actions"><button type="button" class="btn secondary" data-public-copy>Identifier kopiëren</button>${updateButton}</div>`);
+    const d=dialog(bundle.title,`<div class="log-public-qr" data-copy-public-qr role="button" tabindex="0" aria-label="QR-code kopiëren">${qrSvg(bundle.id)}</div><div class="log-public-identifier">${esc(bundle.id)}</div><div class="log-public-meta"><span>Revisie ${Number(info.revision)||1}</span><span class="log-public-badge ${statusClass}">${esc(statusText)}</span></div><p class="log-public-note" data-public-qr-note>Scan deze QR-code in Log om deze publieke configuratie op te halen. Tik op de QR-code om hem te kopiëren.</p><div class="log-public-actions"><button type="button" class="btn secondary" data-public-copy>Identifier kopiëren</button>${updateButton}</div>`);
+    const copyPublicQr=async()=>{d.querySelector('[data-public-qr-note]').textContent=await copyQrImage(bundle.id)?'QR-code gekopieerd als afbeelding met quiet zone.':'QR-code kopiëren wordt op dit apparaat niet ondersteund.';};
+    const qr=d.querySelector('[data-copy-public-qr]');
+    qr.onclick=copyPublicQr;
+    qr.onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();copyPublicQr();}};
     d.querySelector('[data-public-copy]').onclick=async event=>{event.currentTarget.textContent=await copy(bundle.id)?'Gekopieerd':'Kopiëren mislukt';};
     const update=d.querySelector('[data-public-update]');
     if(update)update.onclick=async()=>{if(await publish(type,id))showStatus(type,id);};
@@ -234,7 +267,7 @@
     style.textContent=`
       .log-share-strip{display:none!important}
       .log-public-setting-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:4px 0}.log-public-setting-row>span{display:grid;gap:3px;min-width:0}.log-public-setting-row strong{font-size:13px}.log-public-setting-row small,.log-public-setting-status{color:var(--muted);font-size:11px;line-height:1.35}.log-public-setting-row input[role="switch"]{appearance:none;-webkit-appearance:none;width:50px;height:30px;flex:0 0 auto;border:0;border-radius:999px;background:rgba(120,120,128,.28);position:relative;transition:.18s}.log-public-setting-row input[role="switch"]:after{content:"";position:absolute;width:26px;height:26px;left:2px;top:2px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.25);transition:.18s}.log-public-setting-row input[role="switch"]:checked{background:#34c759}.log-public-setting-row input[role="switch"]:checked:after{transform:translateX(20px)}.log-public-setting-status[data-active="true"]{color:#34c759}.log-public-setting-status{margin:9px 0 0}
-      .log-public-dialog{width:min(calc(100% - 28px),500px);padding:0;border:1px solid var(--line);border-radius:20px;background:var(--bg);color:var(--text);box-shadow:0 22px 64px rgba(0,0,0,.42)}.log-public-dialog::backdrop{background:rgba(0,0,0,.48)}.log-public-dialog header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 15px;border-bottom:1px solid var(--line)}.log-public-dialog h2{margin:0;font-size:19px}.log-public-dialog header button{width:36px;height:36px;border:0;border-radius:50%;background:var(--card2);color:var(--text);font-size:22px}.log-public-dialog-body{padding:16px}.log-public-dialog-body p{line-height:1.45}.log-public-field{display:grid;gap:6px;margin:12px 0}.log-public-field input{width:100%;padding:12px;border:1px solid var(--line);border-radius:11px;background:var(--card2);color:var(--text);font:inherit}.log-public-note{color:var(--muted);font-size:11px}.log-public-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}.log-public-actions.one{grid-template-columns:1fr}.log-public-qr{display:flex;justify-content:center;margin:2px auto 12px}.log-public-qr svg{width:min(70vw,270px);height:auto;background:#fff;border-radius:14px}.log-public-identifier{font-family:"SFMono-Regular",Consolas,monospace;font-size:17px;font-weight:800;text-align:center;letter-spacing:.04em;overflow-wrap:anywhere}.log-public-meta{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;margin:10px 0}.log-public-meta>span:first-child{color:var(--muted);font-size:11px}.log-public-badge{padding:5px 8px;border-radius:999px;font-size:10px;font-weight:800}.log-public-badge.current{background:rgba(52,199,89,.14);color:#34c759}.log-public-badge.changed{background:rgba(255,159,10,.16);color:#ff9f0a}.log-public-badge.unknown{background:var(--card2);color:var(--muted)}.log-public-progress{display:grid;place-items:center;text-align:center;padding:22px}.log-public-progress span{width:30px;height:30px;border:3px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:logPublicSpin .8s linear infinite}.log-public-qr-fallback{padding:40px 20px;border-radius:14px;background:var(--card2);color:var(--muted)}
+      .log-public-dialog{width:min(calc(100% - 28px),500px);padding:0;border:1px solid var(--line);border-radius:20px;background:var(--bg);color:var(--text);box-shadow:0 22px 64px rgba(0,0,0,.42)}.log-public-dialog::backdrop{background:rgba(0,0,0,.48)}.log-public-dialog header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 15px;border-bottom:1px solid var(--line)}.log-public-dialog h2{margin:0;font-size:19px}.log-public-dialog header button{width:36px;height:36px;border:0;border-radius:50%;background:var(--card2);color:var(--text);font-size:22px}.log-public-dialog-body{padding:16px}.log-public-dialog-body p{line-height:1.45}.log-public-field{display:grid;gap:6px;margin:12px 0}.log-public-field input{width:100%;padding:12px;border:1px solid var(--line);border-radius:11px;background:var(--card2);color:var(--text);font:inherit}.log-public-note{color:var(--muted);font-size:11px}.log-public-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}.log-public-actions.one{grid-template-columns:1fr}.log-public-qr{display:flex;justify-content:center;margin:2px auto 12px}.log-public-qr[data-copy-public-qr],.cards-display .code-surface.is-qr{cursor:pointer;touch-action:manipulation}.log-public-qr[data-copy-public-qr]:active,.cards-display .code-surface.is-qr:active{transform:scale(.995)}.log-public-qr svg{width:min(70vw,270px);height:auto;background:#fff;border-radius:14px}.log-public-identifier{font-family:"SFMono-Regular",Consolas,monospace;font-size:17px;font-weight:800;text-align:center;letter-spacing:.04em;overflow-wrap:anywhere}.log-public-meta{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;margin:10px 0}.log-public-meta>span:first-child{color:var(--muted);font-size:11px}.log-public-badge{padding:5px 8px;border-radius:999px;font-size:10px;font-weight:800}.log-public-badge.current{background:rgba(52,199,89,.14);color:#34c759}.log-public-badge.changed{background:rgba(255,159,10,.16);color:#ff9f0a}.log-public-badge.unknown{background:var(--card2);color:var(--muted)}.log-public-progress{display:grid;place-items:center;text-align:center;padding:22px}.log-public-progress span{width:30px;height:30px;border:3px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:logPublicSpin .8s linear infinite}.log-public-qr-fallback{padding:40px 20px;border-radius:14px;background:var(--card2);color:var(--muted)}
       .log-share-armed{box-shadow:inset 5px 0 0 #34c759}
       @keyframes logPublicSpin{to{transform:rotate(360deg)}}
     `;
@@ -257,6 +290,17 @@
     bodyObserver.observe(document.body,{attributes:true,attributeFilter:['class']});
 
     document.addEventListener('click',event=>{
+      const cardQr=event.target.closest?.('.cards-display .code-surface.is-qr');
+      if(cardQr){
+        const panel=cardQr.closest('.cards-display');
+        const value=panel?.querySelector('.cards-value')?.textContent||'';
+        if(value){
+          event.preventDefault();event.stopPropagation();
+          const status=panel.querySelector('[data-card-message]');
+          copyQrImage(value).then(ok=>{if(status)status.textContent=ok?'QR-code gekopieerd als afbeelding met quiet zone.':'QR-code kopiëren wordt op dit apparaat niet ondersteund.';});
+          return;
+        }
+      }
       if(event.target.closest?.('#kmShellSettingsButton'))setTimeout(queueMountSettings,0);
     },true);
     document.addEventListener('touchstart',guardShareSwipe,{capture:true,passive:true});
@@ -268,7 +312,7 @@
       });
     }
 
-    window.LogSharingUI={enabled,canShare,shareFromSurface,showStatus,mountSettings:queueMountSettings,resolveSurface};
+    window.LogSharingUI={enabled,canShare,shareFromSurface,showStatus,mountSettings:queueMountSettings,resolveSurface,copyQrImage};
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
