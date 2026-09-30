@@ -9,9 +9,157 @@
   const EDIT_RELEASE_THRESHOLD=36;
   const LIFECYCLE_RELEASE_BUFFER=18;
   const SHARE_RELEASE_THRESHOLD=36;
+  const SHARE_STORE='log-test-sharing-v1';
+  const SHARE_STATUS_STORE='log-test-sharing-status-v1';
+  const SHARED_UPDATE_STORE='log-test-shared-config-updates-v2';
+  const KM_STORE='kmreg-v4-data';
+  const TIME_STORE='urenregistratie.pwa.v1';
+  const VALID_SHARED_ID=/^[A-Za-z0-9_-]{12}$/;
   let gesture=null;
+  let statusObserver=null;
+  let statusQueued=false;
 
   const $=(selector,root=document)=>root.querySelector(selector);
+
+  function readStore(key){
+    try{
+      const value=JSON.parse(localStorage.getItem(key)||'{}');
+      return value&&typeof value==='object'?value:{};
+    }catch(_){return {};}
+  }
+  function saveStatusStore(value){
+    try{localStorage.setItem(SHARE_STATUS_STORE,JSON.stringify(value));}catch(_){}
+  }
+  function itemFor(type,id){
+    const km=readStore(KM_STORE),time=readStore(TIME_STORE),sid=String(id||'');
+    const source=type==='location'?km.locations:type==='card'?km.cards:type==='theme'?time.themes:type==='action'?time.locationActions:[];
+    return Array.isArray(source)?source.find(item=>String(item?.id)===sid)||null:null;
+  }
+  function sharedIdentity(type,id){
+    const sharing=readStore(SHARE_STORE),item=itemFor(type,id);
+    const rooted=sharing.roots?.[`${type}:${id}`];
+    const fromSource=item?.sharedSource?.configurationId;
+    const legacy=type==='card'&&Array.isArray(item?.sharedConfigurationIds)?item.sharedConfigurationIds.find(value=>VALID_SHARED_ID.test(String(value||''))):'';
+    const identifier=[rooted,fromSource,legacy].map(value=>String(value||'')).find(value=>VALID_SHARED_ID.test(value))||'';
+    if(!identifier)return null;
+    const published=sharing.published?.[identifier]||null;
+    const imported=String(fromSource||legacy||'')===identifier;
+    const collaborative=Boolean(window.LogCollaboration?.canEdit?.(identifier));
+    if(!published&&!imported&&!collaborative)return null;
+    return {identifier,published,collaborative};
+  }
+  function canonicalBundle(type,id){
+    try{
+      const bundle=window.LogSharing?.buildBundle?.(type,id);
+      if(!bundle)return null;
+      return {kind:'bundle',value:JSON.stringify({schema:bundle.schema,kind:bundle.kind,title:bundle.title,root:bundle.root,objects:bundle.objects})};
+    }catch(_){return null;}
+  }
+  function localSignature(type,id){
+    const bundle=canonicalBundle(type,id);
+    if(bundle)return bundle;
+    const item=itemFor(type,id);
+    if(!item)return null;
+    return {kind:'item',value:JSON.stringify(item)};
+  }
+  function updateMarker(identifier){
+    const sharing=readStore(SHARE_STORE),updates=readStore(SHARED_UPDATE_STORE),info=sharing.published?.[identifier],meta=updates.configurations?.[identifier];
+    return `${String(info?.publishedAt||'')}|${String(meta?.appliedSignature||'')}`;
+  }
+  function remoteUpdateAvailable(identifier){
+    try{return window.LogSharedConfig?.configurationUpdateAvailable?.(identifier)===true;}catch(_){return false;}
+  }
+  function statusFor(type,id){
+    const identity=sharedIdentity(type,id);
+    if(!identity)return null;
+    const signature=localSignature(type,id),marker=updateMarker(identity.identifier),statusState=readStore(SHARE_STATUS_STORE);
+    statusState.items=statusState.items&&typeof statusState.items==='object'?statusState.items:{};
+    let baseline=statusState.items[identity.identifier];
+    if(signature&&(!baseline||baseline.marker!==marker||baseline.kind!==signature.kind)){
+      baseline={marker,kind:signature.kind,signature:signature.value};
+      statusState.items[identity.identifier]=baseline;
+      saveStatusStore(statusState);
+    }
+    let localChanged=false;
+    const canRepublish=Boolean(identity.published||identity.collaborative);
+    if(canRepublish&&signature){
+      if(identity.published?.signature&&signature.kind==='bundle')localChanged=identity.published.signature!==signature.value;
+      else if(baseline?.kind===signature.kind&&baseline?.signature)localChanged=baseline.signature!==signature.value;
+    }
+    const remoteChanged=remoteUpdateAvailable(identity.identifier);
+    if(localChanged)return {state:'publish',label:remoteChanged?'Lokale wijzigingen publiceren · bronupdate beschikbaar':'Lokale wijzigingen nog publiceren'};
+    if(remoteChanged)return {state:'update',label:'Update van de gedeelde bron beschikbaar'};
+    return {state:'current',label:'Gedeeld en actueel'};
+  }
+  function removeOldDot(host){
+    if(!host)return;
+    const dot=[...host.children].find(node=>node?.dataset?.logShareStatusDot==='1');
+    dot?.remove();
+    host.classList.remove('log-share-status-host');
+    delete host.dataset.logShareStatus;
+    delete host.dataset.logShareStatusLabel;
+  }
+  function decorateStatus(type,id,host){
+    if(!host)return;
+    const status=statusFor(type,id);
+    let dot=[...host.children].find(node=>node?.dataset?.logShareStatusDot==='1');
+    if(!status){removeOldDot(host);return;}
+    host.classList.add('log-share-status-host');
+    host.dataset.logShareStatus=status.state;
+    host.dataset.logShareStatusLabel=status.label;
+    if(!dot){
+      dot=document.createElement('span');
+      dot.className='log-share-status-dot';
+      dot.dataset.logShareStatusDot='1';
+      dot.setAttribute('aria-hidden','true');
+      host.appendChild(dot);
+    }
+    dot.dataset.state=status.state;
+    dot.title=status.label;
+  }
+  function decorateShareStatuses(){
+    document.querySelectorAll('[data-card-open]').forEach(button=>{
+      if(button.closest('[data-la-row]'))return;
+      decorateStatus('card',button.dataset.cardOpen,button.closest('.code-card-swipe')||button);
+    });
+    document.querySelectorAll('[data-la-open]').forEach(button=>decorateStatus('action',button.dataset.laOpen,button.closest('[data-la-row],.code-card-swipe')||button));
+    document.querySelectorAll('[data-shell-location-node]').forEach(node=>decorateStatus('location',node.dataset.shellLocationNode,node.closest('.km-shell-location-swipe-row,[data-shell-location-swipe]')||node));
+    document.querySelectorAll('[data-theme-node]').forEach(node=>{
+      const row=node.closest('[data-shell-theme-swipe]');
+      if(row?.dataset.shellThemeType==='subtheme')return;
+      decorateStatus('theme',node.dataset.themeNode,row||node.closest('.km-shell-theme-swipe-row')||node);
+    });
+  }
+  function queueShareStatuses(){
+    if(statusQueued)return;
+    statusQueued=true;
+    requestAnimationFrame(()=>{statusQueued=false;decorateShareStatuses();});
+  }
+  function installShareStatusStyles(){
+    if(document.querySelector('#logShareStatusDotStyle'))return;
+    const style=document.createElement('style');
+    style.id='logShareStatusDotStyle';
+    style.textContent=`
+      .log-share-status-host{position:relative!important}
+      .log-share-status-dot{position:absolute;left:10px;top:10px;width:9px;height:9px;border-radius:50%;z-index:8;pointer-events:none;background:transparent;box-shadow:0 0 0 2px color-mix(in srgb,var(--bg) 72%,transparent)}
+      .log-share-status-dot[data-state="current"]{background:var(--good,#49d17d)}
+      .log-share-status-dot[data-state="update"]{background:var(--warn,#ffbd4a)}
+      .log-share-status-dot[data-state="publish"]{background:#8d98a6;animation:log-share-status-pulse 1.55s ease-in-out infinite}
+      @keyframes log-share-status-pulse{0%,100%{background:#8d98a6;transform:scale(.92)}50%{background:var(--good,#49d17d);transform:scale(1.16)}}
+      @media(prefers-reduced-motion:reduce){.log-share-status-dot[data-state="publish"]{animation:none;background:var(--good,#49d17d);box-shadow:0 0 0 2px #8d98a6}}
+      .log-shared-update-badge{display:none!important}
+    `;
+    document.head.appendChild(style);
+  }
+  function installShareStatuses(){
+    installShareStatusStyles();
+    queueShareStatuses();
+    statusObserver=new MutationObserver(queueShareStatuses);
+    statusObserver.observe(document.body,{childList:true,subtree:true});
+    ['log-km-state-change','log-time-state-change','log-shell-view-refresh','log-shared-card-update-state','log-shared-config-update-state'].forEach(name=>window.addEventListener(name,queueShareStatuses));
+    window.addEventListener('storage',event=>{if([SHARE_STORE,SHARE_STATUS_STORE,SHARED_UPDATE_STORE,KM_STORE,TIME_STORE].includes(event.key))queueShareStatuses();});
+    window.addEventListener('pageshow',queueShareStatuses);
+  }
 
   function actionWidth(){return innerWidth<=520?78:84;}
   function shareAvailable(ctx){return Boolean(ctx?.surface&&window.LogSharingUI?.canShare?.(ctx.surface));}
@@ -120,7 +268,7 @@
       const surface=g.ctx.surface;
       if(g.ctx.row)g.ctx.row.dataset.suppressUntil=String(Date.now()+400);
       resetRow(g.ctx);
-      Promise.resolve(window.LogSharingUI?.shareFromSurface?.(surface)).catch(()=>{});
+      Promise.resolve(window.LogSharingUI?.shareFromSurface?.(surface)).catch(()=>{}).finally(queueShareStatuses);
       return;
     }
 
@@ -168,6 +316,7 @@
     pointerUp({pointerId:'log-touch'});
   }
   function init(){
+    installShareStatuses();
     document.addEventListener('touchstart',touchStart,{capture:true,passive:true});
     document.addEventListener('touchmove',touchMove,{capture:true,passive:false});
     document.addEventListener('touchend',touchEnd,{capture:true,passive:false});
