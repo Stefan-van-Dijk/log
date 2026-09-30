@@ -69,12 +69,8 @@
   }
 
   function classify(value){
-    const raw=String(value??'');
-    const exactCards=cardMatches(raw);
-    if(exactCards.length===1)return {kind:'card',card:exactCards[0],value:raw};
-    if(exactCards.length>1)return {kind:'card-choice',cards:exactCards,value:raw};
+    const raw=String(value??''),id=raw.trim();
 
-    const id=raw.trim();
     if(VALID.test(id)){
       const actions=actionMatches(id);
       if(actions.length===1)return {kind:'action',rule:actions[0],id};
@@ -84,6 +80,9 @@
         const resolved=window.LogCode?.resolveTask?.(id);
         if(resolved)return {kind:'task',id,resolved};
       }catch(_){}
+      const exactCards=cardMatches(raw);
+      if(exactCards.length===1)return {kind:'card',card:exactCards[0],value:raw};
+      if(exactCards.length>1)return {kind:'card-choice',cards:exactCards,value:raw};
       return {kind:'identifier',id};
     }
 
@@ -91,6 +90,10 @@
       const payload=originalParse?originalParse(raw):window.LogCode?.parse?.(raw);
       if(payload)return {kind:'payload',payload,value:raw};
     }catch(error){return {kind:'invalid-payload',error,value:raw};}
+
+    const exactCards=cardMatches(raw);
+    if(exactCards.length===1)return {kind:'card',card:exactCards[0],value:raw};
+    if(exactCards.length>1)return {kind:'card-choice',cards:exactCards,value:raw};
     return {kind:'unknown',value:raw};
   }
 
@@ -146,12 +149,12 @@
 
     const parse=function(value){
       if(typeof value==='string'&&VALID.test(value)){
-        if(cardMatches(value).length)return null;
         const actions=actionMatches(value);
         if(actions.length>1)throw Error('Deze actiecode is aan meerdere acties gekoppeld.');
         if(actions.length===1)return {kind:'log-action',version:1,id:value};
         if(window.LogSharedConfig?.hasConfiguration?.(value))return {kind:'log-action',version:1,id:value};
         try{if(api.resolveTask(value))return {kind:'log-task',version:1,id:value};}catch(_){}
+        if(cardMatches(value).length)return null;
       }
       return originalParse(value);
     };
