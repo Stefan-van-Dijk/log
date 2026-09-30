@@ -8,7 +8,7 @@
   const running=new Set();
   const recent=new Map();
   const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  let attempts=0,patchAttempts=0,sharedPatchAttempts=0;
+  let attempts=0,patchAttempts=0;
   let originalParse=null,originalPreview=null,originalSharedPreview=null;
 
   function read(key){
@@ -140,15 +140,33 @@
     return list.find(card=>String(card?.id)===String(payload.rootSourceId))||null;
   }
 
-  function carrierPayload(payload){
-    const card=rootCarrierCard(payload);
-    if(!card?.value)return null;
-    const value=String(card.value);
-    if(value.trim()===String(payload.id||''))return null;
+  function executableValue(value,outerId=''){
+    if(value==null)return null;
+    const raw=String(value);
+    if(outerId&&raw.trim()===String(outerId))return null;
     try{
-      const parsed=window.LogCode?.parse?.(value);
+      const parsed=window.LogCode?.parse?.(raw);
       return parsed&&['log-code','log-task','log-action'].includes(parsed.kind)?parsed:null;
     }catch(error){return {kind:'log-invalid',error};}
+  }
+
+  function carrierPayload(payload){
+    const card=rootCarrierCard(payload);
+    return card?.value?executableValue(card.value,payload.id):null;
+  }
+
+  function storedCarrierPayload(id){
+    const card=window.LogSharedCard?.stored?.(id);
+    return card?.value?executableValue(card.value,id):null;
+  }
+
+  function executePayload(payload){
+    if(payload?.kind==='log-invalid'){showExecutionError(payload.error);return true;}
+    if(payload?.kind==='log-task'){
+      try{return runTaskCode(payload.id);}catch(error){showExecutionError(error);return true;}
+    }
+    if(payload)return window.LogCode.preview(payload);
+    return false;
   }
 
   function patchSharedPreview(){
@@ -158,22 +176,12 @@
     originalSharedPreview=shared.preview.bind(shared);
     const wrapped=function(payload){
       const executable=carrierPayload(payload);
-      if(executable?.kind==='log-invalid'){
-        showExecutionError(executable.error);
-        return true;
-      }
-      if(executable){
-        if(executable.kind==='log-task'){
-          try{return runTaskCode(executable.id);}catch(error){showExecutionError(error);return true;}
-        }
-        return window.LogCode.preview(executable);
-      }
+      if(executable)return executePayload(executable);
       return originalSharedPreview(payload);
     };
     wrapped.__executeCarrierDirect=true;wrapped.__original=originalSharedPreview;
     shared.preview=wrapped;
-    if(window.LogSharedConfig.preview===window.LogSharedCard.preview.__original||window.LogSharedConfig.preview===originalSharedPreview)window.LogSharedConfig.preview=wrapped;
-    else if(window.LogSharedConfig.preview&&!window.LogSharedConfig.preview.__executeCarrierDirect)window.LogSharedConfig.preview=wrapped;
+    if(window.LogSharedConfig.preview&&!window.LogSharedConfig.preview.__executeCarrierDirect)window.LogSharedConfig.preview=wrapped;
     return true;
   }
 
@@ -199,13 +207,13 @@
     parse.__centralScanDispatcher=true;parse.__original=originalParse;api.parse=parse;
 
     const preview=function(payload){
-      if(payload?.kind==='log-task'){
-        try{return runTaskCode(payload.id);}catch(error){showExecutionError(error);return true;}
-      }
+      if(payload?.kind==='log-task')return executePayload(payload);
       if(payload?.kind==='log-action'){
         const matches=actionMatches(payload.id);
         if(matches.length>1){showExecutionError(Error('Deze actiecode is aan meerdere acties gekoppeld.'));return true;}
         if(matches.length===1){scanCode(payload.id).catch(showExecutionError);return true;}
+        const storedExecutable=storedCarrierPayload(payload.id);
+        if(storedExecutable)return executePayload(storedExecutable);
       }
       return originalPreview(payload);
     };
@@ -227,7 +235,7 @@
     scanCode.__directQrAction=true;
     actions.scanCode=scanCode;
     ensurePatch();
-    window.LogScanDispatcher={classify,scanCode,actionMatches,cardMatches,migrateActionCodeIds,carrierPayload};
+    window.LogScanDispatcher={classify,scanCode,actionMatches,cardMatches,migrateActionCodeIds,carrierPayload,storedCarrierPayload};
   }
 
   window.addEventListener('log-time-state-change',migrateActionCodeIds);
