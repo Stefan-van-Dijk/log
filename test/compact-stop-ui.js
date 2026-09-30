@@ -14,10 +14,9 @@
     const style=document.createElement('style');
     style.id=STYLE_ID;
     style.textContent=`
-      :root{--log-task-zone-height:390px}
-      #main>.active-card{min-height:var(--log-task-zone-height)}
+      #main>.active-card{min-height:0!important}
       [data-log-stop-context-hidden="1"]{display:none!important}
-      .log-stop-inline{min-height:var(--log-task-zone-height)!important;display:flex!important;flex-direction:column!important;padding:18px 2px!important;margin:0 0 6px!important;border-bottom:1px solid var(--line,#242a33)!important}
+      .log-stop-inline{min-height:0!important;display:flex!important;flex-direction:column!important;padding:18px 2px!important;margin:0 0 6px!important;border-bottom:1px solid var(--line,#242a33)!important}
       .log-stop-inline .inline-register-head{margin-bottom:8px!important}
       .log-stop-inline .inline-register-head h2{font-size:21px!important;line-height:1.18!important}
       .log-stop-inline .inline-stop-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:0 16px!important;margin:4px 0 6px!important;padding:7px 0!important;border-top:1px solid var(--line,#242a33);border-bottom:1px solid var(--line,#242a33)}
@@ -40,12 +39,11 @@
       .log-colleague-compact .check-row{padding:7px 9px!important;border-radius:9px!important;min-height:40px!important}
       .log-colleague-compact .check-row input{width:18px!important;height:18px!important}
       .log-colleague-compact .inline-form{margin-top:6px!important}
-      .log-stop-inline #saveInlineStop{margin-top:auto!important;min-height:48px!important}
+      .log-stop-inline #saveInlineStop{margin-top:12px!important;min-height:48px!important}
       .log-stop-inline .inline-register-context{margin-top:5px!important;font-size:9px!important}
       .log-period-mirror{position:relative;margin-top:0!important}
       .log-period-mirror .period-center{position:relative}
       .log-period-mode-select{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
-      @media(max-height:760px){:root{--log-task-zone-height:340px}}
     `;
     document.head.appendChild(style);
   }
@@ -202,20 +200,35 @@
     });
   }
 
+  function periodHeadMarkup(view){
+    return `<div class="period-head"><button class="period-arrow" type="button" data-log-period-prev aria-label="Vorige periode">‹</button><div class="period-center"><strong>${view.label}</strong>${view.sub?`<small>${view.sub}</small>`:''}<select class="log-period-mode-select" aria-label="Periodegrootte kiezen">${MODES.map(mode=>`<option value="${mode}" ${mode===view.mode?'selected':''}>${({day:'Dag',week:'Week',month:'Maand',quarter:'Kwartaal',year:'Jaar',all:'Alles'})[mode]}</option>`).join('')}</select></div><button class="period-arrow" type="button" data-log-period-next aria-label="Volgende periode">›</button></div>`;
+  }
+
+  function bindPeriodMirror(mirror){
+    mirror.querySelector('[data-log-period-prev]')?.addEventListener('click',()=>shiftPeriod(-1));
+    mirror.querySelector('[data-log-period-next]')?.addEventListener('click',()=>shiftPeriod(1));
+    mirror.querySelector('.log-period-mode-select')?.addEventListener('change',event=>setPeriodMode(event.target.value));
+  }
+
   function ensurePeriodMirror(period){
     const main=period.closest('#main');
     if(!main)return;
     let mirror=main.querySelector(':scope>.log-period-mirror');
     const view=periodText();
+    const signature=`${view.mode}|${view.label}|${view.sub}`;
     if(!mirror){
       mirror=document.createElement('section');
       mirror.className='period-overview log-period-mirror';
       period.after(mirror);
     }
-    mirror.innerHTML=`<div class="period-head"><button class="period-arrow" type="button" data-log-period-prev aria-label="Vorige periode">‹</button><div class="period-center"><strong>${view.label}</strong>${view.sub?`<small>${view.sub}</small>`:''}<select class="log-period-mode-select" aria-label="Periodegrootte kiezen">${MODES.map(mode=>`<option value="${mode}" ${mode===view.mode?'selected':''}>${({day:'Dag',week:'Week',month:'Maand',quarter:'Kwartaal',year:'Jaar',all:'Alles'})[mode]}</option>`).join('')}</select></div><button class="period-arrow" type="button" data-log-period-next aria-label="Volgende periode">›</button></div>`;
-    mirror.querySelector('[data-log-period-prev]')?.addEventListener('click',()=>shiftPeriod(-1));
-    mirror.querySelector('[data-log-period-next]')?.addEventListener('click',()=>shiftPeriod(1));
-    mirror.querySelector('.log-period-mode-select')?.addEventListener('change',event=>setPeriodMode(event.target.value));
+
+    const head=mirror.querySelector(':scope>.period-head');
+    if(!head||mirror.dataset.periodSignature!==signature){
+      head?.remove();
+      mirror.insertAdjacentHTML('afterbegin',periodHeadMarkup(view));
+      mirror.dataset.periodSignature=signature;
+      bindPeriodMirror(mirror);
+    }
 
     const summary=[...main.children].find(node=>node!==mirror&&node!==period&&node.classList?.contains('summary'));
     if(summary){summary.classList.add('period-summary');mirror.appendChild(summary);}
@@ -235,7 +248,16 @@
   function install(){
     installStyle();
     enhance();
-    const observer=new MutationObserver(enhance);
+    let queued=false;
+    const scheduleEnhance=()=>{
+      if(queued)return;
+      queued=true;
+      requestAnimationFrame(()=>{
+        queued=false;
+        enhance();
+      });
+    };
+    const observer=new MutationObserver(scheduleEnhance);
     observer.observe(document.body,{childList:true,subtree:true});
   }
 
