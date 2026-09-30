@@ -42,15 +42,44 @@
     return '';
   }
 
+  function taskInfo(themeId,subthemeId=''){
+    const time=read(TIME);
+    const theme=(Array.isArray(time.themes)?time.themes:[]).find(item=>String(item.id)===String(themeId));
+    const sub=subthemeId?(Array.isArray(time.subthemes)?time.subthemes:[]).find(item=>String(item.id)===String(subthemeId)&&String(item.themeId)===String(themeId)):null;
+    if(!theme||(subthemeId&&!sub))throw Error('Het gekoppelde thema of subthema is niet meer beschikbaar.');
+    return {theme,sub};
+  }
+
+  function confirmTask({themeId,subthemeId=''}){
+    if(!window.LogCardsUI?.sheet||!window.LogTimeModule?.startFromCard)throw Error('Tijd / taken is nog niet beschikbaar.');
+    const {theme,sub}=taskInfo(themeId,subthemeId);
+    const panel=window.LogCardsUI.sheet('Taak starten',`<div class="log-task-go-summary" data-log-task-go><strong>${esc(theme.name||'Thema')}</strong>${sub?`<span>${esc(sub.name||'Subthema')}</span>`:''}</div><button class="btn primary full log-task-go-button" data-log-task-go-button>Go</button><p class="cards-notice" role="status" data-log-task-go-status></p>`);
+    const button=panel.querySelector('[data-log-task-go-button]');
+    const status=panel.querySelector('[data-log-task-go-status]');
+    button.onclick=()=>{
+      if(button.disabled)return;
+      button.disabled=true;
+      try{
+        window.LogTimeModule.startFromCard({themeId,subthemeId,locationName:'',note:''});
+        window.LogCardsUI.close();
+        window.dispatchEvent(new CustomEvent('kmreg-test-shell-select-section',{detail:{section:'time'}}));
+        window.dispatchEvent(new Event('log-shell-view-refresh'));
+        window.dispatchEvent(new Event('log-time-state-change'));
+      }catch(error){
+        status.textContent=error.message||'De taak kon niet worden gestart.';
+        button.disabled=false;
+      }
+    };
+    return panel;
+  }
+
   async function run(rule){
     if(rule.type==='task'){
       const target=rule.selection==='smart'
         ?window.LogTimeModule?.suggestForAction?.()
         :{themeId:rule.targetId,subthemeId:rule.subthemeId||''};
       if(!target)throw Error('Geen thema beschikbaar voor een slim voorstel.');
-      if(!window.LogTimeModule?.prepareFromCode)throw Error('Tijd / taken is nog niet beschikbaar.');
-      window.LogTimeModule.prepareFromCode({...target,locationName:'',note:rule.note??rule.name});
-      window.LogCardsUI?.close?.();
+      confirmTask({themeId:target.themeId,subthemeId:target.subthemeId||''});
       return true;
     }
     if(rule.type==='ride'){
@@ -71,11 +100,7 @@
 
   function runTaskCode(id){
     const current=window.LogCode.resolveTask(id),sub=current.sub||current.subtheme||null;
-    if(!window.LogTimeModule?.prepareFromCode)throw Error('Tijd / taken is nog niet beschikbaar.');
-    window.LogTimeModule.prepareFromCode({themeId:current.theme.id,subthemeId:sub?.id||'',locationName:'',note:sub?.name||current.theme?.name||''});
-    window.LogCardsUI?.close?.();
-    window.dispatchEvent(new Event('log-time-state-change'));
-    return true;
+    return confirmTask({themeId:current.theme.id,subthemeId:sub?.id||''});
   }
 
   function showExecutionError(error){
@@ -126,8 +151,6 @@
     try{
       await run(rule);
       recent.set(value,Date.now());
-      window.dispatchEvent(new Event('log-shell-view-refresh'));
-      window.dispatchEvent(new Event('log-time-state-change'));
       return true;
     }finally{
       running.delete(value);
@@ -235,7 +258,7 @@
     scanCode.__directQrAction=true;
     actions.scanCode=scanCode;
     ensurePatch();
-    window.LogScanDispatcher={classify,scanCode,actionMatches,cardMatches,migrateActionCodeIds,carrierPayload,storedCarrierPayload};
+    window.LogScanDispatcher={classify,scanCode,actionMatches,cardMatches,migrateActionCodeIds,carrierPayload,storedCarrierPayload,confirmTask};
   }
 
   window.addEventListener('log-time-state-change',migrateActionCodeIds);
