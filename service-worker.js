@@ -1,18 +1,18 @@
-const CACHE='kmreg-shell-0.37-sharing18';
+const CACHE='kmreg-shell-0.37-sharing19';
 const SHELL=[
   './','./index.html',
-  './shared-card-import.js?v=0.37-sharing18','./shared-config-bridge.js?v=0.37-sharing18','./shared-settings-ui.js?v=0.36','./shared-diff-rights.js?v=0.37-sharing18','./shared-update-compact.js?v=0.36','./location-polling.js?v=0.36',
-  './build-ui.js?v=0.36','./sharing.js?v=0.37-sharing18','./sharing-private-ui.js?v=0.37-sharing18','./collaboration.js?v=0.37-sharing18','./shared-id-separation.js?v=0.37-sharing18','./offline-share-bridge.js?v=0.37-sharing18','./live-sharing-bootstrap.js?v=0.37-sharing18',
+  './shared-card-import.js?v=0.37-sharing19','./shared-config-bridge.js?v=0.37-sharing19','./shared-settings-ui.js?v=0.36','./shared-diff-rights.js?v=0.37-sharing19','./shared-update-compact.js?v=0.36','./location-polling.js?v=0.36',
+  './build-ui.js?v=0.36','./sharing.js?v=0.37-sharing19','./sharing-private-ui.js?v=0.37-sharing19','./collaboration.js?v=0.37-sharing19','./shared-id-separation.js?v=0.37-sharing19','./offline-share-bridge.js?v=0.37-sharing19','./live-sharing-bootstrap.js?v=0.37-sharing19','./qr-action-direct.js?v=0.37-sharing19',
   './action-details-reset.js?v=0.36','./swipe-policy.js?v=0.36','./swipe-ui.css?v=0.36','./cards.css?v=0.36','./log-code.js?v=0.36','./cards.js?v=0.36','./people.js?v=0.36','./location-actions.js?v=0.36','./location-actions.css?v=0.36','./contact-import.js?v=0.36','./people.css?v=0.36',
   './vendor/qrcode-2.0.4.js','./vendor/jsbarcode-3.12.1.min.js','./vendor/zxing-0.21.3.min.js','./log-json-v2.js?v=2.0.0','./log-ui.css?v=0.36','./removal-policy.js?v=0.36','./shell-backup-archive.js?v=0.36','./shell-ui.js?v=0.36','./shell-ui-stable.js?v=0.36','./shell-gestures.js?v=0.36','./shell-location-status.js?v=0.36','./shell-removal-policy.js?v=0.36','./shell-quick-actions.js?v=0.36','./shell-direct-actions.js?v=0.37-sharing18',
   './id-converter.html','./manifest.webmanifest','./app-icon.svg','./config/modules.json','./time/index.html','./time/filter-model.js?v=0.36','./time/app.js?v=0.36','./time/styles.css?v=0.36','./time/home-layout.css?v=0.36','./time/home-layout.js?v=0.36','./time/home-top.css?v=0.36','./time/home-top.js?v=0.36','./time/removal-policy-ui.js?v=0.36'
 ];
 
 const NETWORK_FIRST_SCRIPTS=new Set([
-  'shared-card-import.js','shared-config-bridge.js','shared-settings-ui.js','shared-diff-rights.js','shared-update-compact.js','location-polling.js','build-ui.js','sharing.js','sharing-private-ui.js','collaboration.js','shared-id-separation.js','offline-share-bridge.js','live-sharing-bootstrap.js','action-details-reset.js','cards.js','log-code.js','location-actions.js','shell-direct-actions.js','shell-gestures.js','app.js'
+  'shared-card-import.js','shared-config-bridge.js','shared-settings-ui.js','shared-diff-rights.js','shared-update-compact.js','location-polling.js','build-ui.js','sharing.js','sharing-private-ui.js','collaboration.js','shared-id-separation.js','offline-share-bridge.js','live-sharing-bootstrap.js','qr-action-direct.js','action-details-reset.js','cards.js','log-code.js','location-actions.js','shell-direct-actions.js','shell-gestures.js','app.js'
 ]);
 const LIVE_STORAGE_PATCH_FILES=new Set(['shared-card-import.js','shared-config-bridge.js','sharing.js','collaboration.js','shared-id-separation.js','shared-diff-rights.js']);
-const BOOTSTRAP_TAG='<script src="./live-sharing-bootstrap.js?v=0.37-sharing18"></script>';
+const BOOTSTRAP_TAG='<script src="./live-sharing-bootstrap.js?v=0.37-sharing19"></script>';
 
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL.map(path=>new Request(path,{cache:'reload'})))).then(()=>self.skipWaiting()));
