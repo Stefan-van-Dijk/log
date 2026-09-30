@@ -19,7 +19,8 @@ async function withShellBuild(response){
   const text=await response.text();
   const headers=new Headers(response.headers);
   headers.set('Content-Type','application/javascript; charset=utf-8');
-  return new Response(`window.LOG_TEST_BUILD='${BUILD}';\n${text}`,{status:response.status,statusText:response.statusText,headers});
+  const sharedHomeLoader=`(()=>{if(document.querySelector('script[data-log-shared-home-components]'))return;const script=document.createElement('script');script.src='./shared-home-components.js?v=${BUILD}';script.async=false;script.dataset.logSharedHomeComponents='1';document.head.appendChild(script);})();`;
+  return new Response(`window.LOG_TEST_BUILD='${BUILD}';\n${sharedHomeLoader}\n${text}`,{status:response.status,statusText:response.statusText,headers});
 }
 
 function shellWithBuild(req){
