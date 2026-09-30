@@ -1,16 +1,19 @@
 (function(){
   'use strict';
-  const BUILD='0.35.1-test.30';
+  const BUILD='0.37-test.31';
   window.LOG_TEST_BUILD=BUILD;
   const listeners=new Set(),KM='kmreg-test-v4-data';
   let latest=null,pending=null,lastAttempt=0,visibleTrip='',started=false;
 
   function syncVisibleBuild(){
+    document.querySelectorAll('.log-test-build-badge').forEach(el=>el.remove());
     document.querySelectorAll('.km-shell-version-number').forEach(el=>{if(el.textContent!==BUILD)el.textContent=BUILD;});
     document.querySelectorAll('.km-shell-version').forEach(el=>{const label=`Geladen testversie ${BUILD}`;if(el.getAttribute('aria-label')!==label)el.setAttribute('aria-label',label);});
   }
   function loadTestBuildUI(){
-    if(document.querySelector('script[data-log-test-build-ui]'))return;
+    const existing=document.querySelector('script[data-log-test-build-ui]');
+    if(existing&&existing.src.includes(`v=${BUILD}`))return;
+    existing?.remove();
     const script=document.createElement('script');
     script.src=`./test-build-ui.js?v=${BUILD}`;
     script.async=false;
