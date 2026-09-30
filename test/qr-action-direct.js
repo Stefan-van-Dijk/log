@@ -8,8 +8,8 @@
   const running=new Set();
   const recent=new Map();
   const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  let attempts=0,patchAttempts=0;
-  let originalParse=null,originalPreview=null;
+  let attempts=0,patchAttempts=0,sharedPatchAttempts=0;
+  let originalParse=null,originalPreview=null,originalSharedPreview=null;
 
   function read(key){
     try{const value=JSON.parse(localStorage.getItem(key)||'{}');return value&&typeof value==='object'?value:{};}catch(_){return {};}
@@ -48,7 +48,8 @@
         ?window.LogTimeModule?.suggestForAction?.()
         :{themeId:rule.targetId,subthemeId:rule.subthemeId||''};
       if(!target)throw Error('Geen thema beschikbaar voor een slim voorstel.');
-      window.LogTimeModule?.prepareFromCode?.({...target,locationName:'',note:rule.note??rule.name});
+      if(!window.LogTimeModule?.prepareFromCode)throw Error('Tijd / taken is nog niet beschikbaar.');
+      window.LogTimeModule.prepareFromCode({...target,locationName:'',note:rule.note??rule.name});
       window.LogCardsUI?.close?.();
       return true;
     }
@@ -66,6 +67,21 @@
       return true;
     }
     throw Error('Actietype onbekend.');
+  }
+
+  function runTaskCode(id){
+    const current=window.LogCode.resolveTask(id),sub=current.sub||current.subtheme||null;
+    if(!window.LogTimeModule?.prepareFromCode)throw Error('Tijd / taken is nog niet beschikbaar.');
+    window.LogTimeModule.prepareFromCode({themeId:current.theme.id,subthemeId:sub?.id||'',locationName:'',note:sub?.name||current.theme?.name||''});
+    window.LogCardsUI?.close?.();
+    window.dispatchEvent(new Event('log-time-state-change'));
+    return true;
+  }
+
+  function showExecutionError(error){
+    const text=error?.message||'De gescande Log-code kon niet worden uitgevoerd.';
+    if(window.LogCardsUI?.sheet)window.LogCardsUI.sheet('Log-code niet uitgevoerd',`<p role="status">${esc(text)}</p><button class="btn full" data-log-exec-close>Sluiten</button>`).querySelector('[data-log-exec-close]')?.addEventListener('click',()=>window.LogCardsUI.close());
+    else console.warn(text,error);
   }
 
   function classify(value){
@@ -118,25 +134,47 @@
     }
   }
 
-  function previewTask(payload){
-    const ui=window.LogCardsUI;if(!ui?.sheet)return originalPreview?.(payload);
-    let resolved;
-    try{resolved=window.LogCode.resolveTask(payload.id);}catch(error){
-      const panel=ui.sheet('Taak niet beschikbaar',`<p role="status">${esc(error.message||'Taak niet beschikbaar.')}</p><button class="btn full" data-log-task-close>Terug</button>`);
-      panel.querySelector('[data-log-task-close]').onclick=()=>ui.close();return panel;
-    }
-    const theme=resolved.theme,sub=resolved.sub||resolved.subtheme||null;
-    const panel=ui.sheet('Taak herkend',`<h3>${esc(theme?.name||'Thema')}</h3>${sub?`<p>${esc(sub.name||'Subthema')}</p>`:''}<button class="btn full cards-scan-action" data-log-task-start>Taak starten</button><p role="status" data-log-task-status></p>`);
-    panel.querySelector('[data-log-task-start]').onclick=()=>{
-      const button=panel.querySelector('[data-log-task-start]');if(button.disabled)return;button.disabled=true;
-      try{
-        const current=window.LogCode.resolveTask(payload.id),currentSub=current.sub||current.subtheme||null;
-        if(!window.LogTimeModule?.prepareFromCode)throw Error('Tijd / taken is nog niet beschikbaar.');
-        window.LogTimeModule.prepareFromCode({themeId:current.theme.id,subthemeId:currentSub?.id||'',locationName:'',note:currentSub?.name||''});
-        ui.close();
-      }catch(error){panel.querySelector('[data-log-task-status]').textContent=error.message||'Taak kon niet worden geopend.';button.disabled=false;}
+  function rootCarrierCard(payload){
+    if(payload?.kind!=='shared-card'||payload.rootType!=='card')return null;
+    const list=Array.isArray(payload.objects?.cards)?payload.objects.cards:[];
+    return list.find(card=>String(card?.id)===String(payload.rootSourceId))||null;
+  }
+
+  function carrierPayload(payload){
+    const card=rootCarrierCard(payload);
+    if(!card?.value)return null;
+    const value=String(card.value);
+    if(value.trim()===String(payload.id||''))return null;
+    try{
+      const parsed=window.LogCode?.parse?.(value);
+      return parsed&&['log-code','log-task','log-action'].includes(parsed.kind)?parsed:null;
+    }catch(error){return {kind:'log-invalid',error};}
+  }
+
+  function patchSharedPreview(){
+    const shared=window.LogSharedCard;
+    if(!shared?.preview||!window.LogSharedConfig)return false;
+    if(shared.preview.__executeCarrierDirect)return true;
+    originalSharedPreview=shared.preview.bind(shared);
+    const wrapped=function(payload){
+      const executable=carrierPayload(payload);
+      if(executable?.kind==='log-invalid'){
+        showExecutionError(executable.error);
+        return true;
+      }
+      if(executable){
+        if(executable.kind==='log-task'){
+          try{return runTaskCode(executable.id);}catch(error){showExecutionError(error);return true;}
+        }
+        return window.LogCode.preview(executable);
+      }
+      return originalSharedPreview(payload);
     };
-    return panel;
+    wrapped.__executeCarrierDirect=true;wrapped.__original=originalSharedPreview;
+    shared.preview=wrapped;
+    if(window.LogSharedConfig.preview===window.LogSharedCard.preview.__original||window.LogSharedConfig.preview===originalSharedPreview)window.LogSharedConfig.preview=wrapped;
+    else if(window.LogSharedConfig.preview&&!window.LogSharedConfig.preview.__executeCarrierDirect)window.LogSharedConfig.preview=wrapped;
+    return true;
   }
 
   function patchLogCode(){
@@ -161,14 +199,26 @@
     parse.__centralScanDispatcher=true;parse.__original=originalParse;api.parse=parse;
 
     const preview=function(payload){
-      if(payload?.kind==='log-task')return previewTask(payload);
+      if(payload?.kind==='log-task'){
+        try{return runTaskCode(payload.id);}catch(error){showExecutionError(error);return true;}
+      }
+      if(payload?.kind==='log-action'){
+        const matches=actionMatches(payload.id);
+        if(matches.length>1){showExecutionError(Error('Deze actiecode is aan meerdere acties gekoppeld.'));return true;}
+        if(matches.length===1){scanCode(payload.id).catch(showExecutionError);return true;}
+      }
       return originalPreview(payload);
     };
     preview.__centralScanDispatcher=true;preview.__original=originalPreview;api.preview=preview;
     return true;
   }
 
-  function ensurePatch(){if(patchLogCode())return;if(patchAttempts++<240)setTimeout(ensurePatch,50);}
+  function ensurePatch(){
+    const codeReady=patchLogCode();
+    const sharedReady=patchSharedPreview();
+    if(codeReady&&sharedReady)return;
+    if(patchAttempts++<240)setTimeout(ensurePatch,50);
+  }
 
   function install(){
     const actions=window.LogLocationActions;
@@ -177,7 +227,7 @@
     scanCode.__directQrAction=true;
     actions.scanCode=scanCode;
     ensurePatch();
-    window.LogScanDispatcher={classify,scanCode,actionMatches,cardMatches,migrateActionCodeIds};
+    window.LogScanDispatcher={classify,scanCode,actionMatches,cardMatches,migrateActionCodeIds,carrierPayload};
   }
 
   window.addEventListener('log-time-state-change',migrateActionCodeIds);
