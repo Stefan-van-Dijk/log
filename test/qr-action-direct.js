@@ -7,7 +7,7 @@
   const RECENT_MS=1500;
   const running=new Set();
   const recent=new Map();
-  const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
   let attempts=0,patchAttempts=0;
   let originalParse=null,originalPreview=null,originalSharedPreview=null;
 
@@ -50,10 +50,56 @@
     return {theme,sub};
   }
 
+  function timerSnapshot(){
+    const live=window.LogTimeModule?.getState?.()?.timer;
+    if(live&&typeof live==='object')return JSON.parse(JSON.stringify(live));
+    const stored=read(TIME).timer;
+    return stored&&typeof stored==='object'?JSON.parse(JSON.stringify(stored)):{status:'inactive'};
+  }
+
+  function afterTaskStart(){
+    window.LogCardsUI?.close?.();
+    window.dispatchEvent(new CustomEvent('kmreg-test-shell-select-section',{detail:{section:'time'}}));
+    window.dispatchEvent(new Event('log-shell-view-refresh'));
+    window.dispatchEvent(new Event('log-time-state-change'));
+  }
+
   function confirmTask({themeId,subthemeId=''}){
     if(!window.LogCardsUI?.sheet||!window.LogTimeModule?.startFromCard)throw Error('Tijd / taken is nog niet beschikbaar.');
-    const {theme,sub}=taskInfo(themeId,subthemeId);
-    const panel=window.LogCardsUI.sheet('Taak starten',`<div class="log-task-go-summary" data-log-task-go><strong>${esc(theme.name||'Thema')}</strong>${sub?`<span>${esc(sub.name||'Subthema')}</span>`:''}</div><button class="btn primary full log-task-go-button" data-log-task-go-button>Start</button><p class="cards-notice" role="status" data-log-task-go-status></p>`);
+    const {theme,sub}=taskInfo(themeId,subthemeId),timer=timerSnapshot();
+    const target=`<div class="log-task-go-summary" data-log-task-go><strong>${esc(theme.name||'Thema')}</strong>${sub?`<span>${esc(sub.name||'Subthema')}</span>`:''}</div>`;
+
+    if(timer.status==='active'&&timer.interruption){
+      const panel=window.LogCardsUI.sheet('Taak starten',`${target}<p class="cards-notice" role="status">Er loopt al een tussenstop. Rond die eerst af voordat je een andere taak start.</p><button class="btn secondary full" data-log-task-close>Sluiten</button>`);
+      panel.querySelector('[data-log-task-close]').onclick=()=>window.LogCardsUI.close();
+      return panel;
+    }
+
+    if(timer.status==='active'){
+      const current=[timer.themeName,timer.subthemeName].filter(Boolean).join(' · ')||'Huidige taak';
+      const panel=window.LogCardsUI.sheet('Andere taak starten',`${target}<p class="cards-notice">Nu actief: <strong>${esc(current)}</strong></p><button class="btn primary full log-task-go-button" data-log-task-replace>Huidige stoppen en starten</button><button class="btn secondary full" data-log-task-interrupt>Als tussenstop starten</button><p class="cards-notice" role="status" data-log-task-go-status></p>`);
+      const status=panel.querySelector('[data-log-task-go-status]');
+      const buttons=[panel.querySelector('[data-log-task-replace]'),panel.querySelector('[data-log-task-interrupt]')];
+      const apply=mode=>{
+        buttons.forEach(button=>button.disabled=true);
+        try{
+          if(!window.LogTimeModule?.startFromLocationAction)throw Error('Tijd / taken is nog niet beschikbaar.');
+          window.LogTimeModule.startFromLocationAction({themeId,subthemeId,locationName:'',mode,expectedTimer:JSON.stringify(timer)});
+          afterTaskStart();
+        }catch(error){status.textContent=error.message||'De taak kon niet worden gestart.';buttons.forEach(button=>button.disabled=false);}
+      };
+      buttons[0].onclick=()=>apply('replace');
+      buttons[1].onclick=()=>apply('interrupt');
+      return panel;
+    }
+
+    if(timer.status&&timer.status!=='inactive'){
+      const panel=window.LogCardsUI.sheet('Taak starten',`${target}<p class="cards-notice" role="status">Rond eerst de openstaande taak af voordat je een nieuwe taak start.</p><button class="btn secondary full" data-log-task-close>Sluiten</button>`);
+      panel.querySelector('[data-log-task-close]').onclick=()=>window.LogCardsUI.close();
+      return panel;
+    }
+
+    const panel=window.LogCardsUI.sheet('Taak starten',`${target}<button class="btn primary full log-task-go-button" data-log-task-go-button>Start</button><p class="cards-notice" role="status" data-log-task-go-status></p>`);
     const button=panel.querySelector('[data-log-task-go-button]');
     const status=panel.querySelector('[data-log-task-go-status]');
     button.onclick=()=>{
@@ -61,10 +107,7 @@
       button.disabled=true;
       try{
         window.LogTimeModule.startFromCard({themeId,subthemeId,locationName:'',note:''});
-        window.LogCardsUI.close();
-        window.dispatchEvent(new CustomEvent('kmreg-test-shell-select-section',{detail:{section:'time'}}));
-        window.dispatchEvent(new Event('log-shell-view-refresh'));
-        window.dispatchEvent(new Event('log-time-state-change'));
+        afterTaskStart();
       }catch(error){
         status.textContent=error.message||'De taak kon niet worden gestart.';
         button.disabled=false;
