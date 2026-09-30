@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const BUILD='0.35.1-test.16';
+  const BUILD='0.35.1-test.17';
   window.LOG_TEST_BUILD=BUILD;
 
   function installStyles(){
