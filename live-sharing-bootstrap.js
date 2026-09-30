@@ -1,6 +1,6 @@
 (function(){
   'use strict';
-  const BUILD='0.37-sharing17';
+  const BUILD='0.37-sharing18';
   window.LOG_TEST_BUILD=window.LOG_BUILD||'0.37';
 
   function load(src,key,ready){
