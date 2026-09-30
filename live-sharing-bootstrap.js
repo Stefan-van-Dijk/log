@@ -3,9 +3,9 @@
   const BUILD='0.37-sharing17';
   window.LOG_TEST_BUILD=window.LOG_BUILD||'0.37';
 
-  function load(src,key){
+  function load(src,key,ready){
     return new Promise((resolve,reject)=>{
-      if(document.querySelector(`script[data-live-sharing="${key}"]`)){resolve();return;}
+      if((typeof ready==='function'&&ready())||document.querySelector(`script[data-live-sharing="${key}"]`)){resolve();return;}
       const script=document.createElement('script');
       script.src=`./${src}?v=${encodeURIComponent(BUILD)}`;
       script.async=false;
@@ -18,16 +18,16 @@
 
   async function install(){
     const modules=[
-      ['shared-card-import.js','shared-card-import'],
-      ['shared-config-bridge.js','shared-config-bridge'],
-      ['sharing.js','sharing'],
-      ['sharing-private-ui.js','sharing-private-ui'],
-      ['collaboration.js','collaboration'],
-      ['shared-id-separation.js','shared-id-separation'],
-      ['offline-share-bridge.js','offline-share-bridge']
+      ['shared-card-import.js','shared-card-import',()=>typeof window.LogSharedConfig?.openByIdentifier==='function'],
+      ['shared-config-bridge.js','shared-config-bridge',()=>!!window.LogExecutablePayloadBridge],
+      ['sharing.js','sharing',()=>typeof window.LogSharing?.publish==='function'],
+      ['sharing-private-ui.js','sharing-private-ui',()=>typeof window.LogSharingUI?.resolveSurface==='function'],
+      ['collaboration.js','collaboration',()=>typeof window.LogCollaboration?.syncRemoteAccess==='function'],
+      ['shared-id-separation.js','shared-id-separation',()=>typeof window.LogSharedIdentity?.migrate==='function'],
+      ['offline-share-bridge.js','offline-share-bridge',()=>window.LogSharedConfig?.openByIdentifier?.__offlineRecoveryBridge===true]
     ];
-    for(const [src,key] of modules){
-      try{await load(src,key);}catch(error){console.error('Log live sharing:',error);}
+    for(const [src,key,ready] of modules){
+      try{await load(src,key,ready);}catch(error){console.error('Log live sharing:',error);}
     }
     window.dispatchEvent(new Event('log-shell-view-refresh'));
   }
