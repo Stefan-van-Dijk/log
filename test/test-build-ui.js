@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const BUILD='0.37-test.34';
+  const BUILD='0.37-test.35';
   window.LOG_TEST_BUILD=BUILD;
 
   function installStyles(){
@@ -46,6 +46,7 @@
     ensureScript(`./task-replace-finish.js?v=${BUILD}`,'logTaskReplaceFinish');
     ensureScript(`./compact-stop-ui.js?v=${BUILD}`,'logCompactStopUi');
     ensureScript(`./time/active-task-layout.js?v=${BUILD}`,'logActiveTaskLayout');
+    ensureScript(`./shared-home-components.js?v=${BUILD}`,'logSharedHomeComponents');
   }
 
   function syncVersionSurface(){
