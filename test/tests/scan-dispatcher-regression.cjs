@@ -31,21 +31,21 @@ d.dispatchEvent(new w.Event('DOMContentLoaded'));
 (async()=>{
   let time=get(TIME);
   assert.equal(time.locationActions[0].actionCodeId,code,'legacy action code is migrated to the explicit actionCodeId field');
-  assert.equal(w.LogScanDispatcher.classify(code).kind,'card','saved card content wins over an action with the same 12-character value');
-  assert.equal(w.LogCode.parse(code),null,'card recognition is allowed to continue instead of dispatching the action');
-
-  set(KM,{cards:[]});
-  assert.equal(w.LogScanDispatcher.classify(code).kind,'action');
+  assert.equal(w.LogScanDispatcher.classify(code).kind,'action','executable action code wins even when a card stores the same content');
   assert.deepEqual(w.LogCode.parse(code),{kind:'log-action',version:1,id:code});
   await w.LogLocationActions.scanCode(code);
   assert.equal(prepared.themeId,'theme-local');assert.equal(prepared.subthemeId,'sub-local');
 
   time=get(TIME);time.locationActions=[];set(TIME,time);prepared=null;
+  assert.equal(w.LogScanDispatcher.classify(code).kind,'card','without executable meaning the stored card is the fallback');
+  assert.equal(w.LogCode.parse(code),null,'plain stored card content falls through to card recognition');
+
+  set(KM,{cards:[]});
   assert.equal(w.LogScanDispatcher.classify(taskCode).kind,'task','a task code is resolved by the canonical LogCode resolver');
   const panel=w.LogCode.preview({kind:'log-task',version:1,id:taskCode});
   panel.querySelector('[data-log-task-start]').click();
   assert.equal(prepared.themeId,'theme-local');assert.equal(prepared.subthemeId,'sub-local');
 
-  console.log('Central scan dispatcher: card precedence, actionCodeId migration, direct action dispatch and canonical task resolution passed.');
+  console.log('Central scan dispatcher: executable precedence, card fallback, actionCodeId migration, direct action dispatch and canonical task resolution passed.');
   dom.window.close();
 })().catch(error=>{console.error(error);dom.window.close();process.exitCode=1});
