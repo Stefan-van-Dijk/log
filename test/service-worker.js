@@ -19,7 +19,7 @@ async function withShellBuild(response){
   const text=await response.text();
   const headers=new Headers(response.headers);
   headers.set('Content-Type','application/javascript; charset=utf-8');
-  const sharedHomeLoader=`(()=>{if(!document.querySelector('link[data-log-shared-home-components]')){const link=document.createElement('link');link.rel='stylesheet';link.href='./shared-home-components.css?v=${BUILD}';link.dataset.logSharedHomeComponents='1';document.head.appendChild(link);}if(document.querySelector('script[data-log-shared-home-components]'))return;const script=document.createElement('script');script.src='./shared-home-components.js?v=${BUILD}';script.async=false;script.dataset.logSharedHomeComponents='1';document.head.appendChild(script);})();`;
+  const sharedHomeLoader=`(()=>{if(!document.querySelector('script[data-log-active-task-layout]')){const active=document.createElement('script');active.src='./time/active-task-layout.js?v=${BUILD}';active.async=false;active.dataset.logActiveTaskLayout='1';document.head.appendChild(active);}if(!document.querySelector('link[data-log-shared-home-components]')){const link=document.createElement('link');link.rel='stylesheet';link.href='./shared-home-components.css?v=${BUILD}';link.dataset.logSharedHomeComponents='1';document.head.appendChild(link);}if(document.querySelector('script[data-log-shared-home-components]'))return;const script=document.createElement('script');script.src='./shared-home-components.js?v=${BUILD}';script.async=false;script.dataset.logSharedHomeComponents='1';document.head.appendChild(script);})();`;
   return new Response(`window.LOG_TEST_BUILD='${BUILD}';\n${sharedHomeLoader}\n${text}`,{status:response.status,statusText:response.statusText,headers});
 }
 
