@@ -1,6 +1,6 @@
 (function(){
   'use strict';
-  const BUILD='0.37-test.33';
+  const BUILD='0.37-test.34';
   window.LOG_TEST_BUILD=BUILD;
   const listeners=new Set(),KM='kmreg-test-v4-data';
   let latest=null,pending=null,lastAttempt=0,visibleTrip='',started=false;
