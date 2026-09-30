@@ -31,7 +31,7 @@ Log gebruikt drie verschillende begrippen die nooit dezelfde functie mogen krijg
 3. **Kaartinhoud (`card.value`)**
    - Is uitsluitend de inhoud van de QR-code of barcode.
    - Kan toevallig een deel-ID of actiecode bevatten, maar wordt daarmee niet de identiteit van de lokale kaart.
-   - Een identifier in de kaartinhoud is hoogstens een verwijzing of uitvoerbare code.
+   - Een identifier in de kaartinhoud kan een verwijzing of uitvoerbare code zijn.
 
 Een geïmporteerde root-kaart krijgt daarom altijd een eigen lokale ID. De oorspronkelijke bron-identiteit blijft bewaard in `sharedSource.sourceId` en `sharedSource.configurationId`.
 
@@ -41,13 +41,16 @@ Bij terugpubliceren vertaalt Log de lokale object-ID's terug naar de oorspronkel
 
 ## Scannen en uitvoerbare codes
 
-Scannen gebruikt één beslisvolgorde. Daardoor kan dezelfde tekst niet afhankelijk van de route ineens iets anders betekenen.
+Scannen gebruikt één beslisvolgorde. De kaart is de beheer- en informatiedrager; bij een scan bepaalt de **inhoud** wat Log uitvoert.
 
-1. Een exact opgeslagen `card.value` heeft voorrang en opent de lokale kaart.
-2. Daarna wordt gekeken naar een QR-actie met dezelfde actiecode.
-3. Daarna worden een bekende gedeelde configuratie of bekende taakcode opgelost.
-4. Een onbekende geldige 12-teken-identifier kan daarna online als configuratie worden opgezocht.
-5. Overige inhoud blijft gewone kaartinhoud.
+1. Een expliciete QR-actie met dezelfde actiecode wordt direct uitgevoerd.
+2. Daarna worden een bekende gedeelde configuratie of bekende taakcode opgelost.
+3. Een volledige uitvoerbare `log-code`- of `log-task`-payload wordt als payload verwerkt.
+4. Een onbekende geldige 12-teken-identifier kan online als configuratie worden opgezocht.
+5. Alleen wanneer de inhoud geen uitvoerbare Log-betekenis heeft, wordt een lokale kaart met exact dezelfde `card.value` geopend.
+6. Overige inhoud blijft gewone/onbekende kaartinhoud.
+
+Een kaart met bijvoorbeeld een actiecode als `card.value` is dus alleen de drager van die code. Bij scannen wordt de actie uitgevoerd; de kaart zelf kan vanuit **Kaarten** worden geopend en bewerkt.
 
 Voor QR-acties is `actionCodeId` de expliciete runtime-identiteit. Bestaande acties met alleen `logCodeId` worden in test automatisch voorzien van dezelfde `actionCodeId`; `logCodeId` blijft voorlopig als compatibiliteitsalias aanwezig zodat oudere configuraties blijven werken.
 
