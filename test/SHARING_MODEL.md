@@ -12,6 +12,31 @@ Een gedeelde identifier beschrijft de identiteit van één gepubliceerde bron. *
 
 Zonder accounts geldt in dit model: **iemand die de identifier bezit is een deelnemer aan die gedeelde bron**.
 
+## Identiteiten blijven gescheiden
+
+Log gebruikt drie verschillende begrippen die nooit dezelfde functie mogen krijgen:
+
+1. **Lokale object-ID (`card.id`)**
+   - Identificeert de kaart alleen binnen de lokale Log-installatie.
+   - Wordt als lokale UUID opgeslagen.
+   - Mag per apparaat verschillen.
+   - Wordt niet gebruikt als deel-ID.
+
+2. **Deel-ID (`sharedSource.configurationId`)**
+   - Bestaat uit exact 12 toegestane tekens.
+   - Identificeert de gedeelde bron, revisies en collaboration-status.
+   - Blijft gelijk op alle apparaten die dezelfde bron gebruiken.
+   - Wordt gebruikt voor ophalen, updates, offline zetten en heractiveren.
+
+3. **Kaartinhoud (`card.value`)**
+   - Is uitsluitend de inhoud van de QR-code of barcode.
+   - Kan toevallig een deel-ID bevatten, maar wordt daarmee niet de identiteit van de lokale kaart.
+   - Een deel-ID in de kaartinhoud is hoogstens een verwijzing naar een gedeelde bron.
+
+Een geïmporteerde root-kaart krijgt daarom altijd een eigen lokale ID. De oorspronkelijke bron-identiteit blijft bewaard in `sharedSource.sourceId` en `sharedSource.configurationId`.
+
+Bij terugpubliceren vertaalt Log de lokale UUID's terug naar de oorspronkelijke `sharedSource.sourceId`'s. Daarmee blijft hetzelfde bronobject over apparaten en revisies heen herkenbaar zonder lokale en gedeelde identiteit te vermengen.
+
 ## Rollen
 
 ### Oorspronkelijke deler
