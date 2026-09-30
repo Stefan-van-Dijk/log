@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const BUILD='0.37-test.32';
+  const BUILD='0.37-test.33';
   window.LOG_TEST_BUILD=BUILD;
 
   function installStyles(){
@@ -45,6 +45,7 @@
     ensureScript(`./qr-action-direct.js?v=${BUILD}`,'logDirectQrAction');
     ensureScript(`./task-replace-finish.js?v=${BUILD}`,'logTaskReplaceFinish');
     ensureScript(`./compact-stop-ui.js?v=${BUILD}`,'logCompactStopUi');
+    ensureScript(`./time/active-task-layout.js?v=${BUILD}`,'logActiveTaskLayout');
   }
 
   function syncVersionSurface(){
