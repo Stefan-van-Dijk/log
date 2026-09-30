@@ -53,7 +53,7 @@
   function confirmTask({themeId,subthemeId=''}){
     if(!window.LogCardsUI?.sheet||!window.LogTimeModule?.startFromCard)throw Error('Tijd / taken is nog niet beschikbaar.');
     const {theme,sub}=taskInfo(themeId,subthemeId);
-    const panel=window.LogCardsUI.sheet('Taak starten',`<div class="log-task-go-summary" data-log-task-go><strong>${esc(theme.name||'Thema')}</strong>${sub?`<span>${esc(sub.name||'Subthema')}</span>`:''}</div><button class="btn primary full log-task-go-button" data-log-task-go-button>Go</button><p class="cards-notice" role="status" data-log-task-go-status></p>`);
+    const panel=window.LogCardsUI.sheet('Taak starten',`<div class="log-task-go-summary" data-log-task-go><strong>${esc(theme.name||'Thema')}</strong>${sub?`<span>${esc(sub.name||'Subthema')}</span>`:''}</div><button class="btn primary full log-task-go-button" data-log-task-go-button>Start</button><p class="cards-notice" role="status" data-log-task-go-status></p>`);
     const button=panel.querySelector('[data-log-task-go-button]');
     const status=panel.querySelector('[data-log-task-go-status]');
     button.onclick=()=>{
