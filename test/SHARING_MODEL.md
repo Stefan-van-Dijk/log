@@ -18,7 +18,7 @@ Log gebruikt drie verschillende begrippen die nooit dezelfde functie mogen krijg
 
 1. **Lokale object-ID (`card.id`)**
    - Identificeert de kaart alleen binnen de lokale Log-installatie.
-   - Wordt als lokale UUID opgeslagen.
+   - Bestaat voor kaarten uit exact 8 tekens uit `A-Z a-z 0-9 - _`.
    - Mag per apparaat verschillen.
    - Wordt niet gebruikt als deel-ID.
 
@@ -30,12 +30,28 @@ Log gebruikt drie verschillende begrippen die nooit dezelfde functie mogen krijg
 
 3. **Kaartinhoud (`card.value`)**
    - Is uitsluitend de inhoud van de QR-code of barcode.
-   - Kan toevallig een deel-ID bevatten, maar wordt daarmee niet de identiteit van de lokale kaart.
-   - Een deel-ID in de kaartinhoud is hoogstens een verwijzing naar een gedeelde bron.
+   - Kan toevallig een deel-ID of actiecode bevatten, maar wordt daarmee niet de identiteit van de lokale kaart.
+   - Een identifier in de kaartinhoud is hoogstens een verwijzing of uitvoerbare code.
 
 Een geïmporteerde root-kaart krijgt daarom altijd een eigen lokale ID. De oorspronkelijke bron-identiteit blijft bewaard in `sharedSource.sourceId` en `sharedSource.configurationId`.
 
-Bij terugpubliceren vertaalt Log de lokale UUID's terug naar de oorspronkelijke `sharedSource.sourceId`'s. Daarmee blijft hetzelfde bronobject over apparaten en revisies heen herkenbaar zonder lokale en gedeelde identiteit te vermengen.
+Log bewaart lokaal tevens de koppeling tussen `configurationId + sourceId` en de lokale kaart-ID. Wanneer een bronupdate wordt toegepast, krijgt hetzelfde bronobject daardoor opnieuw **dezelfde lokale 8-teken-ID** in plaats van een nieuwe lokale identiteit.
+
+Bij terugpubliceren vertaalt Log de lokale object-ID's terug naar de oorspronkelijke `sharedSource.sourceId`'s. Daarmee blijft hetzelfde bronobject over apparaten en revisies heen herkenbaar zonder lokale en gedeelde identiteit te vermengen.
+
+## Scannen en uitvoerbare codes
+
+Scannen gebruikt één beslisvolgorde. Daardoor kan dezelfde tekst niet afhankelijk van de route ineens iets anders betekenen.
+
+1. Een exact opgeslagen `card.value` heeft voorrang en opent de lokale kaart.
+2. Daarna wordt gekeken naar een QR-actie met dezelfde actiecode.
+3. Daarna worden een bekende gedeelde configuratie of bekende taakcode opgelost.
+4. Een onbekende geldige 12-teken-identifier kan daarna online als configuratie worden opgezocht.
+5. Overige inhoud blijft gewone kaartinhoud.
+
+Voor QR-acties is `actionCodeId` de expliciete runtime-identiteit. Bestaande acties met alleen `logCodeId` worden in test automatisch voorzien van dezelfde `actionCodeId`; `logCodeId` blijft voorlopig als compatibiliteitsalias aanwezig zodat oudere configuraties blijven werken.
+
+`log-task` gebruikt uitsluitend de centrale `LogCode.resolveTask`-resolver. Er is geen tweede taakresolver meer in de gedeelde-configuratiebrug.
 
 ## Rollen
 
