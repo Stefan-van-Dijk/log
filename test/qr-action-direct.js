@@ -7,7 +7,7 @@
   const RECENT_MS=1500;
   const running=new Set();
   const recent=new Map();
-  const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
+  const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   let attempts=0,patchAttempts=0;
   let originalParse=null,originalPreview=null,originalSharedPreview=null;
 
