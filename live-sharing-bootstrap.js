@@ -1,6 +1,6 @@
 (function(){
   'use strict';
-  const BUILD='0.37-sharing18';
+  const BUILD='0.37-sharing19';
   window.LOG_TEST_BUILD=window.LOG_BUILD||'0.37';
 
   function load(src,key,ready){
@@ -24,7 +24,8 @@
       ['sharing-private-ui.js','sharing-private-ui',()=>typeof window.LogSharingUI?.resolveSurface==='function'],
       ['collaboration.js','collaboration',()=>typeof window.LogCollaboration?.syncRemoteAccess==='function'],
       ['shared-id-separation.js','shared-id-separation',()=>typeof window.LogSharedIdentity?.migrate==='function'],
-      ['offline-share-bridge.js','offline-share-bridge',()=>window.LogSharedConfig?.openByIdentifier?.__offlineRecoveryBridge===true]
+      ['offline-share-bridge.js','offline-share-bridge',()=>window.LogSharedConfig?.openByIdentifier?.__offlineRecoveryBridge===true],
+      ['qr-action-direct.js','qr-action-direct',()=>window.LogLocationActions?.scanCode?.__directQrAction===true]
     ];
     for(const [src,key,ready] of modules){
       try{await load(src,key,ready);}catch(error){console.error('Log live sharing:',error);}
