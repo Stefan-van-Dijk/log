@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const BUILD='0.37-test.47';
+  const BUILD='0.37-test.48';
   window.LOG_TEST_BUILD=BUILD;
 
   function installStyles(){
@@ -19,17 +19,6 @@
     document.head.appendChild(style);
   }
 
-  function ensureStylesheet(href,key){
-    const existing=[...document.querySelectorAll('link[rel="stylesheet"]')].find(link=>link.dataset[key]==='1');
-    if(existing&&existing.href.includes(`v=${BUILD}`))return;
-    existing?.remove();
-    const link=document.createElement('link');
-    link.rel='stylesheet';
-    link.href=href;
-    link.dataset[key]='1';
-    document.head.appendChild(link);
-  }
-
   function ensureScript(src,key){
     const existing=[...document.scripts].find(script=>script.dataset[key]==='1');
     if(existing&&existing.src.includes(`v=${BUILD}`))return;
@@ -41,8 +30,7 @@
     document.head.appendChild(script);
   }
 
-  function ensureCurrentSharingUI(){
-    ensureStylesheet(`./shared-page-template.css?v=${BUILD}`,'logSharedPageTemplateCss');
+  function ensureTestFeatures(){
     const wanted=`sharing-private-ui.js?v=${BUILD}`;
     const scripts=[...document.querySelectorAll('script[data-log-sharing-ui]')];
     if(!scripts.some(script=>script.src.includes(wanted))){
@@ -57,9 +45,6 @@
     ensureScript(`./qr-action-direct.js?v=${BUILD}`,'logDirectQrAction');
     ensureScript(`./task-replace-finish.js?v=${BUILD}`,'logTaskReplaceFinish');
     ensureScript(`./compact-stop-ui.js?v=${BUILD}`,'logCompactStopUi');
-    ensureScript(`./period-switch-isolation.js?v=${BUILD}`,'logPeriodSwitchIsolation');
-    ensureScript(`./time/active-task-layout.js?v=${BUILD}`,'logActiveTaskLayout');
-    ensureScript(`./shared-home-components.js?v=${BUILD}`,'logSharedHomeComponents');
   }
 
   function syncVersionSurface(){
@@ -76,8 +61,8 @@
   function render(){installStyles();syncVersionSurface();}
   function init(){
     render();
-    ensureCurrentSharingUI();
-    window.addEventListener('pageshow',()=>{render();ensureCurrentSharingUI();});
+    ensureTestFeatures();
+    window.addEventListener('pageshow',()=>{render();ensureTestFeatures();});
     window.addEventListener('log-shell-view-refresh',render);
   }
 
