@@ -41,9 +41,8 @@ body.km-shell-scrolled .top.km-shell-top .km-shell-meta{
 }
 
 /*
-  Schermwissel: de shell zet kort .km-shell-tab-transition op body bij het
-  kiezen van een ander onderdeel. Alleen het nieuw zichtbare scherm beweegt;
-  de vaste navigatie en statusbalk blijven rustig staan.
+  Schermwissel: ieder scherm animeert zodra het door de shell zichtbaar wordt.
+  Daardoor werkt dezelfde overgang via onderbalk én via Meer/zijmenu.
 */
 @keyframes log-screen-enter{
   from{
@@ -67,22 +66,31 @@ body.km-shell-scrolled .top.km-shell-top .km-shell-meta{
   }
 }
 
-body.km-shell-tab-transition:not(.time-mode):not(.km-shell-locations-mode):not(.km-shell-themes-mode):not(.km-shell-placeholder-mode) #app,
-body.km-shell-tab-transition.time-mode #timeModuleRoot,
-body.km-shell-tab-transition.km-shell-locations-mode #kmShellLocationsView:not([hidden]),
-body.km-shell-tab-transition.km-shell-themes-mode #kmShellThemesView:not([hidden]),
-body.km-shell-tab-transition.km-shell-placeholder-mode #kmShellPlaceholderView:not([hidden]){
-  animation:log-screen-enter var(--log-screen-transition-duration) var(--log-screen-transition-ease) both!important;
+/* Ritten en Tijd/taken wisselen door de bestaande mode-class. */
+body:not(.time-mode):not(.km-shell-locations-mode):not(.km-shell-themes-mode):not(.km-shell-placeholder-mode) #app,
+body.time-mode #timeModuleRoot,
+/* Native shell-schermen wisselen door hun eigen mode-class. */
+body.km-shell-locations-mode #kmShellLocationsView:not([hidden]),
+body.km-shell-themes-mode #kmShellThemesView:not([hidden]){
+  animation:log-screen-enter var(--log-screen-transition-duration) var(--log-screen-transition-ease) both;
   transform-origin:50% 10%;
-  will-change:opacity,transform;
 }
 
+/*
+  Kaarten, Personen en Acties delen één placeholder-host. De inhoud daarvan
+  wordt per module opnieuw gemount; daarom animeert het nieuw geplaatste eerste
+  niveau in plaats van alleen de host.
+*/
+body.km-shell-placeholder-mode #kmShellPlaceholderView:not([hidden])>*{
+  animation:log-screen-enter var(--log-screen-transition-duration) var(--log-screen-transition-ease) both;
+  transform-origin:50% 10%;
+}
+
+/* Bij onderbalknavigatie laat ook de titel kort meekomen. */
 body.km-shell-tab-transition .top.km-shell-top .km-shell-top-copy{
   animation:log-shell-title-enter 180ms var(--log-screen-transition-ease) both;
-  will-change:opacity,transform;
 }
 
-/* Ook de zoek/statusregel mag zacht meekomen zonder de hele header te bewegen. */
 body.km-shell-tab-transition .km-shell-search-status:not([hidden]){
   animation:log-shell-title-enter 180ms var(--log-screen-transition-ease) both;
 }
@@ -92,11 +100,11 @@ body.km-shell-tab-transition .km-shell-search-status:not([hidden]){
     --log-screen-transition-duration:1ms;
     --log-screen-transition-distance:0px;
   }
-  body.km-shell-tab-transition:not(.time-mode):not(.km-shell-locations-mode):not(.km-shell-themes-mode):not(.km-shell-placeholder-mode) #app,
-  body.km-shell-tab-transition.time-mode #timeModuleRoot,
-  body.km-shell-tab-transition.km-shell-locations-mode #kmShellLocationsView:not([hidden]),
-  body.km-shell-tab-transition.km-shell-themes-mode #kmShellThemesView:not([hidden]),
-  body.km-shell-tab-transition.km-shell-placeholder-mode #kmShellPlaceholderView:not([hidden]),
+  body:not(.time-mode):not(.km-shell-locations-mode):not(.km-shell-themes-mode):not(.km-shell-placeholder-mode) #app,
+  body.time-mode #timeModuleRoot,
+  body.km-shell-locations-mode #kmShellLocationsView:not([hidden]),
+  body.km-shell-themes-mode #kmShellThemesView:not([hidden]),
+  body.km-shell-placeholder-mode #kmShellPlaceholderView:not([hidden])>*,
   body.km-shell-tab-transition .top.km-shell-top .km-shell-top-copy,
   body.km-shell-tab-transition .km-shell-search-status:not([hidden]){
     animation-duration:1ms!important;
