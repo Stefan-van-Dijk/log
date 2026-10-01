@@ -84,6 +84,24 @@ body:not(.time-mode) #app>.hero.active-hero.log-active-card .log-secondary-actio
   letter-spacing:-.025em!important;
 }
 
+#main>.period-overview.log-period:not(.period-entry-mode) .period-center strong{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:8px!important;
+}
+
+#main>.period-overview.log-period:not(.period-entry-mode) .period-center strong::after{
+  content:'⌄'!important;
+  margin:0!important;
+  color:var(--muted)!important;
+  font-size:20px!important;
+  font-weight:500!important;
+  line-height:1!important;
+  vertical-align:0!important;
+  transform:translateY(-1px);
+}
+
 #periodNavigator.period-navigator.log-period:not(.period-entry-mode) .period-center small,
 #main>.period-overview.log-period:not(.period-entry-mode) .period-center small{
   margin-top:2px!important;
