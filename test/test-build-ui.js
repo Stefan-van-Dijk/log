@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const BUILD='0.37-test.41';
+  const BUILD='0.37-test.42';
   window.LOG_TEST_BUILD=BUILD;
 
   function installStyles(){
@@ -19,6 +19,17 @@
     document.head.appendChild(style);
   }
 
+  function ensureStylesheet(href,key){
+    const existing=[...document.querySelectorAll('link[rel="stylesheet"]')].find(link=>link.dataset[key]==='1');
+    if(existing&&existing.href.includes(`v=${BUILD}`))return;
+    existing?.remove();
+    const link=document.createElement('link');
+    link.rel='stylesheet';
+    link.href=href;
+    link.dataset[key]='1';
+    document.head.appendChild(link);
+  }
+
   function ensureScript(src,key){
     const existing=[...document.scripts].find(script=>script.dataset[key]==='1');
     if(existing&&existing.src.includes(`v=${BUILD}`))return;
@@ -31,6 +42,7 @@
   }
 
   function ensureCurrentSharingUI(){
+    ensureStylesheet(`./shared-page-template.css?v=${BUILD}`,'logSharedPageTemplateCss');
     const wanted=`sharing-private-ui.js?v=${BUILD}`;
     const scripts=[...document.querySelectorAll('script[data-log-sharing-ui]')];
     if(!scripts.some(script=>script.src.includes(wanted))){
