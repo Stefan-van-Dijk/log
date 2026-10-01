@@ -1,14 +1,7 @@
 :root{
-  --log-template-action-height:184px;
   --log-template-action-period-gap:24px;
   --log-template-card-radius:16px;
   --log-template-card-border:1px solid var(--line);
-  --log-template-card-pad-x:14px;
-  --log-template-card-pad-y:17px;
-  --log-template-kicker-size:11px;
-  --log-template-title-size:30px;
-  --log-template-subtitle-size:17px;
-  --log-template-button-height:50px;
   --log-template-period-top:0px;
   --log-template-period-bottom:20px;
   --log-template-summary-height:130px;
@@ -19,80 +12,22 @@
   --log-template-group-size:11px;
 }
 
-/* Eén geometrie voor de homepagina van Ritten en Tijd/taken.
-   Zichtbaarheid wordt uitsluitend door de modulehost geregeld. */
+/*
+  Paginaritme voor de homeweergaven.
+  Het bovenblok zelf wordt volledig beheerd door shared-home-components.css.
+  Dit bestand begint dus pas bij de overgang van bovenblok naar periode en lijst.
+*/
 #app.log-home-template-root,
 #main.log-home-template-root{
   --log-home-section-gap:var(--log-template-list-gap);
 }
 
-/* Een verborgen module mag nooit door template-CSS opnieuw zichtbaar worden. */
 #app[hidden],
 #timeModuleRoot[hidden]{
   display:none!important;
 }
 
-#app.log-home-template-root>.log-template-action,
-#main.log-home-template-root>.log-template-action{
-  box-sizing:border-box!important;
-  width:100%!important;
-  margin:0!important;
-  border:var(--log-template-card-border)!important;
-  border-radius:var(--log-template-card-radius)!important;
-  background:var(--card,var(--surface))!important;
-  box-shadow:none!important;
-}
-
-#app.log-home-template-root>.log-template-action[data-log-template-state="idle"],
-#main.log-home-template-root>.log-template-action[data-log-template-state="idle"]{
-  display:flex!important;
-  min-height:var(--log-template-action-height)!important;
-  height:var(--log-template-action-height)!important;
-  flex-direction:column!important;
-  padding:var(--log-template-card-pad-y) var(--log-template-card-pad-x)!important;
-}
-
-#app.log-home-template-root>.log-template-action[data-log-template-state="idle"]>.kicker,
-#main.log-home-template-root>.log-template-action[data-log-template-state="idle"]>.kicker{
-  margin:0 0 8px!important;
-  font-size:var(--log-template-kicker-size)!important;
-  line-height:1.2!important;
-  font-weight:800!important;
-  letter-spacing:.08em!important;
-}
-
-#app.log-home-template-root>.log-template-action[data-log-template-state="idle"]>h2,
-#main.log-home-template-root>.log-template-action[data-log-template-state="idle"]>h2,
-#main.log-home-template-root>.log-template-action[data-log-template-state="idle"] .home-action-title{
-  margin:0 0 6px!important;
-  font-size:var(--log-template-title-size)!important;
-  line-height:1.08!important;
-  font-weight:850!important;
-  letter-spacing:-.035em!important;
-}
-
-#app.log-home-template-root>.log-template-action[data-log-template-state="idle"]>p,
-#main.log-home-template-root>.log-template-action[data-log-template-state="idle"]>p,
-#main.log-home-template-root>.log-template-action[data-log-template-state="idle"] .home-action-subtitle{
-  margin:0!important;
-  color:var(--muted)!important;
-  font-size:var(--log-template-subtitle-size)!important;
-  line-height:1.25!important;
-}
-
-#app.log-home-template-root>.log-template-action[data-log-template-state="idle"]>.btn:last-child,
-#main.log-home-template-root>.log-template-action[data-log-template-state="idle"]>.btn:last-child,
-#main.log-home-template-root>.log-template-action[data-log-template-state="idle"]>#registerTaskInline,
-#main.log-home-template-root>.log-template-action[data-log-template-state="idle"] .home-action-button{
-  width:100%!important;
-  max-width:none!important;
-  min-height:var(--log-template-button-height)!important;
-  height:var(--log-template-button-height)!important;
-  margin:auto 0 0!important;
-  border-radius:13px!important;
-}
-
-/* De afstand na het actieblok komt uit één token, niet uit module-CSS. */
+/* Eén vaste afstand tussen het modulaire bovenblok en de periode. */
 #app.log-home-template-root>.log-template-period:not(.period-entry-mode),
 #main.log-home-template-root>.log-template-period:not(.period-entry-mode){
   box-sizing:border-box!important;
@@ -113,10 +48,60 @@
   align-items:center!important;
 }
 
+#app.log-home-template-root>.log-template-period:not(.period-entry-mode) .period-center,
+#main.log-home-template-root>.log-template-period:not(.period-entry-mode) .period-center{
+  gap:4px!important;
+  padding:0!important;
+}
+
+#app.log-home-template-root>.log-template-period:not(.period-entry-mode) .period-center strong,
+#main.log-home-template-root>.log-template-period:not(.period-entry-mode) .period-center strong{
+  font-size:25px!important;
+  line-height:1.12!important;
+  letter-spacing:-.025em!important;
+}
+
+#main.log-home-template-root>.log-template-period:not(.period-entry-mode) .period-center strong{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:8px!important;
+}
+
+#main.log-home-template-root>.log-template-period:not(.period-entry-mode) .period-center strong::after{
+  content:'⌄'!important;
+  color:var(--muted)!important;
+  font-size:20px!important;
+  font-weight:500!important;
+  line-height:1!important;
+  transform:translateY(-1px);
+}
+
+#app.log-home-template-root>.log-template-period:not(.period-entry-mode) .period-center small,
+#main.log-home-template-root>.log-template-period:not(.period-entry-mode) .period-center small{
+  margin-top:2px!important;
+  font-size:11px!important;
+  line-height:1.25!important;
+}
+
+#app.log-home-template-root>.log-template-period:not(.period-entry-mode) .mini,
+#main.log-home-template-root>.log-template-period:not(.period-entry-mode) .period-arrow,
+#app.log-home-template-root>.log-template-period:not(.period-entry-mode) .period-scale-button,
+#main.log-home-template-root>.log-template-period:not(.period-entry-mode) .period-scale-button{
+  width:40px!important;
+  height:40px!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:50%!important;
+  background:transparent!important;
+  color:var(--muted)!important;
+  box-shadow:none!important;
+  font-size:24px!important;
+}
+
+/* Samenvatting: dezelfde kaartmaat en typografische hiërarchie in beide modules. */
 #app.log-home-template-root>.log-template-period:not(.period-entry-mode) .log-summary,
-#main.log-home-template-root>.log-template-period:not(.period-entry-mode) .log-summary,
-#app.log-home-template-root>.log-template-period:not(.period-entry-mode) .summary,
-#main.log-home-template-root>.log-template-period:not(.period-entry-mode) .summary{
+#main.log-home-template-root>.log-template-period:not(.period-entry-mode) .log-summary{
   box-sizing:border-box!important;
   min-height:var(--log-template-summary-height)!important;
   height:var(--log-template-summary-height)!important;
@@ -126,6 +111,83 @@
   background:var(--card,var(--surface))!important;
   box-shadow:none!important;
   overflow:hidden!important;
+}
+
+.log-summary .summary-head,
+.log-summary .summary-main{
+  display:flex!important;
+  min-height:78px!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:4px!important;
+  padding:14px 12px 4px!important;
+  text-align:center!important;
+}
+
+.log-summary[data-log-summary-kind="ride"] .summary-label{
+  display:none!important;
+}
+
+.log-summary[data-log-summary-kind="ride"] .summary-total{
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:4px!important;
+  margin:0!important;
+}
+
+.log-summary[data-log-summary-kind="time"] .summary-main{
+  flex-direction:column-reverse!important;
+}
+
+.log-summary .summary-total strong,
+.log-summary .summary-value{
+  margin:0!important;
+  font-size:40px!important;
+  font-weight:850!important;
+  line-height:1!important;
+  letter-spacing:-.045em!important;
+}
+
+.log-summary .summary-total small,
+.log-summary .summary-label{
+  margin:0!important;
+  color:var(--muted)!important;
+  font-size:11px!important;
+  font-weight:650!important;
+  line-height:1.2!important;
+  letter-spacing:0!important;
+  text-transform:none!important;
+}
+
+.log-summary .summary-parts{
+  display:flex!important;
+  justify-content:center!important;
+  gap:20px!important;
+  flex-wrap:wrap!important;
+  padding:8px 12px 13px!important;
+  border:0!important;
+}
+
+.log-summary .summary-part{
+  flex:0 0 auto!important;
+  padding:0!important;
+  border:0!important;
+  text-align:center!important;
+}
+
+.log-summary .summary-part span,
+.log-summary .summary-part strong{
+  display:inline!important;
+  font-size:11px!important;
+  line-height:1.2!important;
+}
+
+.log-summary .summary-part strong{
+  margin:0 0 0 4px!important;
+  font-size:12px!important;
 }
 
 /* Lijstsectie: titel -> datumgroep -> stroken gebruikt exact hetzelfde ritme. */
@@ -149,7 +211,9 @@
 }
 
 #app.log-home-template-root>.log-template-list>.section-title>:not(h2):not(h3),
-#main.log-home-template-root>.log-template-list>.section-title>:not(h2):not(h3){display:none!important}
+#main.log-home-template-root>.log-template-list>.section-title>:not(h2):not(h3){
+  display:none!important;
+}
 
 #app.log-home-template-root>.log-template-list>.section-title h2,
 #app.log-home-template-root>.log-template-list>.section-title h3,
@@ -194,9 +258,6 @@
 
 @media(max-width:360px){
   :root{
-    --log-template-action-height:178px;
-    --log-template-title-size:28px;
-    --log-template-subtitle-size:16px;
     --log-template-summary-height:126px;
   }
 }
