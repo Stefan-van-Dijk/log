@@ -1,4 +1,4 @@
-const BUILD='0.37-test.47';
+const BUILD='0.37-test.48';
 const CACHE=`kmreg-test-shell-${BUILD}`;
 const SHELL=[
   './','./index.html',
@@ -44,8 +44,10 @@ async function withIndexBuild(response){
 
   html=html.replace(/const APP_BUILD='[^']+';/,`const APP_BUILD='${BUILD}';`);
 
-  const bridge=`window.LogModuleHost={\n  getMode(){return appMode;},\n  setMode(mode){\n    const next=mode==='time'?'time':'kilometers';\n    applyAppMode(next,false);\n  }\n};`;
-  if(html.includes('applyAppMode(appMode,false);'))html=html.replace('applyAppMode(appMode,false);',bridge);
+  if(!html.includes('window.LogModuleHost={')){
+    const bridge=`window.LogModuleHost={\n  getMode(){return appMode;},\n  setMode(mode){\n    const next=mode==='time'?'time':'kilometers';\n    applyAppMode(next,false);\n  }\n};\napplyAppMode(appMode,false);`;
+    if(html.includes('applyAppMode(appMode,false);'))html=html.replace('applyAppMode(appMode,false);',bridge);
+  }
 
   return new Response(html,{status:response.status,statusText:response.statusText,headers});
 }
