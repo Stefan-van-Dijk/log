@@ -1,0 +1,37 @@
+/* Gedeelde paginakop voor alle Log-modules.
+   Titel en ondertitel/telling gebruiken één vast tweeregelig raster zodat de
+   verticale afstand niet meer afhangt van lettervormen of module-CSS. */
+
+:root{
+  --log-shell-title-meta-gap:4px;
+}
+
+.top.km-shell-top .km-shell-top-copy{
+  display:grid!important;
+  grid-template-rows:auto auto!important;
+  align-content:center!important;
+  justify-items:center!important;
+  row-gap:var(--log-shell-title-meta-gap)!important;
+}
+
+.top.km-shell-top .km-shell-title,
+.top.km-shell-top .km-shell-meta{
+  margin:0!important;
+  padding:0!important;
+}
+
+.top.km-shell-top .km-shell-title{
+  line-height:1.08!important;
+}
+
+.top.km-shell-top .km-shell-meta{
+  line-height:1.20!important;
+}
+
+body.km-shell-scrolled .top.km-shell-top .km-shell-top-copy{
+  row-gap:0!important;
+}
+
+body.km-shell-scrolled .top.km-shell-top .km-shell-meta{
+  margin:0!important;
+}
