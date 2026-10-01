@@ -34,6 +34,18 @@ De variant verandert de inhoud en beperkte statusweergave, niet de basismaatvoer
 
 `shared-home-components.js` sluit de bestaande bovenblokken van **Ritten** en **Tijd/Taken** op dit slotmodel aan. Daardoor gebruiken beide modules dezelfde CSS uit `shared-home-components.css` zonder dat hun bestaande eventhandlers of opslagmodel gewijzigd hoeven te worden.
 
+Daarnaast normaliseert dezelfde adapter de periodekop. Beide modules hebben daardoor dezelfde DOM-opbouw voor de periodetitel:
+
+```text
+period-center
+ ├─ period-title-line
+ │   ├─ strong
+ │   └─ period-scale-button
+ └─ small
+```
+
+Het pijltje voor periodegrootte is dus in beide modules een echte knop en niet meer in één module een CSS-`::after`.
+
 Nieuwe modules kunnen het framework rechtstreeks gebruiken via:
 
 ```js
@@ -67,14 +79,27 @@ De vaste vorm komt uit CSS-variabelen met prefix `--log-top-`:
 
 Voor smalle schermen wordt alleen de schaal beperkt aangepast; de slotvolgorde en verhoudingen blijven gelijk.
 
+## CSS-eigenaarschap
+
+De homepagina heeft vanaf deze opzet drie duidelijke lagen:
+
+1. `shared-home-components.css` — volledige geometrie en typografie van het bovenblok.
+2. `shared-page-template.css` — periodekop, vorige/volgende bediening, periodekeuzechevron, samenvatting, sectietitel, datumgroepen en lege lijst.
+3. Module-CSS — uitsluitend inhoud en interactie die niet generiek is, bijvoorbeeld kilometerstand, routepunten, tijdnotatie, taakvelden, swipe-acties en instellingen.
+
+Voor **Tijd/Taken** bevat `time/home-top.css` daarom alleen nog de modulekop. `time/home-layout.css` bevat alleen nog invoerpanelen en tijdspecifieke interactie. De eerdere eigen styling voor `.home-action`, `.period-overview`, `.period-summary` en de CSS-chevron is daar verwijderd.
+
+Ritten bevat nog historische basisregels in `index.html`; binnen de gemarkeerde gedeelde homecomponenten zijn die niet meer leidend. De gedeelde selectors zijn daar de eigenaar van de uiteindelijke maatvoering. Deze legacyregels kunnen later fysiek uit `index.html` worden gehaald nadat de gedeelde opzet op de testtelefoon is bevestigd.
+
 ## Ontwerpregels
 
 - Een module mag geen eigen titelgrootte, kaartpadding of primaire knophoogte meer bepalen voor dit bovenblok.
+- Een module mag geen eigen geometrie voor de periodekop of samenvattingskaart bepalen.
 - Nieuwe informatie wordt in een bestaand slot geplaatst voordat een nieuw type slot wordt toegevoegd.
 - Status is informatie, geen aparte layoutvariant.
 - Eén primaire actie per bovenblok. Aanvullende acties horen in `secondary-actions`.
 - Het framework bevat geen modulespecifieke opslag- of businesslogica.
-- `shared-page-template.css` regelt alleen het ritme ná het bovenblok: periode, samenvatting en lijsten.
+- `shared-page-template.css` regelt uitsluitend het ritme ná het bovenblok en de gedeelde periode-/lijstcomponenten.
 
 ## Uitbreiding
 
