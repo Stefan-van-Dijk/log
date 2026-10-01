@@ -1,4 +1,4 @@
-const BUILD='0.37-test.49';
+const BUILD='0.37-test.50';
 const CACHE=`kmreg-test-shell-${BUILD}`;
 const SHELL=[
   './','./index.html',
@@ -44,12 +44,26 @@ async function withIndexBuild(response){
 
   html=html.replace(/const APP_BUILD='[^']+';/,`const APP_BUILD='${BUILD}';`);
 
+  html=html.replace("new Intl.DateTimeFormat('nl-NL',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(r.start)","new Intl.DateTimeFormat('nl-NL',{weekday:'long',day:'numeric',month:'long'}).format(r.start)");
+  html=html.replace("function periodSubLabel(){const r=periodRange();if(periodMode==='day'||periodMode==='year')return'';if(periodMode==='all')return'Volledige historie';const end=addDays(r.end,-1),startText=new Intl.DateTimeFormat('nl-NL',{day:'numeric',month:'short'}).format(r.start),endText=new Intl.DateTimeFormat('nl-NL',{day:'numeric',month:'short',year:'numeric'}).format(end);return`${startText} – ${endText}`}","function periodSubLabel(){const r=periodRange();if(periodMode==='day'||periodMode==='year')return'';if(periodMode==='all')return'Volledige historie';const end=addDays(r.end,-1),startText=new Intl.DateTimeFormat('nl-NL',{day:'numeric',month:'short'}).format(r.start);if(periodMode==='week'){const endText=new Intl.DateTimeFormat('nl-NL',{day:'numeric',month:'short'}).format(end);return`${startText} – ${endText}`}const endText=new Intl.DateTimeFormat('nl-NL',{day:'numeric',month:'short',year:'numeric'}).format(end);return`${startText} – ${endText}`}");
+  html=html.replace("periodMode==='week'?time(t.departureTime):shortDate(t.departureTime)+'<br>'+time(t.departureTime)","(periodMode==='day'||periodMode==='week')?time(t.departureTime):shortDate(t.departureTime)+'<br>'+time(t.departureTime)");
+  html=html.replace("if(periodMode==='day')return`<div class=\"list\">${arr.map(tripRow).join('')}</div>`;","if(periodMode==='day')return`<div class=\"trip-group\"><div class=\"trip-group-title\">${esc(relativeDayLabel(periodRange().start))}</div><div class=\"list\">${arr.map(tripRow).join('')}</div></div>`;");
+
   if(!html.includes('window.LogModuleHost={')){
     const bridge=`window.LogModuleHost={\n  getMode(){return appMode;},\n  setMode(mode){\n    const next=mode==='time'?'time':'kilometers';\n    applyAppMode(next,false);\n  }\n};\napplyAppMode(appMode,false);`;
     if(html.includes('applyAppMode(appMode,false);'))html=html.replace('applyAppMode(appMode,false);',bridge);
   }
 
   return new Response(html,{status:response.status,statusText:response.statusText,headers});
+}
+
+async function withTimeAppBuild(response){
+  if(!response||!response.ok)return response;
+  let text=await response.text();
+  const headers=new Headers(response.headers);
+  headers.set('Content-Type','application/javascript; charset=utf-8');
+  text=text.replace("function periodSubLabel() {\n  const { start, end } = periodBounds();\n  if (state.ui.periodMode === 'day' || state.ui.periodMode === 'year') return '';\n  if (state.ui.periodMode === 'all') return 'Volledige historie';\n  return `${new Intl.DateTimeFormat('nl-NL', { day: 'numeric', month: 'short' }).format(start)} – ${new Intl.DateTimeFormat('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' }).format(end)}`;\n}","function periodSubLabel() {\n  const { start, end } = periodBounds();\n  if (state.ui.periodMode === 'day' || state.ui.periodMode === 'year') return '';\n  if (state.ui.periodMode === 'all') return 'Volledige historie';\n  const startText = new Intl.DateTimeFormat('nl-NL', { day: 'numeric', month: 'short' }).format(start);\n  if (state.ui.periodMode === 'week') {\n    const endText = new Intl.DateTimeFormat('nl-NL', { day: 'numeric', month: 'short' }).format(end);\n    return `${startText} – ${endText}`;\n  }\n  const endText = new Intl.DateTimeFormat('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' }).format(end);\n  return `${startText} – ${endText}`;\n}");
+  return new Response(text,{status:response.status,statusText:response.statusText,headers});
 }
 
 async function withShellBuild(response){
@@ -74,6 +88,13 @@ function shellWithBuild(req){
     .catch(()=>caches.match(req));
 }
 
+function timeAppWithBuild(req){
+  return fetch(new Request(req,{cache:'reload'}))
+    .then(withTimeAppBuild)
+    .then(resp=>{const copy=resp.clone();caches.open(CACHE).then(cache=>cache.put(req,copy));return resp;})
+    .catch(()=>caches.match(req).then(withTimeAppBuild));
+}
+
 function indexWithBuild(){
   const indexReq=new Request(new URL('./index.html',self.registration.scope),{cache:'reload'});
   return fetch(indexReq)
@@ -88,6 +109,7 @@ self.addEventListener('fetch',event=>{
   if(url.pathname.endsWith('/import.html'))return;
   if(url.pathname.endsWith('/id-converter.html')){event.respondWith(caches.match('./id-converter.html').then(cached=>cached||fetch(req)));return;}
   if(url.pathname.endsWith('/shell-ui.js')){event.respondWith(shellWithBuild(req));return;}
+  if(url.pathname.endsWith('/time/app.js')){event.respondWith(timeAppWithBuild(req));return;}
   if(['/shared-card-import.js','/shared-config-bridge.js','/shared-settings-ui.js','/shared-diff-rights.js','/location-polling.js','/test-build-ui.js','/sharing-private-ui.js','/collaboration.js','/shared-id-separation.js','/offline-share-bridge.js','/qr-action-direct.js','/task-replace-finish.js','/compact-stop-ui.js','/period-switch-isolation.js','/time/active-task-layout.js','/shared-home-components.css','/shared-home-components.js','/shared-page-template.css','/shell-ui-stable.js','/shell-direct-actions.js'].some(path=>url.pathname.endsWith(path))){event.respondWith(networkFirst(req));return;}
   if(url.pathname.endsWith('/config/modules.json')){event.respondWith(fetch(req).then(resp=>{if(!resp.ok)throw new Error('Menuconfiguratie niet beschikbaar');const copy=resp.clone();caches.open(CACHE).then(cache=>cache.put('./config/modules.json',copy));return resp;}).catch(()=>caches.match('./config/modules.json')));return;}
   if(req.mode==='navigate'){event.respondWith(indexWithBuild());return;}
