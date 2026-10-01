@@ -1,11 +1,15 @@
-/* Gedeelde paginakop voor alle Log-modules.
-   Titel en ondertitel/telling gebruiken één vast tweeregelig raster zodat de
-   verticale afstand niet meer afhangt van lettervormen of module-CSS. */
+/* Gedeelde shell-laag voor alle Log-modules.
+   De paginakop en schermovergangen worden hier centraal bepaald zodat modules
+   geen eigen titelritme of navigatie-animatie nodig hebben. */
 
 :root{
   --log-shell-title-meta-gap:4px;
+  --log-screen-transition-duration:220ms;
+  --log-screen-transition-distance:8px;
+  --log-screen-transition-ease:cubic-bezier(.22,1,.36,1);
 }
 
+/* Titel + ondertitel/telling: één vast tweeregelig raster. */
 .top.km-shell-top .km-shell-top-copy{
   display:grid!important;
   grid-template-rows:auto auto!important;
@@ -34,4 +38,68 @@ body.km-shell-scrolled .top.km-shell-top .km-shell-top-copy{
 
 body.km-shell-scrolled .top.km-shell-top .km-shell-meta{
   margin:0!important;
+}
+
+/*
+  Schermwissel: de shell zet kort .km-shell-tab-transition op body bij het
+  kiezen van een ander onderdeel. Alleen het nieuw zichtbare scherm beweegt;
+  de vaste navigatie en statusbalk blijven rustig staan.
+*/
+@keyframes log-screen-enter{
+  from{
+    opacity:.18;
+    transform:translate3d(0,var(--log-screen-transition-distance),0) scale(.994);
+  }
+  to{
+    opacity:1;
+    transform:translate3d(0,0,0) scale(1);
+  }
+}
+
+@keyframes log-shell-title-enter{
+  from{
+    opacity:.35;
+    transform:translate3d(0,3px,0);
+  }
+  to{
+    opacity:1;
+    transform:translate3d(0,0,0);
+  }
+}
+
+body.km-shell-tab-transition:not(.time-mode):not(.km-shell-locations-mode):not(.km-shell-themes-mode):not(.km-shell-placeholder-mode) #app,
+body.km-shell-tab-transition.time-mode #timeModuleRoot,
+body.km-shell-tab-transition.km-shell-locations-mode #kmShellLocationsView:not([hidden]),
+body.km-shell-tab-transition.km-shell-themes-mode #kmShellThemesView:not([hidden]),
+body.km-shell-tab-transition.km-shell-placeholder-mode #kmShellPlaceholderView:not([hidden]){
+  animation:log-screen-enter var(--log-screen-transition-duration) var(--log-screen-transition-ease) both!important;
+  transform-origin:50% 10%;
+  will-change:opacity,transform;
+}
+
+body.km-shell-tab-transition .top.km-shell-top .km-shell-top-copy{
+  animation:log-shell-title-enter 180ms var(--log-screen-transition-ease) both;
+  will-change:opacity,transform;
+}
+
+/* Ook de zoek/statusregel mag zacht meekomen zonder de hele header te bewegen. */
+body.km-shell-tab-transition .km-shell-search-status:not([hidden]){
+  animation:log-shell-title-enter 180ms var(--log-screen-transition-ease) both;
+}
+
+@media(prefers-reduced-motion:reduce){
+  :root{
+    --log-screen-transition-duration:1ms;
+    --log-screen-transition-distance:0px;
+  }
+  body.km-shell-tab-transition:not(.time-mode):not(.km-shell-locations-mode):not(.km-shell-themes-mode):not(.km-shell-placeholder-mode) #app,
+  body.km-shell-tab-transition.time-mode #timeModuleRoot,
+  body.km-shell-tab-transition.km-shell-locations-mode #kmShellLocationsView:not([hidden]),
+  body.km-shell-tab-transition.km-shell-themes-mode #kmShellThemesView:not([hidden]),
+  body.km-shell-tab-transition.km-shell-placeholder-mode #kmShellPlaceholderView:not([hidden]),
+  body.km-shell-tab-transition .top.km-shell-top .km-shell-top-copy,
+  body.km-shell-tab-transition .km-shell-search-status:not([hidden]){
+    animation-duration:1ms!important;
+    transform:none!important;
+  }
 }
