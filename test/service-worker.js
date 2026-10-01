@@ -1,4 +1,4 @@
-const BUILD='0.37-test.39';
+const BUILD='0.37-test.40';
 const CACHE=`kmreg-test-shell-${BUILD}`;
 const SHELL=[
   './','./index.html',
