@@ -10,12 +10,14 @@
   --log-template-section-to-group-gap:10px;
   --log-template-group-to-list-gap:8px;
   --log-template-group-size:11px;
+  --log-template-period-title-size:25px;
+  --log-template-period-chevron-size:17px;
 }
 
 /*
-  Paginaritme voor de homeweergaven.
-  Het bovenblok zelf wordt volledig beheerd door shared-home-components.css.
-  Dit bestand begint dus pas bij de overgang van bovenblok naar periode en lijst.
+  Eén paginaritme voor Ritten en Tijd/taken.
+  De module levert alleen inhoud; geometrie en typografie van periode,
+  samenvatting en lijst worden hier bepaald.
 */
 #app.log-home-template-root,
 #main.log-home-template-root{
@@ -27,7 +29,7 @@
   display:none!important;
 }
 
-/* Eén vaste afstand tussen het modulaire bovenblok en de periode. */
+/* Overgang bovenblok -> periode. */
 #app.log-home-template-root>.log-template-period:not(.period-entry-mode),
 #main.log-home-template-root>.log-template-period:not(.period-entry-mode){
   box-sizing:border-box!important;
@@ -43,53 +45,95 @@
 
 #app.log-home-template-root>.log-template-period:not(.period-entry-mode) .period-nav-head,
 #main.log-home-template-root>.log-template-period:not(.period-entry-mode) .period-head{
+  display:grid!important;
+  grid-template-columns:40px minmax(0,1fr) 40px!important;
+  gap:8px!important;
   min-height:44px!important;
   margin:0 0 7px!important;
   align-items:center!important;
 }
 
+/* Exact hetzelfde titelblok en dezelfde echte chevron-knop in beide modules. */
 #app.log-home-template-root>.log-template-period:not(.period-entry-mode) .period-center,
 #main.log-home-template-root>.log-template-period:not(.period-entry-mode) .period-center{
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:center!important;
   gap:4px!important;
   padding:0!important;
+  text-align:center!important;
+}
+
+#app.log-home-template-root>.log-template-period:not(.period-entry-mode) .log-period-title-line,
+#main.log-home-template-root>.log-template-period:not(.period-entry-mode) .log-period-title-line{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:3px!important;
+  min-height:30px!important;
 }
 
 #app.log-home-template-root>.log-template-period:not(.period-entry-mode) .period-center strong,
 #main.log-home-template-root>.log-template-period:not(.period-entry-mode) .period-center strong{
-  font-size:25px!important;
+  display:block!important;
+  margin:0!important;
+  font-size:var(--log-template-period-title-size)!important;
   line-height:1.12!important;
   letter-spacing:-.025em!important;
 }
 
-#main.log-home-template-root>.log-template-period:not(.period-entry-mode) .period-center strong{
+#app.log-home-template-root>.log-template-period:not(.period-entry-mode) .period-center strong::after,
+#main.log-home-template-root>.log-template-period:not(.period-entry-mode) .period-center strong::after{
+  content:none!important;
+  display:none!important;
+}
+
+#app.log-home-template-root>.log-template-period:not(.period-entry-mode) .log-period-scale-button,
+#main.log-home-template-root>.log-template-period:not(.period-entry-mode) .log-period-scale-button{
   display:inline-flex!important;
   align-items:center!important;
   justify-content:center!important;
-  gap:8px!important;
+  width:28px!important;
+  height:28px!important;
+  min-width:28px!important;
+  min-height:28px!important;
+  margin:0 -28px 0 0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:9px!important;
+  background:transparent!important;
+  color:var(--muted)!important;
+  box-shadow:none!important;
+  font-size:var(--log-template-period-chevron-size)!important;
+  font-weight:800!important;
+  line-height:1!important;
+  cursor:pointer!important;
 }
 
-#main.log-home-template-root>.log-template-period:not(.period-entry-mode) .period-center strong::after{
-  content:'⌄'!important;
-  color:var(--muted)!important;
-  font-size:20px!important;
-  font-weight:500!important;
-  line-height:1!important;
-  transform:translateY(-1px);
+#app.log-home-template-root>.log-template-period:not(.period-entry-mode) .log-period-scale-button:active,
+#main.log-home-template-root>.log-template-period:not(.period-entry-mode) .log-period-scale-button:active{
+  background:var(--card2,var(--surface2))!important;
+  color:var(--text)!important;
 }
 
 #app.log-home-template-root>.log-template-period:not(.period-entry-mode) .period-center small,
 #main.log-home-template-root>.log-template-period:not(.period-entry-mode) .period-center small{
-  margin-top:2px!important;
+  display:block!important;
+  margin:2px 0 0!important;
   font-size:11px!important;
   line-height:1.25!important;
 }
 
+/* Vorige/volgende periode: één maat en één stijl. */
 #app.log-home-template-root>.log-template-period:not(.period-entry-mode) .mini,
-#main.log-home-template-root>.log-template-period:not(.period-entry-mode) .period-arrow,
-#app.log-home-template-root>.log-template-period:not(.period-entry-mode) .period-scale-button,
-#main.log-home-template-root>.log-template-period:not(.period-entry-mode) .period-scale-button{
+#main.log-home-template-root>.log-template-period:not(.period-entry-mode) .period-arrow{
+  display:grid!important;
+  place-items:center!important;
   width:40px!important;
   height:40px!important;
+  min-width:40px!important;
+  min-height:40px!important;
   padding:0!important;
   border:0!important;
   border-radius:50%!important;
@@ -97,9 +141,10 @@
   color:var(--muted)!important;
   box-shadow:none!important;
   font-size:24px!important;
+  line-height:1!important;
 }
 
-/* Samenvatting: dezelfde kaartmaat en typografische hiërarchie in beide modules. */
+/* Samenvatting: dezelfde kaartmaat en typografische hiërarchie. */
 #app.log-home-template-root>.log-template-period:not(.period-entry-mode) .log-summary,
 #main.log-home-template-root>.log-template-period:not(.period-entry-mode) .log-summary{
   box-sizing:border-box!important;
@@ -125,10 +170,7 @@
   text-align:center!important;
 }
 
-.log-summary[data-log-summary-kind="ride"] .summary-label{
-  display:none!important;
-}
-
+.log-summary[data-log-summary-kind="ride"] .summary-label{display:none!important}
 .log-summary[data-log-summary-kind="ride"] .summary-total{
   display:flex!important;
   flex-direction:column!important;
@@ -137,10 +179,7 @@
   gap:4px!important;
   margin:0!important;
 }
-
-.log-summary[data-log-summary-kind="time"] .summary-main{
-  flex-direction:column-reverse!important;
-}
+.log-summary[data-log-summary-kind="time"] .summary-main{flex-direction:column-reverse!important}
 
 .log-summary .summary-total strong,
 .log-summary .summary-value{
@@ -170,27 +209,24 @@
   padding:8px 12px 13px!important;
   border:0!important;
 }
-
 .log-summary .summary-part{
   flex:0 0 auto!important;
   padding:0!important;
   border:0!important;
   text-align:center!important;
 }
-
 .log-summary .summary-part span,
 .log-summary .summary-part strong{
   display:inline!important;
   font-size:11px!important;
   line-height:1.2!important;
 }
-
 .log-summary .summary-part strong{
   margin:0 0 0 4px!important;
   font-size:12px!important;
 }
 
-/* Lijstsectie: titel -> datumgroep -> stroken gebruikt exact hetzelfde ritme. */
+/* Lijstsectie: titel -> datumgroep -> stroken. */
 #app.log-home-template-root>.log-template-list,
 #main.log-home-template-root>.log-template-list{
   box-sizing:border-box!important;
@@ -211,9 +247,7 @@
 }
 
 #app.log-home-template-root>.log-template-list>.section-title>:not(h2):not(h3),
-#main.log-home-template-root>.log-template-list>.section-title>:not(h2):not(h3){
-  display:none!important;
-}
+#main.log-home-template-root>.log-template-list>.section-title>:not(h2):not(h3){display:none!important}
 
 #app.log-home-template-root>.log-template-list>.section-title h2,
 #app.log-home-template-root>.log-template-list>.section-title h3,
@@ -226,14 +260,18 @@
   letter-spacing:-.02em!important;
 }
 
-#app.log-home-template-root>.log-template-list>.trip-group:first-of-type,
-#main.log-home-template-root>.log-template-list>.activity-group:first-of-type{
-  margin:0!important;
+#app.log-home-template-root>.log-template-list>.trip-group,
+#main.log-home-template-root>.log-template-list>.activity-group{
+  margin:18px 0 0!important;
   padding:0!important;
 }
+#app.log-home-template-root>.log-template-list>.trip-group:first-of-type,
+#main.log-home-template-root>.log-template-list>.activity-group:first-of-type{
+  margin-top:0!important;
+}
 
-#app.log-home-template-root>.log-template-list>.trip-group:first-of-type>.trip-group-title,
-#main.log-home-template-root>.log-template-list>.activity-group:first-of-type>.activity-group-title{
+#app.log-home-template-root>.log-template-list>.trip-group>.trip-group-title,
+#main.log-home-template-root>.log-template-list>.activity-group>.activity-group-title{
   margin:0!important;
   padding:0 2px var(--log-template-group-to-list-gap)!important;
   border:0!important;
@@ -245,8 +283,8 @@
   text-transform:uppercase!important;
 }
 
-#app.log-home-template-root>.log-template-list>.trip-group:first-of-type>.list,
-#main.log-home-template-root>.log-template-list>.activity-group:first-of-type>.list,
+#app.log-home-template-root>.log-template-list>.trip-group>.list,
+#main.log-home-template-root>.log-template-list>.activity-group>.list,
 #app.log-home-template-root>.log-template-list>.list,
 #main.log-home-template-root>.log-template-list>.list{
   gap:0!important;
@@ -256,8 +294,24 @@
   background:var(--card,var(--surface))!important;
 }
 
+/* Ook een lege lijst is hetzelfde component in beide modules. */
+#app.log-home-template-root>.log-template-list>.empty,
+#main.log-home-template-root>.log-template-list>.empty{
+  box-sizing:border-box!important;
+  width:100%!important;
+  margin:0!important;
+  padding:18px 22px!important;
+  border:var(--log-template-card-border)!important;
+  border-radius:var(--log-template-card-radius)!important;
+  background:var(--card,var(--surface))!important;
+  color:var(--muted)!important;
+  text-align:left!important;
+  box-shadow:none!important;
+}
+
 @media(max-width:360px){
   :root{
     --log-template-summary-height:126px;
+    --log-template-period-title-size:23px;
   }
 }
