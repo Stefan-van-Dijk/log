@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const VERSION='1.0.0';
+  const VERSION='1.1.0';
 
   function mark(node,...classes){
     if(!node)return null;
@@ -11,7 +11,7 @@
 
   function escapeText(value){
     return String(value??'').replace(/[&<>"']/g,char=>({
-      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'
     })[char]);
   }
 
@@ -105,11 +105,46 @@
     mark(section.querySelector(':scope>.section-title'),'log-section-head');
   }
 
+  function ensurePeriodControl(period){
+    const center=period?.querySelector('.period-center');
+    if(!center)return;
+
+    let line=center.querySelector(':scope>.period-title-line');
+    const strong=line?.querySelector(':scope>strong')||center.querySelector(':scope>strong');
+    if(!strong)return;
+
+    if(!line){
+      line=document.createElement('div');
+      line.className='period-title-line';
+      center.insertBefore(line,strong);
+      line.appendChild(strong);
+    }
+    mark(line,'log-period-title-line');
+
+    let button=line.querySelector(':scope>.period-scale-button,:scope>.log-period-scale-button');
+    if(!button){
+      button=document.createElement('button');
+      button.type='button';
+      button.className='period-scale-button log-period-scale-button';
+      button.textContent='⌄';
+      line.appendChild(button);
+    }else{
+      mark(button,'period-scale-button','log-period-scale-button');
+    }
+    button.setAttribute('aria-label','Periodegrootte kiezen');
+    button.setAttribute('title','Periodegrootte kiezen');
+    if(!String(button.textContent||'').trim())button.textContent='⌄';
+  }
+
   function markPeriod(root,kind){
     if(!root)return;
-    const period=kind==='ride'?root.querySelector('#periodNavigator.period-navigator'):root.querySelector(':scope>.period-overview');
+    const period=kind==='ride'
+      ?root.querySelector('#periodNavigator.period-navigator')
+      :root.querySelector(':scope>.period-overview,:scope>.period-nav');
     if(!period)return;
     mark(period,'log-period','log-template-period');
+    period.dataset.logPeriodKind=kind;
+    ensurePeriodControl(period);
     const summary=kind==='ride'?period.querySelector(':scope>.summary'):period.querySelector(':scope>.period-summary');
     if(summary){
       mark(summary,'log-summary');
