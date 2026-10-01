@@ -1,214 +1,7 @@
 (function(){
   'use strict';
 
-  const STYLE_ID='logSharedHomeComponentsStyle';
-
-  function installStyles(){
-    if(document.getElementById(STYLE_ID))return;
-    const style=document.createElement('style');
-    style.id=STYLE_ID;
-    style.textContent=`
-      :root{
-        --log-home-card-pad-x:16px;
-        --log-home-card-pad-top:17px;
-        --log-home-card-pad-bottom:9px;
-        --log-home-grid-gap:12px;
-        --log-home-side-min:174px;
-        --log-home-title-size:28px;
-        --log-home-sub-size:14px;
-        --log-home-meta-size:12px;
-        --log-home-kicker-size:11px;
-        --log-home-primary-height:50px;
-        --log-home-secondary-height:40px;
-        --log-home-period-top:20px;
-        --log-home-period-bottom:20px;
-        --log-home-section-gap:26px;
-      }
-
-      .log-active-card{
-        padding:var(--log-home-card-pad-top) var(--log-home-card-pad-x) var(--log-home-card-pad-bottom)!important;
-        margin:0!important;
-        border:1px solid var(--line)!important;
-        border-radius:16px!important;
-        background:var(--surface,var(--card))!important;
-        box-shadow:none!important;
-      }
-      .log-active-primary{
-        display:grid!important;
-        grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
-        gap:var(--log-home-grid-gap)!important;
-        align-items:stretch!important;
-        min-height:var(--log-home-side-min)!important;
-        margin:0!important;
-      }
-      .log-active-details{
-        display:flex!important;
-        min-width:0!important;
-        flex-direction:column!important;
-      }
-      .log-active-details>.kicker{
-        margin:0 0 8px!important;
-        font-size:var(--log-home-kicker-size)!important;
-        line-height:1.2!important;
-        font-weight:800!important;
-        letter-spacing:.07em!important;
-      }
-      .log-active-details>h2,
-      .log-active-details>.active-route{
-        margin:0 0 4px!important;
-        font-size:clamp(22px,6vw,var(--log-home-title-size))!important;
-        line-height:1.08!important;
-        letter-spacing:-.03em!important;
-      }
-      .log-active-details>.suggestion-sub{
-        margin:0 0 8px!important;
-        color:var(--muted)!important;
-        font-size:var(--log-home-sub-size)!important;
-        line-height:1.25!important;
-      }
-      .log-active-details>.active-meta{
-        display:flex!important;
-        flex-direction:column!important;
-        align-items:flex-start!important;
-        gap:6px!important;
-        margin:0!important;
-        font-size:var(--log-home-meta-size)!important;
-        line-height:1.25!important;
-      }
-      .log-active-details>.active-meta .status,
-      .log-active-details>.active-meta>span{font-size:var(--log-home-meta-size)!important}
-      .log-active-details>.timer-clock{
-        margin:auto 0 0!important;
-        padding-top:10px!important;
-        text-align:left!important;
-        font-size:clamp(34px,10vw,52px)!important;
-        line-height:1!important;
-        letter-spacing:-.045em!important;
-      }
-
-      .log-active-side{
-        display:flex!important;
-        min-height:var(--log-home-side-min)!important;
-        margin:0!important;
-        border:1px solid var(--line)!important;
-        border-radius:15px!important;
-        background:var(--surface2,var(--card2))!important;
-        overflow:hidden!important;
-        box-shadow:none!important;
-      }
-      .log-active-side>.detour-action,
-      .log-active-side>.time-note-action{
-        display:flex!important;
-        flex:1!important;
-        flex-direction:column!important;
-        align-items:center!important;
-        justify-content:center!important;
-        gap:8px!important;
-        width:100%!important;
-        padding:12px 10px!important;
-        border:0!important;
-        background:transparent!important;
-        color:var(--text)!important;
-        text-align:center!important;
-      }
-      .log-active-side .detour-symbol,
-      .log-active-side .time-note-symbol{
-        display:grid!important;
-        place-items:center!important;
-        width:48px!important;
-        height:48px!important;
-        border-radius:14px!important;
-        background:color-mix(in srgb,var(--accent) 10%,transparent)!important;
-        color:var(--accent)!important;
-      }
-      .log-active-side .detour-copy,
-      .log-active-side .time-note-copy{font-size:15px!important;font-weight:750!important;line-height:1.15!important}
-      .log-active-side .detour-total,
-      .log-active-side .time-note-meta{max-width:100%!important;color:var(--muted)!important;font-size:11px!important;line-height:1.25!important}
-      .log-active-side.time-summary-panel{flex-direction:column!important;justify-content:center!important;padding:12px!important}
-
-      .log-primary-action{width:100%!important;min-height:var(--log-home-primary-height)!important;margin:12px 0 0!important;border-radius:13px!important}
-      .log-secondary-actions{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(96px,1fr))!important;gap:6px!important;margin:2px 0 0!important}
-      .log-secondary-actions>.btn,
-      .log-secondary-actions>.ride-tool,
-      .log-secondary-actions>button{
-        min-height:var(--log-home-secondary-height)!important;
-        margin:0!important;
-        padding:7px 4px!important;
-        border:0!important;
-        border-radius:10px!important;
-        background:transparent!important;
-        color:var(--muted)!important;
-        box-shadow:none!important;
-        font-size:12px!important;
-        font-weight:650!important;
-      }
-      .log-secondary-actions>.btn:active,
-      .log-secondary-actions>.ride-tool:active,
-      .log-secondary-actions>button:active{background:color-mix(in srgb,var(--surface2,var(--card2)) 70%,transparent)!important;color:var(--text)!important}
-
-      .log-period:not(.period-entry-mode){
-        margin:0 0 18px!important;
-        padding:var(--log-home-period-top) 0 var(--log-home-period-bottom)!important;
-        border:0!important;
-        border-bottom:1px solid var(--line)!important;
-        border-radius:0!important;
-        background:transparent!important;
-        box-shadow:none!important;
-      }
-      .log-period:not(.period-entry-mode) .period-nav-head,
-      .log-period:not(.period-entry-mode) .period-head{min-height:44px!important;margin:0 0 7px!important;align-items:center!important}
-      .log-period:not(.period-entry-mode) .period-center{gap:4px!important;padding:0!important}
-      .log-period:not(.period-entry-mode) .period-center strong{font-size:25px!important;line-height:1.12!important;letter-spacing:-.025em!important}
-      .log-period:not(.period-entry-mode) .period-center small{margin-top:2px!important;font-size:11px!important;line-height:1.25!important}
-      .log-period:not(.period-entry-mode) .mini,
-      .log-period:not(.period-entry-mode) .period-arrow,
-      .log-period:not(.period-entry-mode) .period-scale-button{
-        width:40px!important;height:40px!important;padding:0!important;border:0!important;border-radius:50%!important;background:transparent!important;color:var(--muted)!important;box-shadow:none!important;font-size:24px!important
-      }
-
-      .log-summary{
-        min-height:126px!important;
-        margin:14px 0 0!important;
-        overflow:hidden!important;
-        border:1px solid var(--line)!important;
-        border-radius:16px!important;
-        background:var(--surface,var(--card))!important;
-        box-shadow:none!important;
-      }
-      .log-summary .summary-head,
-      .log-summary .summary-main{
-        display:flex!important;min-height:78px!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:4px!important;padding:14px 12px 4px!important;text-align:center!important
-      }
-      .log-summary[data-log-summary-kind="ride"] .summary-label{display:none!important}
-      .log-summary[data-log-summary-kind="ride"] .summary-total{display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:4px!important;margin:0!important}
-      .log-summary[data-log-summary-kind="time"] .summary-main{flex-direction:column-reverse!important}
-      .log-summary .summary-total strong,
-      .log-summary .summary-value{margin:0!important;font-size:40px!important;font-weight:850!important;line-height:1!important;letter-spacing:-.045em!important}
-      .log-summary .summary-total small,
-      .log-summary .summary-label{margin:0!important;color:var(--muted)!important;font-size:11px!important;font-weight:650!important;line-height:1.2!important;letter-spacing:0!important;text-transform:none!important}
-      .log-summary .summary-parts{display:flex!important;justify-content:center!important;gap:20px!important;flex-wrap:wrap!important;padding:8px 12px 13px!important;border:0!important}
-      .log-summary .summary-part{flex:0 0 auto!important;padding:0!important;border:0!important;text-align:center!important}
-      .log-summary .summary-part span,
-      .log-summary .summary-part strong{display:inline!important;font-size:11px!important;line-height:1.2!important}
-      .log-summary .summary-part strong{margin:0 0 0 4px!important;font-size:12px!important}
-
-      .log-list-section{margin-top:var(--log-home-section-gap)!important}
-      .log-section-head{min-height:28px!important;margin:0 0 9px!important;padding:0 1px!important;align-items:center!important}
-      .log-section-head h2,
-      .log-section-head h3{margin:0!important;font-size:20px!important;font-weight:750!important;line-height:1.2!important;letter-spacing:-.02em!important}
-      .log-section-head>.muted,
-      .log-section-head>span{font-size:12px!important}
-
-      @media(max-width:360px){
-        :root{--log-home-grid-gap:8px;--log-home-side-min:164px}
-        .log-active-side .detour-symbol,.log-active-side .time-note-symbol{width:44px!important;height:44px!important}
-        .log-active-side.time-summary-panel{padding:9px!important}
-        .log-secondary-actions{grid-template-columns:repeat(auto-fit,minmax(82px,1fr))!important}
-      }
-    `;
-    document.head.appendChild(style);
-  }
+  const VERSION='1.0.0';
 
   function mark(node,...classes){
     if(!node)return null;
@@ -216,15 +9,112 @@
     return node;
   }
 
+  function escapeText(value){
+    return String(value??'').replace(/[&<>"']/g,char=>({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    })[char]);
+  }
+
+  function slot(node,name,...legacyClasses){
+    if(!node)return null;
+    mark(node,`log-top-${name}`,...legacyClasses);
+    node.dataset.logTopSlot=name;
+    return node;
+  }
+
+  function direct(block,selector){
+    return block?.querySelector(`:scope>${selector}`)||null;
+  }
+
+  function ensureIdleIdentity(block,selectors=[]){
+    if(!block)return null;
+    let identity=direct(block,'.log-top-identity');
+    if(identity)return identity;
+
+    const nodes=selectors.map(selector=>direct(block,selector)).filter(Boolean);
+    if(!nodes.length)return null;
+
+    identity=document.createElement('div');
+    identity.className='log-top-identity';
+    identity.dataset.logTopSlot='identity';
+    const first=nodes[0];
+    block.insertBefore(identity,first);
+    nodes.forEach(node=>identity.appendChild(node));
+    return identity;
+  }
+
+  function bindBlock(config={}){
+    const block=config.block;
+    if(!block)return null;
+
+    const module=String(config.module||'generic');
+    const variant=String(config.variant||'idle');
+    mark(block,'log-top-block','log-template-action');
+    block.dataset.logTopModule=module;
+    block.dataset.logTopVariant=variant;
+    block.dataset.logTemplateState=variant==='idle'||variant==='preparing'?'idle':'active';
+
+    const frame=slot(config.frame,'frame','log-active-primary');
+    const identity=slot(config.identity,'identity','log-active-details');
+    const side=slot(config.side,'side','log-active-side');
+    const primaryAction=slot(config.primaryAction,'primary-action','log-primary-action');
+    const secondaryActions=slot(config.secondaryActions,'secondary-actions','log-secondary-actions');
+
+    slot(config.kicker,'kicker');
+    slot(config.title,'title');
+    slot(config.subtitle,'subtitle');
+    slot(config.meta,'meta');
+    slot(config.status,'status');
+    slot(config.primaryValue,'primary-value');
+    slot(config.icon,'icon');
+
+    return {block,frame,identity,side,primaryAction,secondaryActions};
+  }
+
+  /*
+    Rendercontract voor nieuwe modules. Bestaande modules worden hieronder met
+    bindBlock op exact hetzelfde slotmodel aangesloten.
+  */
+  function render(config={}){
+    const module=escapeText(config.module||'generic');
+    const variant=escapeText(config.variant||'idle');
+    const kicker=config.kicker?`<div class="log-top-kicker" data-log-top-slot="kicker">${escapeText(config.kicker)}</div>`:'';
+    const icon=config.iconHtml?`<span class="log-top-icon" data-log-top-slot="icon" aria-hidden="true">${config.iconHtml}</span>`:'';
+    const title=config.title?`<h2 class="log-top-title" data-log-top-slot="title">${escapeText(config.title)}</h2>`:'';
+    const subtitle=config.subtitle?`<p class="log-top-subtitle" data-log-top-slot="subtitle">${escapeText(config.subtitle)}</p>`:'';
+    const primaryValue=config.primaryValue?`<div class="log-top-primary-value" data-log-top-slot="primary-value">${escapeText(config.primaryValue)}</div>`:'';
+    const status=config.status?`<span class="log-top-status" data-log-top-slot="status"><span class="dot"></span>${escapeText(config.status)}</span>`:'';
+    const meta=Array.isArray(config.meta)&&config.meta.length?`<div class="log-top-meta" data-log-top-slot="meta">${status}${config.meta.map(item=>`<span>${escapeText(item)}</span>`).join('')}</div>`:status?`<div class="log-top-meta" data-log-top-slot="meta">${status}</div>`:'';
+    const identity=`<div class="log-top-identity" data-log-top-slot="identity">${icon}${kicker}${title}${subtitle}${meta}${primaryValue}</div>`;
+    const side=config.sideHtml?`<div class="log-top-side" data-log-top-slot="side">${config.sideHtml}</div>`:'';
+    const body=side?`<div class="log-top-frame" data-log-top-slot="frame">${identity}${side}</div>`:identity;
+    const primary=config.primaryActionHtml?`<div class="log-top-primary-action-host">${config.primaryActionHtml}</div>`:'';
+    const secondary=config.secondaryActionsHtml?`<div class="log-top-secondary-actions" data-log-top-slot="secondary-actions">${config.secondaryActionsHtml}</div>`:'';
+    return `<section class="log-top-block log-template-action" data-log-top-module="${module}" data-log-top-variant="${variant}" data-log-template-state="${variant==='idle'||variant==='preparing'?'idle':'active'}">${body}${primary}${secondary}</section>`;
+  }
+
   function markTemplateRoot(root){
     if(root)root.classList.add('log-home-template-root');
   }
 
   function markPrimaryList(root,title){
+    if(!root)return;
     const section=[...root.querySelectorAll(':scope>.section')].find(item=>String(item.querySelector(':scope>.section-title h2,:scope>.section-title h3')?.textContent||'').trim()===title);
     if(!section)return;
     mark(section,'log-template-list','log-list-section');
     mark(section.querySelector(':scope>.section-title'),'log-section-head');
+  }
+
+  function markPeriod(root,kind){
+    if(!root)return;
+    const period=kind==='ride'?root.querySelector('#periodNavigator.period-navigator'):root.querySelector(':scope>.period-overview');
+    if(!period)return;
+    mark(period,'log-period','log-template-period');
+    const summary=kind==='ride'?period.querySelector(':scope>.summary'):period.querySelector(':scope>.period-summary');
+    if(summary){
+      mark(summary,'log-summary');
+      summary.dataset.logSummaryKind=kind;
+    }
   }
 
   function markRide(){
@@ -232,28 +122,42 @@
     if(!root)return;
     markTemplateRoot(root);
 
-    const templateAction=root.querySelector(':scope>.hero');
-    if(templateAction){
-      mark(templateAction,'log-template-action');
-      templateAction.dataset.logTemplateState=templateAction.classList.contains('active-hero')?'active':'idle';
+    const block=root.querySelector(':scope>.hero');
+    if(block){
+      const active=block.classList.contains('active-hero');
+      const preparing=block.classList.contains('arrival-preparing')||block.classList.contains('start-preparing');
+      if(active){
+        const identity=block.querySelector('.active-details');
+        bindBlock({
+          block,
+          module:'rides',
+          variant:preparing?'preparing':'active',
+          frame:block.querySelector('.active-primary'),
+          identity,
+          kicker:identity?.querySelector('.kicker'),
+          title:identity?.querySelector('.active-route'),
+          meta:identity?.querySelector('.active-meta'),
+          status:identity?.querySelector('.status'),
+          side:block.querySelector('.detour-panel'),
+          primaryAction:block.querySelector('.arrival-main'),
+          secondaryActions:block.querySelector('.ride-tools')
+        });
+      }else{
+        const identity=ensureIdleIdentity(block,['.kicker','.home-odometer','p']);
+        bindBlock({
+          block,
+          module:'rides',
+          variant:preparing?'preparing':'idle',
+          identity,
+          kicker:identity?.querySelector('.kicker'),
+          title:identity?.querySelector('.home-odometer,h2'),
+          subtitle:identity?.querySelector('p'),
+          primaryAction:direct(block,'.btn:last-child')
+        });
+      }
     }
 
-    const card=root.querySelector(':scope>.hero.active-hero');
-    if(card){
-      mark(card,'log-active-card');
-      mark(card.querySelector('.active-primary'),'log-active-primary');
-      mark(card.querySelector('.active-details'),'log-active-details');
-      mark(card.querySelector('.detour-panel'),'log-active-side');
-      mark(card.querySelector('.arrival-main'),'log-primary-action');
-      mark(card.querySelector('.ride-tools'),'log-secondary-actions');
-    }
-
-    const period=root.querySelector('#periodNavigator.period-navigator');
-    if(period){
-      mark(period,'log-period','log-template-period');
-      const summary=period.querySelector(':scope>.summary');
-      if(summary){mark(summary,'log-summary');summary.dataset.logSummaryKind='ride';}
-    }
+    markPeriod(root,'ride');
     markPrimaryList(root,'Recente ritten');
   }
 
@@ -262,43 +166,73 @@
     if(!root)return;
     markTemplateRoot(root);
 
-    const templateAction=root.querySelector(':scope>.suggestion,:scope>.active-card');
-    if(templateAction){
-      mark(templateAction,'log-template-action');
-      templateAction.dataset.logTemplateState=templateAction.classList.contains('suggestion')?'idle':'active';
+    const block=root.querySelector(':scope>.suggestion,:scope>.active-card');
+    if(block){
+      const active=block.classList.contains('active-card');
+      const pending=block.classList.contains('time-pending-zone');
+      const preparing=block.classList.contains('context-preparing');
+      if(active){
+        const identity=block.querySelector('.time-active-details')||block;
+        bindBlock({
+          block,
+          module:'time',
+          variant:pending?'pending':preparing?'preparing':'active',
+          frame:block.querySelector('.time-active-primary'),
+          identity,
+          kicker:identity.querySelector('.kicker'),
+          title:identity.querySelector(':scope>h2,.home-action-title'),
+          subtitle:identity.querySelector('.suggestion-sub,.home-action-subtitle'),
+          meta:identity.querySelector('.active-meta,.home-action-meta'),
+          status:identity.querySelector('.status'),
+          primaryValue:identity.querySelector('#timerClock,.timer-clock'),
+          side:block.querySelector('.time-note-panel,.time-summary-panel'),
+          primaryAction:block.querySelector('#stopTimer,#finishPending'),
+          secondaryActions:block.querySelector('.time-active-tools')
+        });
+      }else{
+        const identity=ensureIdleIdentity(block,['.kicker','.home-action-title','.home-action-subtitle','.home-action-meta']);
+        bindBlock({
+          block,
+          module:'time',
+          variant:preparing?'preparing':'idle',
+          identity,
+          kicker:identity?.querySelector('.kicker'),
+          title:identity?.querySelector('.home-action-title,h2'),
+          subtitle:identity?.querySelector('.home-action-subtitle,p'),
+          meta:identity?.querySelector('.home-action-meta'),
+          primaryAction:block.querySelector('#registerTaskInline,.home-action-button')
+        });
+      }
     }
 
-    const card=root.querySelector(':scope>.active-card.time-task-zone');
-    if(card){
-      mark(card,'log-active-card');
-      mark(card.querySelector('.time-active-primary'),'log-active-primary');
-      mark(card.querySelector('.time-active-details'),'log-active-details');
-      mark(card.querySelector('.time-note-panel,.time-summary-panel'),'log-active-side');
-      mark(card.querySelector('#stopTimer,#finishPending'),'log-primary-action');
-      mark(card.querySelector('.time-active-tools'),'log-secondary-actions');
-    }
-
-    const period=root.querySelector('.period-overview');
-    if(period){
-      mark(period,'log-period','log-template-period');
-      const summary=period.querySelector('.period-summary');
-      if(summary){mark(summary,'log-summary');summary.dataset.logSummaryKind='time';}
-    }
+    markPeriod(root,'time');
     markPrimaryList(root,'Registraties');
   }
 
   let queued=false;
   function sync(){
     queued=false;
-    installStyles();
     markRide();
     markTime();
   }
+
   function queueSync(){
     if(queued)return;
     queued=true;
     requestAnimationFrame(sync);
   }
+
+  function adopt(config){
+    return bindBlock(config);
+  }
+
+  window.LogTopBlock=Object.freeze({
+    version:VERSION,
+    render,
+    adopt,
+    sync:queueSync,
+    slots:Object.freeze(['frame','identity','icon','kicker','title','subtitle','meta','status','primary-value','side','primary-action','secondary-actions'])
+  });
 
   function init(){
     sync();
@@ -307,5 +241,6 @@
     for(const eventName of ['pageshow','log-shell-view-refresh','log-time-state-change','log-km-state-change'])window.addEventListener(eventName,queueSync);
   }
 
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});
+  else init();
 })();
