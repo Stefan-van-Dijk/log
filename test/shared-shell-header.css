@@ -1,12 +1,14 @@
 /* Gedeelde shell-laag voor alle Log-modules.
-   De paginakop en schermovergangen worden hier centraal bepaald zodat modules
-   geen eigen titelritme of navigatie-animatie nodig hebben. */
+   De paginakop, schermovergangen en shellbewegingen worden hier centraal bepaald. */
 
 :root{
   --log-shell-title-meta-gap:4px;
   --log-screen-transition-duration:220ms;
   --log-screen-transition-distance:8px;
   --log-screen-transition-ease:cubic-bezier(.22,1,.36,1);
+  --log-drawer-duration:280ms;
+  --log-drawer-backdrop-duration:240ms;
+  --log-drawer-ease:cubic-bezier(.22,1,.36,1);
 }
 
 /* Titel + ondertitel/telling: één vast tweeregelig raster. */
@@ -38,6 +40,48 @@ body.km-shell-scrolled .top.km-shell-top .km-shell-top-copy{
 
 body.km-shell-scrolled .top.km-shell-top .km-shell-meta{
   margin:0!important;
+}
+
+/*
+  Zijmenu als één rustige sheet-beweging.
+  Drawer en backdrop gebruiken dezelfde easing; halfopen en volledig open zijn
+  twee posities van dezelfde transform, zodat er nergens een harde sprong zit.
+*/
+.km-shell-drawer{
+  transform:translate3d(-102%,0,0)!important;
+  transition:
+    transform var(--log-drawer-duration) var(--log-drawer-ease),
+    box-shadow var(--log-drawer-duration) var(--log-drawer-ease)!important;
+  will-change:transform;
+  backface-visibility:hidden;
+}
+
+.km-shell-drawer.open{
+  transform:translate3d(0,0,0)!important;
+}
+
+body.km-shell-drawer-peek .km-shell-drawer.open{
+  transform:translate3d(calc(-100% + min(50vw,330px)),0,0)!important;
+  box-shadow:14px 0 34px rgba(0,0,0,.20)!important;
+}
+
+body.km-shell-drawer-open .km-shell-drawer.open{
+  transform:translate3d(0,0,0)!important;
+  box-shadow:20px 0 52px rgba(0,0,0,.28)!important;
+}
+
+.km-shell-backdrop{
+  opacity:0!important;
+  transition:opacity var(--log-drawer-backdrop-duration) var(--log-drawer-ease)!important;
+  will-change:opacity;
+}
+
+body.km-shell-drawer-peek .km-shell-backdrop.open{
+  opacity:.48!important;
+}
+
+body.km-shell-drawer-open .km-shell-backdrop.open{
+  opacity:1!important;
 }
 
 /*
@@ -99,6 +143,12 @@ body.km-shell-tab-transition .km-shell-search-status:not([hidden]){
   :root{
     --log-screen-transition-duration:1ms;
     --log-screen-transition-distance:0px;
+    --log-drawer-duration:1ms;
+    --log-drawer-backdrop-duration:1ms;
+  }
+  .km-shell-drawer,
+  .km-shell-backdrop{
+    transition-duration:1ms!important;
   }
   body:not(.time-mode):not(.km-shell-locations-mode):not(.km-shell-themes-mode):not(.km-shell-placeholder-mode) #app,
   body.time-mode #timeModuleRoot,
