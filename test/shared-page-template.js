@@ -2,6 +2,7 @@
   'use strict';
 
   const STYLE_ID='logSharedPageTemplateStyle';
+  const GAP_PX=24;
 
   function installStyle(){
     if(document.getElementById(STYLE_ID))return;
@@ -10,6 +11,7 @@
     style.textContent=`
       :root{
         --log-template-action-height:184px;
+        --log-template-action-period-gap:${GAP_PX}px;
         --log-template-card-radius:16px;
         --log-template-card-pad-x:14px;
         --log-template-card-pad-y:17px;
@@ -25,11 +27,6 @@
         --log-template-group-size:11px;
       }
 
-      /*
-       * Eén vaste paginastructuur voor Ritten en Tijd/taken:
-       * action -> period/summary -> primary list.
-       * Alleen de inhoud van de slots verschilt per module.
-       */
       #app.log-home-template-root,
       #main.log-home-template-root{
         --log-home-section-gap:var(--log-template-list-gap);
@@ -46,7 +43,6 @@
         box-shadow:none!important;
       }
 
-      /* De rusttoestand gebruikt letterlijk dezelfde geometrie. */
       #app.log-home-template-root>.log-template-action[data-log-template-state="idle"],
       #main.log-home-template-root>.log-template-action[data-log-template-state="idle"]{
         display:flex!important;
@@ -93,7 +89,6 @@
         border-radius:13px!important;
       }
 
-      /* Het periode-slot heeft in beide modules exact dezelfde buitengeometrie. */
       #app.log-home-template-root>.log-template-period:not(.period-entry-mode),
       #main.log-home-template-root>.log-template-period:not(.period-entry-mode){
         box-sizing:border-box!important;
@@ -122,7 +117,6 @@
         margin:14px 0 0!important;
       }
 
-      /* Zelfde sectieslot onder de samenvatting. */
       #app.log-home-template-root>.log-template-list,
       #main.log-home-template-root>.log-template-list{
         box-sizing:border-box!important;
@@ -143,9 +137,7 @@
       }
 
       #app.log-home-template-root>.log-template-list>.section-title>:not(h2):not(h3),
-      #main.log-home-template-root>.log-template-list>.section-title>:not(h2):not(h3){
-        display:none!important;
-      }
+      #main.log-home-template-root>.log-template-list>.section-title>:not(h2):not(h3){display:none!important}
 
       #app.log-home-template-root>.log-template-list>.section-title h2,
       #app.log-home-template-root>.log-template-list>.section-title h3,
@@ -159,9 +151,7 @@
       }
 
       #app.log-home-template-root>.log-template-list>.trip-group:first-of-type,
-      #main.log-home-template-root>.log-template-list>.activity-group:first-of-type{
-        margin-top:0!important;
-      }
+      #main.log-home-template-root>.log-template-list>.activity-group:first-of-type{margin-top:0!important}
 
       #app.log-home-template-root>.log-template-list>.trip-group:first-of-type>.trip-group-title,
       #main.log-home-template-root>.log-template-list>.activity-group:first-of-type>.activity-group-title{
@@ -195,45 +185,61 @@
     root.querySelectorAll(':scope>.log-template-list').forEach(node=>node.classList.remove('log-template-list'));
   }
 
+  function visibleBetween(action,period){
+    let node=action?.nextElementSibling||null;
+    while(node&&node!==period){
+      const style=getComputedStyle(node);
+      const rect=node.getBoundingClientRect();
+      if(style.display!=='none'&&style.visibility!=='hidden'&&rect.height>.5)return true;
+      node=node.nextElementSibling;
+    }
+    return false;
+  }
+
+  function equalizeActionPeriodGap(action,period){
+    if(!action||!period||period.classList.contains('period-entry-mode'))return;
+    period.style.setProperty('margin-top','0px','important');
+    if(visibleBetween(action,period))return;
+    requestAnimationFrame(()=>{
+      if(!action.isConnected||!period.isConnected||period.classList.contains('period-entry-mode'))return;
+      const current=period.getBoundingClientRect().top-action.getBoundingClientRect().bottom;
+      const target=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--log-template-action-period-gap'))||GAP_PX;
+      const correction=target-current;
+      period.style.setProperty('margin-top',`${Math.round(correction*100)/100}px`,'important');
+      period.dataset.logTemplateGap=String(target);
+    });
+  }
+
   function markRide(){
     const root=document.getElementById('app');
     if(!root)return;
     clean(root);
-
     const action=root.querySelector(':scope>.hero');
     if(action){
       action.classList.add('log-template-action');
       action.dataset.logTemplateState=action.classList.contains('active-hero')?'active':'idle';
     }
-
     const period=root.querySelector(':scope>#periodNavigator.period-navigator');
     if(period)period.classList.add('log-template-period');
-
-    const list=[...root.querySelectorAll(':scope>.section')].find(section=>
-      String(section.querySelector(':scope>.section-title h2,:scope>.section-title h3')?.textContent||'').trim()==='Recente ritten'
-    );
+    const list=[...root.querySelectorAll(':scope>.section')].find(section=>String(section.querySelector(':scope>.section-title h2,:scope>.section-title h3')?.textContent||'').trim()==='Recente ritten');
     if(list)list.classList.add('log-template-list');
+    equalizeActionPeriodGap(action,period);
   }
 
   function markTime(){
     const root=document.getElementById('main');
     if(!root)return;
     clean(root);
-
     const action=root.querySelector(':scope>.suggestion,:scope>.active-card');
     if(action){
       action.classList.add('log-template-action');
-      const state=action.classList.contains('suggestion')?'idle':'active';
-      action.dataset.logTemplateState=state;
+      action.dataset.logTemplateState=action.classList.contains('suggestion')?'idle':'active';
     }
-
     const period=root.querySelector(':scope>.period-overview,:scope>.period-nav');
     if(period)period.classList.add('log-template-period');
-
-    const list=[...root.querySelectorAll(':scope>.section')].find(section=>
-      String(section.querySelector(':scope>.section-title h2,:scope>.section-title h3')?.textContent||'').trim()==='Registraties'
-    );
+    const list=[...root.querySelectorAll(':scope>.section')].find(section=>String(section.querySelector(':scope>.section-title h2,:scope>.section-title h3')?.textContent||'').trim()==='Registraties');
     if(list)list.classList.add('log-template-list');
+    equalizeActionPeriodGap(action,period);
   }
 
   let queued=false;
@@ -252,7 +258,7 @@
   function init(){
     sync();
     new MutationObserver(queue).observe(document.body,{childList:true,subtree:true});
-    for(const eventName of ['pageshow','log-shell-view-refresh','log-time-state-change','log-km-state-change'])window.addEventListener(eventName,queue);
+    for(const eventName of ['pageshow','resize','orientationchange','log-shell-view-refresh','log-time-state-change','log-km-state-change'])window.addEventListener(eventName,queue);
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
