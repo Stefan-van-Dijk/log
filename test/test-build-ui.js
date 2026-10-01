@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const BUILD='0.37-test.46';
+  const BUILD='0.37-test.47';
   window.LOG_TEST_BUILD=BUILD;
 
   function installStyles(){
@@ -60,8 +60,6 @@
     ensureScript(`./period-switch-isolation.js?v=${BUILD}`,'logPeriodSwitchIsolation');
     ensureScript(`./time/active-task-layout.js?v=${BUILD}`,'logActiveTaskLayout');
     ensureScript(`./shared-home-components.js?v=${BUILD}`,'logSharedHomeComponents');
-    ensureScript(`./shared-list-sections.js?v=${BUILD}`,'logSharedListSections');
-    ensureScript(`./shared-page-template.js?v=${BUILD}`,'logSharedPageTemplate');
   }
 
   function syncVersionSurface(){
