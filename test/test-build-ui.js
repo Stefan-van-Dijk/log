@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const BUILD='0.37-test.36';
+  const BUILD='0.37-test.37';
   window.LOG_TEST_BUILD=BUILD;
 
   function installStyles(){
@@ -45,6 +45,7 @@
     ensureScript(`./qr-action-direct.js?v=${BUILD}`,'logDirectQrAction');
     ensureScript(`./task-replace-finish.js?v=${BUILD}`,'logTaskReplaceFinish');
     ensureScript(`./compact-stop-ui.js?v=${BUILD}`,'logCompactStopUi');
+    ensureScript(`./period-switch-isolation.js?v=${BUILD}`,'logPeriodSwitchIsolation');
     ensureScript(`./time/active-task-layout.js?v=${BUILD}`,'logActiveTaskLayout');
     ensureScript(`./shared-home-components.js?v=${BUILD}`,'logSharedHomeComponents');
   }
