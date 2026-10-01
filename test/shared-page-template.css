@@ -19,11 +19,17 @@
   --log-template-group-size:11px;
 }
 
-/* Eén geometrie voor de homepagina van Ritten en Tijd/taken. */
+/* Eén geometrie voor de homepagina van Ritten en Tijd/taken.
+   Zichtbaarheid wordt uitsluitend door de modulehost geregeld. */
 #app.log-home-template-root,
 #main.log-home-template-root{
-  display:block!important;
   --log-home-section-gap:var(--log-template-list-gap);
+}
+
+/* Een verborgen module mag nooit door template-CSS opnieuw zichtbaar worden. */
+#app[hidden],
+#timeModuleRoot[hidden]{
+  display:none!important;
 }
 
 #app.log-home-template-root>.log-template-action,
