@@ -88,7 +88,7 @@
     const identity=`<div class="log-top-identity" data-log-top-slot="identity">${icon}${kicker}${title}${subtitle}${meta}${primaryValue}</div>`;
     const side=config.sideHtml?`<div class="log-top-side" data-log-top-slot="side">${config.sideHtml}</div>`:'';
     const body=side?`<div class="log-top-frame" data-log-top-slot="frame">${identity}${side}</div>`:identity;
-    const primary=config.primaryActionHtml?`<div class="log-top-primary-action-host">${config.primaryActionHtml}</div>`:'';
+    const primary=config.primaryActionHtml?`<div class="log-top-primary-action-host" data-log-top-slot="primary-action">${config.primaryActionHtml}</div>`:'';
     const secondary=config.secondaryActionsHtml?`<div class="log-top-secondary-actions" data-log-top-slot="secondary-actions">${config.secondaryActionsHtml}</div>`:'';
     return `<section class="log-top-block log-template-action" data-log-top-module="${module}" data-log-top-variant="${variant}" data-log-template-state="${variant==='idle'||variant==='preparing'?'idle':'active'}">${body}${primary}${secondary}</section>`;
   }
@@ -172,23 +172,26 @@
       const pending=block.classList.contains('time-pending-zone');
       const preparing=block.classList.contains('context-preparing');
       if(active){
-        const identity=block.querySelector('.time-active-details')||block;
-        bindBlock({
-          block,
-          module:'time',
-          variant:pending?'pending':preparing?'preparing':'active',
-          frame:block.querySelector('.time-active-primary'),
-          identity,
-          kicker:identity.querySelector('.kicker'),
-          title:identity.querySelector(':scope>h2,.home-action-title'),
-          subtitle:identity.querySelector('.suggestion-sub,.home-action-subtitle'),
-          meta:identity.querySelector('.active-meta,.home-action-meta'),
-          status:identity.querySelector('.status'),
-          primaryValue:identity.querySelector('#timerClock,.timer-clock'),
-          side:block.querySelector('.time-note-panel,.time-summary-panel'),
-          primaryAction:block.querySelector('#stopTimer,#finishPending'),
-          secondaryActions:block.querySelector('.time-active-tools')
-        });
+        const frame=block.querySelector('.time-active-primary');
+        const identity=block.querySelector('.time-active-details');
+        if(frame&&identity){
+          bindBlock({
+            block,
+            module:'time',
+            variant:pending?'pending':preparing?'preparing':'active',
+            frame,
+            identity,
+            kicker:identity.querySelector('.kicker'),
+            title:identity.querySelector(':scope>h2,.home-action-title'),
+            subtitle:identity.querySelector('.suggestion-sub,.home-action-subtitle'),
+            meta:identity.querySelector('.active-meta,.home-action-meta'),
+            status:identity.querySelector('.status'),
+            primaryValue:identity.querySelector('#timerClock,.timer-clock'),
+            side:block.querySelector('.time-note-panel,.time-summary-panel'),
+            primaryAction:block.querySelector('#stopTimer,#finishPending'),
+            secondaryActions:block.querySelector('.time-active-tools')
+          });
+        }
       }else{
         const identity=ensureIdleIdentity(block,['.kicker','.home-action-title','.home-action-subtitle','.home-action-meta']);
         bindBlock({
