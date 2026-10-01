@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const BUILD='0.37-test.44';
+  const BUILD='0.37-test.45';
   window.LOG_TEST_BUILD=BUILD;
 
   function installStyles(){
@@ -76,19 +76,10 @@
     });
   }
 
-  let versionSyncQueued=false;
-  function queueVersionSync(){
-    if(versionSyncQueued)return;
-    versionSyncQueued=true;
-    requestAnimationFrame(()=>{versionSyncQueued=false;syncVersionSurface();});
-  }
-
   function render(){installStyles();syncVersionSurface();}
   function init(){
     render();
     ensureCurrentSharingUI();
-    const observer=new MutationObserver(queueVersionSync);
-    observer.observe(document.body,{childList:true,subtree:true});
     window.addEventListener('pageshow',()=>{render();ensureCurrentSharingUI();});
     window.addEventListener('log-shell-view-refresh',render);
   }
