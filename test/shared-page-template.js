@@ -2,7 +2,7 @@
   'use strict';
 
   const STYLE_ID='logSharedPageTemplateStyle';
-  const GAP_PX=24;
+  const ACTION_TO_PERIOD_TITLE_GAP=48;
 
   function installStyle(){
     if(document.getElementById(STYLE_ID))return;
@@ -11,7 +11,7 @@
     style.textContent=`
       :root{
         --log-template-action-height:184px;
-        --log-template-action-period-gap:${GAP_PX}px;
+        --log-template-action-title-gap:${ACTION_TO_PERIOD_TITLE_GAP}px;
         --log-template-card-radius:16px;
         --log-template-card-pad-x:14px;
         --log-template-card-pad-y:17px;
@@ -19,12 +19,21 @@
         --log-template-title-size:30px;
         --log-template-subtitle-size:17px;
         --log-template-button-height:50px;
-        --log-template-period-top:20px;
         --log-template-period-bottom:20px;
         --log-template-summary-height:130px;
-        --log-template-list-gap:16px;
+        --log-template-list-gap:18px;
         --log-template-section-title-size:20px;
+        --log-template-section-to-group-gap:14px;
+        --log-template-group-to-list-gap:8px;
         --log-template-group-size:11px;
+        --log-template-border-color:#2a3039;
+        --log-template-surface:#11151a;
+      }
+      @media(prefers-color-scheme:light){
+        :root{
+          --log-template-border-color:#d7d9de;
+          --log-template-surface:#fff;
+        }
       }
 
       #app.log-home-template-root,
@@ -32,15 +41,23 @@
         --log-home-section-gap:var(--log-template-list-gap);
       }
 
+      /* Exact dezelfde buitenkant voor de hoofdkaarten. */
+      #app.log-home-template-root>.log-template-action,
+      #main.log-home-template-root>.log-template-action,
+      #app.log-home-template-root>.log-template-period .log-summary,
+      #main.log-home-template-root>.log-template-period .log-summary{
+        box-sizing:border-box!important;
+        border:1px solid var(--log-template-border-color)!important;
+        border-radius:var(--log-template-card-radius)!important;
+        background:var(--log-template-surface)!important;
+        box-shadow:none!important;
+        outline:0!important;
+      }
+
       #app.log-home-template-root>.log-template-action,
       #main.log-home-template-root>.log-template-action{
-        box-sizing:border-box!important;
         width:100%!important;
         margin:0!important;
-        border:1px solid var(--line)!important;
-        border-radius:var(--log-template-card-radius)!important;
-        background:var(--surface,var(--card))!important;
-        box-shadow:none!important;
       }
 
       #app.log-home-template-root>.log-template-action[data-log-template-state="idle"],
@@ -89,14 +106,18 @@
         border-radius:13px!important;
       }
 
+      /* Het periodeblok krijgt in beide modules dezelfde buitengeometrie. De
+         visuele afstand tot de titel wordt hieronder ook gemeten en gecorrigeerd. */
       #app.log-home-template-root>.log-template-period:not(.period-entry-mode),
       #main.log-home-template-root>.log-template-period:not(.period-entry-mode){
         box-sizing:border-box!important;
         width:100%!important;
-        margin:0!important;
-        padding:var(--log-template-period-top) 0 var(--log-template-period-bottom)!important;
+        margin-right:0!important;
+        margin-bottom:0!important;
+        margin-left:0!important;
+        padding:0 0 var(--log-template-period-bottom)!important;
         border:0!important;
-        border-bottom:1px solid var(--line)!important;
+        border-bottom:1px solid var(--log-template-border-color)!important;
         border-radius:0!important;
         background:transparent!important;
         box-shadow:none!important;
@@ -115,8 +136,10 @@
         min-height:var(--log-template-summary-height)!important;
         height:var(--log-template-summary-height)!important;
         margin:14px 0 0!important;
+        overflow:hidden!important;
       }
 
+      /* Zelfde ritme tussen samenvatting, sectietitel, datumlabel en stroken. */
       #app.log-home-template-root>.log-template-list,
       #main.log-home-template-root>.log-template-list{
         box-sizing:border-box!important;
@@ -132,7 +155,7 @@
         justify-content:flex-start!important;
         align-items:center!important;
         gap:0!important;
-        margin:0 0 10px!important;
+        margin:0 0 var(--log-template-section-to-group-gap)!important;
         padding:0 1px!important;
       }
 
@@ -150,19 +173,55 @@
         letter-spacing:-.02em!important;
       }
 
-      #app.log-home-template-root>.log-template-list>.trip-group:first-of-type,
-      #main.log-home-template-root>.log-template-list>.activity-group:first-of-type{margin-top:0!important}
+      #app.log-home-template-root .log-template-group,
+      #main.log-home-template-root .log-template-group{
+        margin-top:18px!important;
+        padding-top:0!important;
+      }
+      #app.log-home-template-root .log-template-group.log-template-first-group,
+      #main.log-home-template-root .log-template-group.log-template-first-group{
+        margin-top:0!important;
+      }
 
-      #app.log-home-template-root>.log-template-list>.trip-group:first-of-type>.trip-group-title,
-      #main.log-home-template-root>.log-template-list>.activity-group:first-of-type>.activity-group-title{
+      #app.log-home-template-root .log-template-group-title,
+      #main.log-home-template-root .log-template-group-title{
+        box-sizing:border-box!important;
         margin:0!important;
-        padding:0 2px 7px!important;
+        padding:0 2px var(--log-template-group-to-list-gap)!important;
         color:var(--muted)!important;
         font-size:var(--log-template-group-size)!important;
         line-height:1.2!important;
         font-weight:800!important;
         letter-spacing:.06em!important;
         text-transform:uppercase!important;
+      }
+
+      /* Ook de buitenrand van de rijstroken komt uit hetzelfde template. */
+      #app.log-home-template-root .log-template-group-list,
+      #main.log-home-template-root .log-template-group-list{
+        display:grid!important;
+        gap:0!important;
+        margin:0!important;
+        overflow:hidden!important;
+        border:1px solid var(--log-template-border-color)!important;
+        border-radius:var(--log-template-card-radius)!important;
+        background:var(--log-template-surface)!important;
+        box-shadow:none!important;
+      }
+
+      #app.log-home-template-root .log-template-group-list .trip-swipe-surface.list-item.trip,
+      #main.log-home-template-root .log-template-group-list .activity-swipe-surface.entry{
+        border-top:0!important;
+        border-right:0!important;
+        border-bottom:1px solid var(--log-template-border-color)!important;
+        border-radius:0!important;
+        background:var(--log-template-surface)!important;
+        box-shadow:none!important;
+      }
+      #main.log-home-template-root .log-template-group-list .activity-entry-shell{border-bottom:0!important}
+      #app.log-home-template-root .log-template-group-list .trip-entry:last-child .trip-swipe-surface.list-item.trip,
+      #main.log-home-template-root .log-template-group-list .activity-entry-shell:last-child .activity-swipe-surface.entry{
+        border-bottom:0!important;
       }
 
       @media(max-width:360px){
@@ -180,34 +239,59 @@
   function clean(root){
     if(!root)return;
     root.classList.add('log-home-template-root');
-    root.querySelectorAll(':scope>.log-template-action').forEach(node=>node.classList.remove('log-template-action'));
-    root.querySelectorAll(':scope>.log-template-period').forEach(node=>node.classList.remove('log-template-period'));
-    root.querySelectorAll(':scope>.log-template-list').forEach(node=>node.classList.remove('log-template-list'));
+    root.querySelectorAll('.log-template-action').forEach(node=>node.classList.remove('log-template-action'));
+    root.querySelectorAll('.log-template-period').forEach(node=>node.classList.remove('log-template-period'));
+    root.querySelectorAll('.log-template-list').forEach(node=>node.classList.remove('log-template-list'));
+    root.querySelectorAll('.log-template-group').forEach(node=>node.classList.remove('log-template-group','log-template-first-group'));
+    root.querySelectorAll('.log-template-group-title').forEach(node=>node.classList.remove('log-template-group-title'));
+    root.querySelectorAll('.log-template-group-list').forEach(node=>node.classList.remove('log-template-group-list'));
   }
 
-  function visibleBetween(action,period){
+  function hasMeaningfulVisibleBetween(action,period){
     let node=action?.nextElementSibling||null;
     while(node&&node!==period){
       const style=getComputedStyle(node);
       const rect=node.getBoundingClientRect();
-      if(style.display!=='none'&&style.visibility!=='hidden'&&rect.height>.5)return true;
+      const text=String(node.innerText||'').trim();
+      if(style.display!=='none'&&style.visibility!=='hidden'&&rect.height>.5&&text)return true;
       node=node.nextElementSibling;
     }
     return false;
   }
 
-  function equalizeActionPeriodGap(action,period){
+  function equalizeActionToPeriodTitle(action,period){
     if(!action||!period||period.classList.contains('period-entry-mode'))return;
     period.style.setProperty('margin-top','0px','important');
-    if(visibleBetween(action,period))return;
+    if(hasMeaningfulVisibleBetween(action,period))return;
     requestAnimationFrame(()=>{
       if(!action.isConnected||!period.isConnected||period.classList.contains('period-entry-mode'))return;
-      const current=period.getBoundingClientRect().top-action.getBoundingClientRect().bottom;
-      const target=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--log-template-action-period-gap'))||GAP_PX;
-      const correction=target-current;
+      const title=period.querySelector('.period-center strong');
+      if(!title)return;
+      const actionBottom=action.getBoundingClientRect().bottom;
+      const titleTop=title.getBoundingClientRect().top;
+      const target=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--log-template-action-title-gap'))||ACTION_TO_PERIOD_TITLE_GAP;
+      const correction=target-(titleTop-actionBottom);
       period.style.setProperty('margin-top',`${Math.round(correction*100)/100}px`,'important');
-      period.dataset.logTemplateGap=String(target);
+      period.dataset.logTemplateTitleGap=String(target);
     });
+  }
+
+  function markGroups(list){
+    if(!list)return;
+    const groups=[...list.querySelectorAll('.trip-group,.activity-group')];
+    if(groups.length){
+      groups.forEach((group,index)=>{
+        group.classList.add('log-template-group');
+        if(index===0)group.classList.add('log-template-first-group');
+        const title=group.querySelector(':scope>.trip-group-title,:scope>.activity-group-title,.trip-group-title,.activity-group-title');
+        if(title)title.classList.add('log-template-group-title');
+        const rows=group.querySelector(':scope>.list,.list');
+        if(rows)rows.classList.add('log-template-group-list');
+      });
+      return;
+    }
+    const rows=list.querySelector(':scope>.list,.list');
+    if(rows)rows.classList.add('log-template-group-list');
   }
 
   function markRide(){
@@ -222,8 +306,8 @@
     const period=root.querySelector(':scope>#periodNavigator.period-navigator');
     if(period)period.classList.add('log-template-period');
     const list=[...root.querySelectorAll(':scope>.section')].find(section=>String(section.querySelector(':scope>.section-title h2,:scope>.section-title h3')?.textContent||'').trim()==='Recente ritten');
-    if(list)list.classList.add('log-template-list');
-    equalizeActionPeriodGap(action,period);
+    if(list){list.classList.add('log-template-list');markGroups(list);}
+    equalizeActionToPeriodTitle(action,period);
   }
 
   function markTime(){
@@ -238,8 +322,8 @@
     const period=root.querySelector(':scope>.period-overview,:scope>.period-nav');
     if(period)period.classList.add('log-template-period');
     const list=[...root.querySelectorAll(':scope>.section')].find(section=>String(section.querySelector(':scope>.section-title h2,:scope>.section-title h3')?.textContent||'').trim()==='Registraties');
-    if(list)list.classList.add('log-template-list');
-    equalizeActionPeriodGap(action,period);
+    if(list){list.classList.add('log-template-list');markGroups(list);}
+    equalizeActionToPeriodTitle(action,period);
   }
 
   let queued=false;
