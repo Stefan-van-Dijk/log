@@ -1,0 +1,196 @@
+:root{
+  --log-template-action-height:184px;
+  --log-template-action-period-gap:24px;
+  --log-template-card-radius:16px;
+  --log-template-card-border:1px solid var(--line);
+  --log-template-card-pad-x:14px;
+  --log-template-card-pad-y:17px;
+  --log-template-kicker-size:11px;
+  --log-template-title-size:30px;
+  --log-template-subtitle-size:17px;
+  --log-template-button-height:50px;
+  --log-template-period-top:0px;
+  --log-template-period-bottom:20px;
+  --log-template-summary-height:130px;
+  --log-template-list-gap:16px;
+  --log-template-section-title-size:20px;
+  --log-template-section-to-group-gap:10px;
+  --log-template-group-to-list-gap:8px;
+  --log-template-group-size:11px;
+}
+
+/* Eén geometrie voor de homepagina van Ritten en Tijd/taken. */
+#app.log-home-template-root,
+#main.log-home-template-root{
+  display:block!important;
+  --log-home-section-gap:var(--log-template-list-gap);
+}
+
+#app.log-home-template-root>.log-template-action,
+#main.log-home-template-root>.log-template-action{
+  box-sizing:border-box!important;
+  width:100%!important;
+  margin:0!important;
+  border:var(--log-template-card-border)!important;
+  border-radius:var(--log-template-card-radius)!important;
+  background:var(--card,var(--surface))!important;
+  box-shadow:none!important;
+}
+
+#app.log-home-template-root>.log-template-action[data-log-template-state="idle"],
+#main.log-home-template-root>.log-template-action[data-log-template-state="idle"]{
+  display:flex!important;
+  min-height:var(--log-template-action-height)!important;
+  height:var(--log-template-action-height)!important;
+  flex-direction:column!important;
+  padding:var(--log-template-card-pad-y) var(--log-template-card-pad-x)!important;
+}
+
+#app.log-home-template-root>.log-template-action[data-log-template-state="idle"]>.kicker,
+#main.log-home-template-root>.log-template-action[data-log-template-state="idle"]>.kicker{
+  margin:0 0 8px!important;
+  font-size:var(--log-template-kicker-size)!important;
+  line-height:1.2!important;
+  font-weight:800!important;
+  letter-spacing:.08em!important;
+}
+
+#app.log-home-template-root>.log-template-action[data-log-template-state="idle"]>h2,
+#main.log-home-template-root>.log-template-action[data-log-template-state="idle"]>h2,
+#main.log-home-template-root>.log-template-action[data-log-template-state="idle"] .home-action-title{
+  margin:0 0 6px!important;
+  font-size:var(--log-template-title-size)!important;
+  line-height:1.08!important;
+  font-weight:850!important;
+  letter-spacing:-.035em!important;
+}
+
+#app.log-home-template-root>.log-template-action[data-log-template-state="idle"]>p,
+#main.log-home-template-root>.log-template-action[data-log-template-state="idle"]>p,
+#main.log-home-template-root>.log-template-action[data-log-template-state="idle"] .home-action-subtitle{
+  margin:0!important;
+  color:var(--muted)!important;
+  font-size:var(--log-template-subtitle-size)!important;
+  line-height:1.25!important;
+}
+
+#app.log-home-template-root>.log-template-action[data-log-template-state="idle"]>.btn:last-child,
+#main.log-home-template-root>.log-template-action[data-log-template-state="idle"]>.btn:last-child,
+#main.log-home-template-root>.log-template-action[data-log-template-state="idle"]>#registerTaskInline,
+#main.log-home-template-root>.log-template-action[data-log-template-state="idle"] .home-action-button{
+  width:100%!important;
+  max-width:none!important;
+  min-height:var(--log-template-button-height)!important;
+  height:var(--log-template-button-height)!important;
+  margin:auto 0 0!important;
+  border-radius:13px!important;
+}
+
+/* De afstand na het actieblok komt uit één token, niet uit module-CSS. */
+#app.log-home-template-root>.log-template-period:not(.period-entry-mode),
+#main.log-home-template-root>.log-template-period:not(.period-entry-mode){
+  box-sizing:border-box!important;
+  width:100%!important;
+  margin:var(--log-template-action-period-gap) 0 0!important;
+  padding:var(--log-template-period-top) 0 var(--log-template-period-bottom)!important;
+  border:0!important;
+  border-bottom:1px solid var(--line)!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+
+#app.log-home-template-root>.log-template-period:not(.period-entry-mode) .period-nav-head,
+#main.log-home-template-root>.log-template-period:not(.period-entry-mode) .period-head{
+  min-height:44px!important;
+  margin:0 0 7px!important;
+  align-items:center!important;
+}
+
+#app.log-home-template-root>.log-template-period:not(.period-entry-mode) .log-summary,
+#main.log-home-template-root>.log-template-period:not(.period-entry-mode) .log-summary,
+#app.log-home-template-root>.log-template-period:not(.period-entry-mode) .summary,
+#main.log-home-template-root>.log-template-period:not(.period-entry-mode) .summary{
+  box-sizing:border-box!important;
+  min-height:var(--log-template-summary-height)!important;
+  height:var(--log-template-summary-height)!important;
+  margin:14px 0 0!important;
+  border:var(--log-template-card-border)!important;
+  border-radius:var(--log-template-card-radius)!important;
+  background:var(--card,var(--surface))!important;
+  box-shadow:none!important;
+  overflow:hidden!important;
+}
+
+/* Lijstsectie: titel -> datumgroep -> stroken gebruikt exact hetzelfde ritme. */
+#app.log-home-template-root>.log-template-list,
+#main.log-home-template-root>.log-template-list{
+  box-sizing:border-box!important;
+  width:100%!important;
+  margin:var(--log-template-list-gap) 0 0!important;
+  padding:0!important;
+}
+
+#app.log-home-template-root>.log-template-list>.section-title,
+#main.log-home-template-root>.log-template-list>.section-title{
+  display:flex!important;
+  min-height:24px!important;
+  justify-content:flex-start!important;
+  align-items:center!important;
+  gap:0!important;
+  margin:0 0 var(--log-template-section-to-group-gap)!important;
+  padding:0 1px!important;
+}
+
+#app.log-home-template-root>.log-template-list>.section-title>:not(h2):not(h3),
+#main.log-home-template-root>.log-template-list>.section-title>:not(h2):not(h3){display:none!important}
+
+#app.log-home-template-root>.log-template-list>.section-title h2,
+#app.log-home-template-root>.log-template-list>.section-title h3,
+#main.log-home-template-root>.log-template-list>.section-title h2,
+#main.log-home-template-root>.log-template-list>.section-title h3{
+  margin:0!important;
+  font-size:var(--log-template-section-title-size)!important;
+  line-height:1.2!important;
+  font-weight:800!important;
+  letter-spacing:-.02em!important;
+}
+
+#app.log-home-template-root>.log-template-list>.trip-group:first-of-type,
+#main.log-home-template-root>.log-template-list>.activity-group:first-of-type{
+  margin:0!important;
+  padding:0!important;
+}
+
+#app.log-home-template-root>.log-template-list>.trip-group:first-of-type>.trip-group-title,
+#main.log-home-template-root>.log-template-list>.activity-group:first-of-type>.activity-group-title{
+  margin:0!important;
+  padding:0 2px var(--log-template-group-to-list-gap)!important;
+  border:0!important;
+  color:var(--muted)!important;
+  font-size:var(--log-template-group-size)!important;
+  line-height:1.2!important;
+  font-weight:800!important;
+  letter-spacing:.06em!important;
+  text-transform:uppercase!important;
+}
+
+#app.log-home-template-root>.log-template-list>.trip-group:first-of-type>.list,
+#main.log-home-template-root>.log-template-list>.activity-group:first-of-type>.list,
+#app.log-home-template-root>.log-template-list>.list,
+#main.log-home-template-root>.log-template-list>.list{
+  gap:0!important;
+  overflow:hidden!important;
+  border:var(--log-template-card-border)!important;
+  border-radius:var(--log-template-card-radius)!important;
+  background:var(--card,var(--surface))!important;
+}
+
+@media(max-width:360px){
+  :root{
+    --log-template-action-height:178px;
+    --log-template-title-size:28px;
+    --log-template-subtitle-size:16px;
+    --log-template-summary-height:126px;
+  }
+}
