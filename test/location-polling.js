@@ -1,6 +1,6 @@
 (function(){
   'use strict';
-  const BUILD='0.37-test.57';
+  const BUILD='0.39-test.1';
   window.LOG_TEST_BUILD=BUILD;
   const listeners=new Set(),KM='kmreg-test-v4-data',REFRESH_KEY='log-test-location-refresh-v1';
   const ALLOWED_INTERVALS=new Set([5000,10000,15000,30000,60000,120000,300000]);
