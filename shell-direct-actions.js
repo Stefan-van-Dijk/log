@@ -12,8 +12,8 @@
   const SHARE_STORE='log-test-sharing-v1';
   const SHARE_STATUS_STORE='log-test-sharing-status-v1';
   const SHARED_UPDATE_STORE='log-test-shared-config-updates-v2';
-  const KM_STORE='kmreg-v4-data';
-  const TIME_STORE='urenregistratie.pwa.v1';
+  const KM_STORE='kmreg-test-v4-data';
+  const TIME_STORE='urenregistratie.test.pwa.v1';
   const VALID_SHARED_ID=/^[A-Za-z0-9_-]{12}$/;
   let gesture=null;
   let statusObserver=null;

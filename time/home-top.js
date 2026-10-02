@@ -31,10 +31,16 @@
     if (count && count.textContent !== countText) count.textContent = countText;
   }
 
+  function taskPreparationOpen() {
+    const entryMode = document.querySelector('#main > .period-entry-mode');
+    if (!entryMode) return false;
+    return Boolean(entryMode.querySelector('#startInlineTask, #addInlineFirstTheme'));
+  }
+
   function syncPrimaryAction() {
     const button = document.querySelector('#registerTaskInline');
     if (!button) return;
-    const preparing = Boolean(document.querySelector('.period-entry-mode'));
+    const preparing = taskPreparationOpen();
     const label = preparing ? 'Annuleer taak' : 'Taak registreren';
     button.hidden = false;
     if (button.textContent !== label) button.textContent = label;
@@ -52,7 +58,7 @@
     const button = event.target.closest?.('#registerTaskInline');
     if (!button) return;
 
-    if (document.querySelector('.period-entry-mode')) {
+    if (taskPreparationOpen()) {
       event.preventDefault();
       event.stopImmediatePropagation();
       document.dispatchEvent(new CustomEvent('time:cancel-inline-task'));
@@ -60,7 +66,7 @@
     }
 
     requestAnimationFrame(() => {
-      document.querySelector('.period-entry-mode')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      document.querySelector('#main > .period-entry-mode')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     });
   }, true);
 

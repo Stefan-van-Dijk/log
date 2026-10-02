@@ -1,24 +1,24 @@
 (function () {
   'use strict';
 
-  const BUILD = window.LOG_BUILD || '0.35';
+  const BUILD = window.LOG_TEST_BUILD || '0.35.1-test.2';
   const SHELL_VERSION = (() => {
     try {
       const script = document.currentScript || [...document.scripts].find(item => item.src.includes('shell-ui.js'));
-      return window.LOG_BUILD || new URL(script?.src || location.href).searchParams.get('v') || BUILD;
+      return window.LOG_TEST_BUILD || new URL(script?.src || location.href).searchParams.get('v') || BUILD;
     } catch (_) {
       return BUILD;
     }
   })();
-  const DATA_KEY = 'kmreg-v4-data';
+  const DATA_KEY = 'kmreg-test-v4-data';
   const KM_STATE_EVENT = 'log-km-state-change';
-  const MODE_KEY = 'kmreg-active-app-v1';
-  const SECTION_KEY = 'kmreg-shell-section-v1';
-  const DRAWER_KEY = 'kmreg-shell-drawer-v1';
+  const MODE_KEY = 'kmreg-test-active-app-v1';
+  const SECTION_KEY = 'kmreg-test-shell-section-v1';
+  const DRAWER_KEY = 'kmreg-test-shell-drawer-v1';
   const MENU_DOCUMENT_URL = './config/modules.json';
-  const MENU_DOCUMENT_CACHE_KEY = 'log-menu-document-v6';
+  const MENU_DOCUMENT_CACHE_KEY = 'log-test-menu-document-v6';
   const MENU_SCHEMA_VERSION = 3;
-  const THEMES_NAVIGATION_MIGRATION_KEY = 'log-native-themes-navigation-v1';
+  const THEMES_NAVIGATION_MIGRATION_KEY = 'log-test-native-themes-navigation-v1';
   const FALLBACK_MENU_DOCUMENT = {
     schemaVersion: MENU_SCHEMA_VERSION,
     modules: [
@@ -761,7 +761,7 @@
       <div class="km-shell-drawer-spacer"></div>
       <div class="km-shell-drawer-bottom">
         <button id="kmShellSettingsButton" class="km-shell-nav-button km-shell-settings-button" type="button" aria-label="Instellingen"><span class="icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3A1.7 1.7 0 0 0 10 3v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg></span><span>Instellingen</span></button>
-        <div class="km-shell-drawer-footer"><span class="km-shell-version" aria-label="Geladen versie ${SHELL_VERSION}"><span class="km-shell-version-number">${SHELL_VERSION}</span></span></div>
+        <div class="km-shell-drawer-footer"><span class="km-shell-version" aria-label="Geladen testversie ${SHELL_VERSION}"><span class="km-shell-version-label">TEST</span><span class="km-shell-version-number">${SHELL_VERSION}</span></span></div>
       </div>`;
 
     drawer.addEventListener('click', event => {
@@ -915,7 +915,7 @@
     if (section !== 'time') return;
     const previous = select.value || 'all';
     let time = {};
-    try { time = JSON.parse(localStorage.getItem('urenregistratie.pwa.v1') || '{}'); } catch (_) {}
+    try { time = JSON.parse(localStorage.getItem('urenregistratie.test.pwa.v1') || '{}'); } catch (_) {}
     const periodEntries = visiblePeriodTimeEntries(time);
     const model = window.LogTimeFilterModel?.buildOptions?.({
       themes: Array.isArray(time.themes) ? time.themes : [],
@@ -1562,7 +1562,7 @@
         wantedMeta = `${data.locations.length} locaties${childCount ? ` · ${childCount} sublocaties` : ''}`;
       } else if (section === 'time') {
         try {
-          const time = JSON.parse(localStorage.getItem('urenregistratie.pwa.v1') || '{}');
+          const time = JSON.parse(localStorage.getItem('urenregistratie.test.pwa.v1') || '{}');
           const entries = Array.isArray(time.entries) ? time.entries.filter(entry => entry.activityType !== 'interruption') : [];
           wantedMeta = `${entries.length} ${entries.length === 1 ? 'taak' : 'taken'} geregistreerd${time.timer?.status === 'active' ? ' · timer actief' : ''}`;
         } catch (_) {
@@ -2694,8 +2694,8 @@
   }
 
   function bindGlobalEvents() {
-    window.addEventListener('kmreg-shell-select-section', event => selectSection(event.detail?.section));
-    window.addEventListener('kmreg-shell-open-settings', event => openSettingsSheet(event.detail?.target || ''));
+    window.addEventListener('kmreg-test-shell-select-section', event => selectSection(event.detail?.section));
+    window.addEventListener('kmreg-test-shell-open-settings', event => openSettingsSheet(event.detail?.target || ''));
     window.addEventListener('log-time-state-change', () => {
       if (section === 'themes') refreshThemesFromStorage();
       syncChrome();
@@ -2793,7 +2793,7 @@
     window.addEventListener('storage', event => {
       if (event.key === DATA_KEY) {
         refreshKmState();
-      } else if (event.key === 'urenregistratie.pwa.v1') {
+      } else if (event.key === 'urenregistratie.test.pwa.v1') {
         if (section === 'themes') refreshThemesFromStorage();
         syncChrome();
       }

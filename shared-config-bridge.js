@@ -1,12 +1,9 @@
 (function(){
   'use strict';
 
-  const TIME='urenregistratie.test.pwa.v1';
   const ID_PATTERN=/^[A-Za-z0-9_-]{12}$/;
   let timer=null,attempts=0;
 
-  const esc=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
-  const readTime=()=>{try{const value=JSON.parse(localStorage.getItem(TIME)||'{}');return value&&typeof value==='object'?value:{};}catch(_){return {};}};
   const list=(raw,key)=>Array.isArray(raw?.[key])?raw[key]:[];
 
   function normalizeLogCodeSource(value){
@@ -31,44 +28,6 @@
       if(['theme','subtheme'].includes(entity?.type)&&!ID_PATTERN.test(entity.id||''))throw Error('Thema- en subthema-identifiers bestaan uit exact 12 tekens: A–Z, a–z, 0–9, - en _.');
     }
     return payload;
-  }
-
-  function resolveTask(id){
-    if(!ID_PATTERN.test(id||''))throw Error('Ongeldige taakidentifier.');
-    const time=readTime();
-    const matches=list(time,'subthemes').filter(sub=>sub?.logCodeId===id);
-    if(!matches.length)throw Error('Deze taakcode is op dit apparaat nog niet bekend. Pas eerst de bijbehorende configuratie toe.');
-    if(matches.length>1)throw Error('Deze taakcode is meerdere keren aan een subthema gekoppeld. Controleer eerst de configuratie.');
-    const subtheme=matches[0];
-    const theme=list(time,'themes').find(item=>String(item?.id)===String(subtheme.themeId));
-    if(!theme)throw Error('Het bovenliggende thema van deze taak ontbreekt. Pas de bijbehorende configuratie opnieuw toe.');
-    return {theme,subtheme};
-  }
-
-  function previewTask(payload){
-    const ui=window.LogCardsUI;
-    let resolved;
-    try{resolved=resolveTask(payload.id);}catch(error){
-      const panel=ui.sheet('Taak niet beschikbaar',`<p role="status">${esc(error.message)}</p><button class="btn full" data-log-task-close>Terug</button>`);
-      panel.querySelector('[data-log-task-close]').onclick=()=>ui.close();
-      return panel;
-    }
-    const panel=ui.sheet('Taak herkend',`<h3>${esc(resolved.theme.name||'Thema')}</h3><p>${esc(resolved.subtheme.name||'Subthema')}</p><button class="btn full cards-scan-action" data-log-task-start>Taak starten</button><p class="cards-notice">Log gebruikt de lokale thema- en subthema-identifiers. Controleer de registratie en bevestig daarna met Start.</p><p role="status" data-log-task-status></p>`);
-    panel.querySelector('[data-log-task-start]').onclick=()=>{
-      const button=panel.querySelector('[data-log-task-start]');
-      if(button.disabled)return;
-      button.disabled=true;
-      try{
-        const current=resolveTask(payload.id);
-        if(!window.LogTimeModule?.prepareFromCode)throw Error('Tijd / taken is nog niet beschikbaar.');
-        window.LogTimeModule.prepareFromCode({themeId:current.theme.id,subthemeId:current.subtheme.id,locationName:'',note:current.subtheme.name||''});
-        ui.close();
-      }catch(error){
-        panel.querySelector('[data-log-task-status]').textContent=error.message;
-        button.disabled=false;
-      }
-    };
-    return panel;
   }
 
   function recognizedKind(value){
@@ -134,7 +93,6 @@
     if(!api.preview.__executablePayloadBridge){
       const originalPreview=api.preview.bind(api);
       const wrappedPreview=function(payload){
-        if(payload?.kind==='log-task')return previewTask(payload);
         if(payload?.kind==='log-action'&&typeof payload.id==='string'&&shared?.hasConfiguration?.(payload.id))return shared.openByIdentifier(payload.id);
         return originalPreview(payload);
       };
@@ -155,7 +113,7 @@
       cards.show=wrappedShow;
     }
 
-    window.LogExecutablePayloadBridge={resolveTask,executableCardPayload,augmentCard};
+    window.LogExecutablePayloadBridge={executableCardPayload,augmentCard};
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});

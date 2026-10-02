@@ -1,6 +1,6 @@
 (function(){
   'use strict';
-  const KM='kmreg-v4-data',TIME='urenregistratie.pwa.v1';
+  const KM='kmreg-test-v4-data',TIME='urenregistratie.test.pwa.v1';
   function settings(key){try{return JSON.parse(localStorage.getItem(key)||'{}').settings||{};}catch(_){return {};}}
   const modules={rides:'Ritten',time:'Tijd en taken',locations:'Locaties',themes:'Thema’s',people:'Personen',cards:'Kaarten',locationactions:'Acties'};
   function configured(module){
