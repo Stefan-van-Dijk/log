@@ -44,8 +44,8 @@
 
   function ensureCurrentModules(){
     ensureStylesheet(`./shared-page-template.css?v=${BUILD}`,'logSharedPageTemplateCss');
-    ensureStylesheet(`./shared-home-components.css?v=${BUILD}`,'logSharedHomeComponentsCss');
-    ensureStylesheet(`./shared-shell-header.css?v=${BUILD}`,'logSharedShellHeaderCss');
+    ensureStylesheet(`./shared-home-components.css?v=${BUILD}`,'logSharedHomeComponents');
+    ensureStylesheet(`./shared-shell-header.css?v=${BUILD}`,'logSharedShellHeader');
     const wanted=`sharing-private-ui.js?v=${BUILD}`;
     const scripts=[...document.querySelectorAll('script[data-log-sharing-ui]')];
     if(!scripts.some(script=>script.src.includes(wanted))){
