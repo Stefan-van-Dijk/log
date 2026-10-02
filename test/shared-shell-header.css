@@ -44,15 +44,17 @@ body.km-shell-scrolled .top.km-shell-top .km-shell-meta{
 
 /*
   Zijmenu als één rustige sheet-beweging.
-  Drawer en backdrop gebruiken dezelfde easing; halfopen en volledig open zijn
-  twee posities van dezelfde transform, zodat er nergens een harde sprong zit.
+  Halfopen is een smallere drawer vanaf de linkerrand. De inhoud blijft dus
+  zichtbaar; we schuiven niet langer de helft van de drawer buiten beeld.
 */
 .km-shell-drawer{
+  width:min(90vw,360px)!important;
   transform:translate3d(-102%,0,0)!important;
   transition:
     transform var(--log-drawer-duration) var(--log-drawer-ease),
+    width var(--log-drawer-duration) var(--log-drawer-ease),
     box-shadow var(--log-drawer-duration) var(--log-drawer-ease)!important;
-  will-change:transform;
+  will-change:transform,width;
   backface-visibility:hidden;
 }
 
@@ -61,11 +63,13 @@ body.km-shell-scrolled .top.km-shell-top .km-shell-meta{
 }
 
 body.km-shell-drawer-peek .km-shell-drawer.open{
-  transform:translate3d(calc(-100% + min(50vw,330px)),0,0)!important;
+  width:min(50vw,230px)!important;
+  transform:translate3d(0,0,0)!important;
   box-shadow:14px 0 34px rgba(0,0,0,.20)!important;
 }
 
 body.km-shell-drawer-open .km-shell-drawer.open{
+  width:min(90vw,360px)!important;
   transform:translate3d(0,0,0)!important;
   box-shadow:20px 0 52px rgba(0,0,0,.28)!important;
 }
@@ -77,7 +81,7 @@ body.km-shell-drawer-open .km-shell-drawer.open{
 }
 
 body.km-shell-drawer-peek .km-shell-backdrop.open{
-  opacity:.48!important;
+  opacity:.32!important;
 }
 
 body.km-shell-drawer-open .km-shell-backdrop.open{
