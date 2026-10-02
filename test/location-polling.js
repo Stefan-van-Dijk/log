@@ -1,8 +1,8 @@
 (function(){
   'use strict';
-  const BUILD='0.37-test.34';
+  const BUILD='0.37-test.57';
   window.LOG_TEST_BUILD=BUILD;
-  const listeners=new Set(),KM='kmreg-test-v4-data';
+  const listeners=new Set(),KM='kmreg-test-v4-data',REFRESH_KEY='log-test-location-refresh-v1';
   const ALLOWED_INTERVALS=new Set([5000,10000,15000,30000,60000,120000,300000]);
   let latest=null,pending=null,lastAttempt=0,visibleTrip='',started=false;
 
@@ -22,9 +22,11 @@
     document.head.appendChild(script);
   }
   function loadLocationRefreshSetting(){
-    if(document.querySelector('script[data-log-location-refresh-setting]'))return;
+    const existing=document.querySelector('script[data-log-location-refresh-setting]');
+    if(existing&&existing.src.includes(`v=${BUILD}`))return;
+    existing?.remove();
     const script=document.createElement('script');
-    script.src='./location-refresh-setting.js?v=1';
+    script.src=`./location-refresh-setting.js?v=${BUILD}`;
     script.async=false;
     script.dataset.logLocationRefreshSetting='1';
     document.head.appendChild(script);
@@ -94,19 +96,71 @@
     script.dataset.logSharedUpdateCompact='1';
     document.head.appendChild(script);
   }
+
   function state(){try{return JSON.parse(localStorage.getItem(KM)||'{}')||{};}catch(_){return {};}}
   function trip(){return state().activeTrip?.id||'';}
-  function configuredInterval(){
-    const value=Number(state()?.settings?.locationRefreshIntervalMs);
-    return ALLOWED_INTERVALS.has(value)?value:0;
+  function refreshConfig(){
+    try{
+      const raw=localStorage.getItem(REFRESH_KEY);
+      if(raw!==null){
+        const parsed=JSON.parse(raw)||{},zones={};
+        for(const [id,value] of Object.entries(parsed.zones||{})){const interval=Number(value);if(id&&ALLOWED_INTERVALS.has(interval))zones[id]=interval;}
+        const global=Number(parsed.globalIntervalMs);
+        return {globalIntervalMs:ALLOWED_INTERVALS.has(global)?global:0,zones};
+      }
+    }catch(_){}
+    const legacy=Number(state()?.settings?.locationRefreshIntervalMs);
+    return {globalIntervalMs:ALLOWED_INTERVALS.has(legacy)?legacy:0,zones:{}};
   }
-  function interval(){return configuredInterval()||(trip()?60000:6000);}
+  function locationCoordinates(location,snapshot,seen=new Set()){
+    if(!location||seen.has(location.id))return null;
+    seen.add(location.id);
+    const lat=Number(location.lat),lng=Number(location.lng);
+    if(Number.isFinite(lat)&&Number.isFinite(lng)&&Math.abs(lat)<=90&&Math.abs(lng)<=180)return {lat,lng};
+    return location.parentId?locationCoordinates((snapshot.locations||[]).find(item=>item.id===location.parentId),snapshot,seen):null;
+  }
+  function distanceMeters(a,b){
+    const r=Math.PI/180,dLat=(b.lat-a.lat)*r,dLng=(b.lng-a.lng)*r;
+    const q=Math.sin(dLat/2)**2+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dLng/2)**2;
+    return 6371000*2*Math.asin(Math.min(1,Math.sqrt(q)));
+  }
+  function activeZoneInterval(){
+    if(!latest?.coords)return 0;
+    const snapshot=state(),config=refreshConfig(),locations=Array.isArray(snapshot.locations)?snapshot.locations:[];
+    const current={lat:Number(latest.coords.latitude),lng:Number(latest.coords.longitude)};
+    if(!Number.isFinite(current.lat)||!Number.isFinite(current.lng))return 0;
+    const defaultRadius=Math.max(25,Number(snapshot.settings?.recognitionRadius)||500),matches=[];
+    for(const [id,intervalValue] of Object.entries(config.zones)){
+      const interval=Number(intervalValue);
+      if(!ALLOWED_INTERVALS.has(interval))continue;
+      const location=locations.find(item=>item.id===id),coords=locationCoordinates(location,snapshot);
+      if(!coords)continue;
+      const recognitionRadius=Math.max(25,Number(location?.recognitionRadius)||defaultRadius);
+      const zoneRadius=Math.max(100,recognitionRadius*2);
+      if(distanceMeters(current,coords)<=zoneRadius)matches.push(interval);
+    }
+    return matches.length?Math.min(...matches):0;
+  }
+  function interval(){
+    const zone=activeZoneInterval();
+    if(zone)return zone;
+    const global=refreshConfig().globalIntervalMs;
+    return global||(trip()?60000:6000);
+  }
+  function intervalInfo(){
+    const zone=activeZoneInterval();
+    if(zone)return {intervalMs:zone,source:'zone'};
+    const global=refreshConfig().globalIntervalMs;
+    if(global)return {intervalMs:global,source:'global'};
+    return {intervalMs:trip()?60000:6000,source:'automatic'};
+  }
   function request({maxAge=0}={}){
     if(document.hidden)return Promise.reject(new Error('Log staat op de achtergrond.'));
     if(maxAge>0&&latest&&Date.now()-latest.timestamp<=maxAge)return Promise.resolve(latest);
     if(pending)return pending;
     if(!navigator.geolocation)return Promise.reject(new Error('GPS wordt niet ondersteund.'));
     lastAttempt=Date.now();
+    window.dispatchEvent(new CustomEvent('log-location-check-start',{detail:intervalInfo()}));
     pending=new Promise((resolve,reject)=>{
       navigator.geolocation.getCurrentPosition(pos=>{
         const c=pos.coords,now=Date.now();
@@ -115,7 +169,10 @@
         if(!document.hidden)for(const listener of listeners)try{listener(pos);}catch(error){console.warn('Locatie verwerken mislukt',error);}
         resolve(pos);
       },reject,{enableHighAccuracy:true,maximumAge:0,timeout:12000});
-    }).catch(error=>{if(!document.hidden)for(const listener of listeners)try{listener(null,error);}catch(_){}throw error;}).finally(()=>{pending=null;});
+    }).catch(error=>{if(!document.hidden)for(const listener of listeners)try{listener(null,error);}catch(_){}throw error;}).finally(()=>{
+      pending=null;
+      window.dispatchEvent(new CustomEvent('log-location-check-end'));
+    });
     return pending;
   }
   function poll(force=false){
@@ -127,6 +184,7 @@
   window.LogLocationPolling={
     request,
     interval,
+    intervalInfo,
     refreshNow(){lastAttempt=0;poll(true);},
     subscribe(listener){listeners.add(listener);if(latest&&!document.hidden&&Date.now()-latest.timestamp<=interval())listener(latest);return()=>listeners.delete(listener);}
   };
