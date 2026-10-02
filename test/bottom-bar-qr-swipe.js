@@ -3,6 +3,8 @@
 
   const ARM_DISTANCE=8;
   const OPEN_DISTANCE=36;
+  const FULL_SWIPE_EXTRA=32;
+  const CLOSE_DISTANCE=36;
   const MAX_VERTICAL=30;
   const CLICK_SUPPRESS_MS=460;
   let gesture=null;
@@ -12,6 +14,7 @@
   const scanIcon=`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H4a1 1 0 0 0-1 1v4M16 3h4a1 1 0 0 1 1 1v4M21 16v4a1 1 0 0 1-1 1h-4M8 21H4a1 1 0 0 1-1-1v-4"/><rect x="8" y="8" width="3" height="3" rx=".35"/><rect x="14" y="8" width="2" height="2" rx=".3"/><rect x="8" y="14" width="2" height="2" rx=".3"/><path d="M14 14h3v3h-3z"/></svg>`;
 
   function actionWidth(){return window.innerWidth<=520?78:84;}
+  function fullSwipeDistance(){return actionWidth()+FULL_SWIPE_EXTRA;}
 
   function installStyles(){
     if(document.getElementById('logBottomBarQrSwipeStyles'))return;
@@ -66,10 +69,14 @@
         opacity:1;
         transform:translateX(calc(-100% + var(--log-qr-swipe-x,0px)));
         transition:none;
+        pointer-events:none;
       }
       #kmShellTabBar.log-qr-swipe-dragging>.km-shell-tab-button{
         transform:translateX(var(--log-qr-swipe-x,0px))!important;
         transition:none!important;
+      }
+      #kmShellTabBar.log-qr-swipe-full>.log-bottom-scan-action{
+        filter:brightness(1.18);
       }
       #kmShellTabBar.log-qr-swipe-open>.log-bottom-scan-action{
         opacity:1;
@@ -162,7 +169,7 @@
   function closeSwipe(animated=true){
     const bar=boundBar||document.getElementById('kmShellTabBar');
     if(!bar)return;
-    bar.classList.remove('log-qr-swipe-dragging','log-qr-swipe-open');
+    bar.classList.remove('log-qr-swipe-dragging','log-qr-swipe-open','log-qr-swipe-full');
     bar.style.removeProperty('--log-qr-swipe-x');
     if(animated){
       bar.classList.add('log-qr-swipe-settling');
@@ -173,9 +180,20 @@
 
   function openSwipe(bar){
     ensureAction(bar);
-    bar.classList.remove('log-qr-swipe-dragging','log-qr-swipe-settling');
+    bar.classList.remove('log-qr-swipe-dragging','log-qr-swipe-settling','log-qr-swipe-full');
     bar.style.removeProperty('--log-qr-swipe-x');
     bar.classList.add('log-qr-swipe-open');
+  }
+
+  function beginGesture(bar,event,mode){
+    const width=actionWidth();
+    gesture={pointerId:event.pointerId,startX:event.clientX,startY:event.clientY,dx:0,travel:0,horizontal:false,cancelled:false,mode};
+    if(mode==='close'){
+      bar.classList.remove('log-qr-swipe-open','log-qr-swipe-settling');
+      bar.classList.add('log-qr-swipe-dragging');
+      bar.style.setProperty('--log-qr-swipe-x',`${width}px`);
+    }
+    try{bar.setPointerCapture(event.pointerId);}catch(_){ }
   }
 
   function bindBar(bar){
@@ -187,14 +205,16 @@
     bar.addEventListener('pointerdown',event=>{
       if(event.button!=null&&event.button!==0)return;
       if(event.isPrimary===false||scannerBlocked())return;
-      if(event.target.closest('.log-bottom-scan-action'))return;
-      if(bar.classList.contains('log-qr-swipe-open'))return;
+      const isOpen=bar.classList.contains('log-qr-swipe-open');
+      if(isOpen){
+        beginGesture(bar,event,'close');
+        return;
+      }
       const rect=bar.getBoundingClientRect();
       const startX=event.clientX-rect.left;
       if(startX<0||startX>actionWidth())return;
       ensureAction(bar);
-      gesture={pointerId:event.pointerId,startX:event.clientX,startY:event.clientY,dx:0,horizontal:false,cancelled:false};
-      try{bar.setPointerCapture(event.pointerId);}catch(_){ }
+      beginGesture(bar,event,'open');
     });
 
     bar.addEventListener('pointermove',event=>{
@@ -206,45 +226,80 @@
 
       if(!active.horizontal){
         if(ay>ARM_DISTANCE&&ay>ax){active.cancelled=true;return;}
-        if(rawX>ARM_DISTANCE&&ax>ay){
+        const correct=active.mode==='open'?rawX>ARM_DISTANCE:rawX<-ARM_DISTANCE;
+        if(correct&&ax>ay){
           active.horizontal=true;
           bar.classList.add('log-qr-swipe-dragging');
-        }else if(rawX<0&&ax>ARM_DISTANCE){
+        }else if(ax>ARM_DISTANCE){
           active.cancelled=true;
           return;
         }else return;
       }
 
       if(event.cancelable)event.preventDefault();
-      const dx=Math.max(0,Math.min(actionWidth(),rawX));
-      active.dx=dx;
-      bar.style.setProperty('--log-qr-swipe-x',`${dx}px`);
-      ensureAction(bar).style.filter=dx>=OPEN_DISTANCE?'brightness(1.08)':'';
+      const width=actionWidth();
+      if(active.mode==='open'){
+        const travel=Math.max(0,rawX);
+        const overshoot=Math.max(0,travel-width);
+        const visual=Math.min(width+18,Math.min(width,travel)+overshoot*.22);
+        active.dx=visual;
+        active.travel=travel;
+        bar.style.setProperty('--log-qr-swipe-x',`${visual}px`);
+        bar.classList.toggle('log-qr-swipe-full',travel>=fullSwipeDistance());
+      }else{
+        const closeTravel=Math.max(0,-rawX);
+        const remaining=Math.max(0,width-closeTravel);
+        active.dx=remaining;
+        active.travel=closeTravel;
+        bar.style.setProperty('--log-qr-swipe-x',`${remaining}px`);
+        bar.classList.remove('log-qr-swipe-full');
+      }
     },{passive:false});
 
     const finish=event=>{
       const active=gesture;
       if(!active||active.pointerId!==event.pointerId)return;
-      if(active.cancelled||!active.horizontal){resetGesture();return;}
+      const vertical=Math.abs(event.clientY-active.startY);
+      if(active.cancelled||!active.horizontal){
+        if(active.mode==='close')openSwipe(bar);
+        resetGesture();
+        return;
+      }
       suppressClickUntil=Date.now()+CLICK_SUPPRESS_MS;
       if(event.cancelable)event.preventDefault();
       event.stopPropagation();
-      ensureAction(bar).style.filter='';
-      if(active.dx>=OPEN_DISTANCE&&Math.abs(event.clientY-active.startY)<=MAX_VERTICAL)openSwipe(bar);
-      else closeSwipe(true);
+      bar.classList.remove('log-qr-swipe-full');
+
+      if(active.mode==='close'){
+        if(active.travel>=CLOSE_DISTANCE&&vertical<=MAX_VERTICAL)closeSwipe(true);
+        else openSwipe(bar);
+        resetGesture();
+        return;
+      }
+
+      if(active.travel>=fullSwipeDistance()&&vertical<=MAX_VERTICAL){
+        closeSwipe(false);
+        openScanner();
+      }else if(active.travel>=OPEN_DISTANCE&&vertical<=MAX_VERTICAL){
+        openSwipe(bar);
+      }else closeSwipe(true);
       resetGesture();
     };
 
     bar.addEventListener('pointerup',finish);
-    bar.addEventListener('pointercancel',event=>{if(gesture?.pointerId===event.pointerId)closeSwipe(true);});
+    bar.addEventListener('pointercancel',event=>{
+      if(gesture?.pointerId!==event.pointerId)return;
+      if(gesture.mode==='close')openSwipe(bar);else closeSwipe(true);
+      resetGesture();
+    });
 
     bar.addEventListener('click',event=>{
-      if(event.target.closest('.log-bottom-scan-action'))return;
       if(Date.now()<suppressClickUntil){
         event.preventDefault();
         event.stopImmediatePropagation();
         return;
       }
+      if(event.target.closest('.log-bottom-scan-action'))return;
       if(!bar.classList.contains('log-qr-swipe-open'))return;
       event.preventDefault();
       event.stopImmediatePropagation();
