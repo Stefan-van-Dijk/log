@@ -27,7 +27,7 @@
       try{
         const raw=window.LogPeopleModule.read();
         raw.settings.contactImport={...raw.settings.contactImport,[toggle.dataset.contactSetting]:toggle.checked};
-        localStorage.setItem('urenregistratie.test.pwa.v1',JSON.stringify(raw));
+        localStorage.setItem('urenregistratie.pwa.v1',JSON.stringify(raw));
         window.LogTimeModule?.reloadFromStorage?.({view:window.LogTimeModule?.getView?.()||'home'});
         window.dispatchEvent(new CustomEvent('log-time-state-change'));
         host.querySelector('[data-contact-settings-status]').textContent='Instelling bewaard.';

@@ -1,6 +1,6 @@
 (function(){
   'use strict';
-  const KEY='urenregistratie.test.pwa.v1';
+  const KEY='urenregistratie.pwa.v1';
   const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const icon='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg>';
   let root=null,query='',signature='';

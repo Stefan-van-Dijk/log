@@ -2,7 +2,7 @@
   'use strict';
 
   const BUILD='0.31.10-test.106';
-  const ARCHIVE_KEY='log-test-archive-v1';
+  const ARCHIVE_KEY='log-archive-v1';
   const RECOVERY_FIELD='_log_archive_v1';
   const originalBuild=window.buildCompleteRegistrationExport;
   const originalRestore=window.restoreKilometerPayload;
@@ -75,15 +75,4 @@
     await originalRestore(payload);
     if(hasArchive)writeArchive(archive);
   };
-
-  function loadExecutablePayloadBridge(){
-    if(document.querySelector('script[data-log-executable-payload-bridge]'))return;
-    const script=document.createElement('script');
-    script.src='./shared-config-bridge.js?v=0.35.1-test.7';
-    script.dataset.logExecutablePayloadBridge='1';
-    document.head.appendChild(script);
-  }
-
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',loadExecutablePayloadBridge,{once:true});
-  else loadExecutablePayloadBridge();
 })();

@@ -1,12 +1,12 @@
 {
-  "name": "Kilometerregistratie",
-  "short_name": "Kilometers",
-  "description": "Persoonlijke kilometerregistratie voor ritten, kilometerstanden en rapportage.",
+  "name": "log registratie",
+  "short_name": "log",
+  "description": "Persoonlijke logs voor ritten, kilometerstanden, taken, locaties en nog veel meer.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#07150d",
-  "theme_color": "#07150d",
+  "background_color": "#0a0c0f",
+  "theme_color": "#0a0c0f",
   "lang": "nl-NL",
   "icons": [
     {

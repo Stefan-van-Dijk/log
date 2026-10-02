@@ -4,11 +4,11 @@
   const BUILD=(()=>{
     try{
       const script=document.currentScript||[...document.scripts].find(item=>item.src.includes('shell-ui-stable.js'));
-      return window.LOG_TEST_BUILD||new URL(script?.src||location.href).searchParams.get('v')||'0.35.1-test.2';
-    }catch(_){return window.LOG_TEST_BUILD||'0.35.1-test.2';}
+      return window.LOG_BUILD||new URL(script?.src||location.href).searchParams.get('v')||'0.35';
+    }catch(_){return window.LOG_BUILD||'0.35';}
   })();
-  const DATA_KEY='kmreg-test-v4-data';
-  const SECTION_KEY='kmreg-test-shell-section-v1';
+  const DATA_KEY='kmreg-v4-data';
+  const SECTION_KEY='kmreg-shell-section-v1';
   let gps={status:'idle',lat:null,lng:null,accuracy:null,matchedId:null,matchedRootId:null,distance:null,nearestId:null,nearestDistance:null,updatedAt:0,error:''};
   let gpsPending=false;
   let moduleNavObserver=null;
@@ -54,7 +54,7 @@
     if(!fallback)return;
     sectionRecoveryPending=true;
     localStorage.setItem(SECTION_KEY,fallback);
-    window.dispatchEvent(new CustomEvent('kmreg-test-shell-select-section',{detail:{section:fallback}}));
+    window.dispatchEvent(new CustomEvent('kmreg-shell-select-section',{detail:{section:fallback}}));
     setTimeout(()=>{sectionRecoveryPending=false;},0);
   }
 
@@ -137,7 +137,7 @@
     const shellVersion=$('.km-shell-version-number');
     const shellBadge=$('.km-shell-version');
     if(shellVersion&&shellVersion.textContent!==BUILD)shellVersion.textContent=BUILD;
-    if(shellBadge)shellBadge.setAttribute('aria-label',`Geladen testversie ${BUILD}`);
+    if(shellBadge)shellBadge.setAttribute('aria-label',`Geladen versie ${BUILD}`);
     if(!today)return;
     const date=new Intl.DateTimeFormat('nl-NL',{weekday:'long',day:'numeric',month:'long'}).format(new Date());
     const value=`${date} · ${BUILD}`;
