@@ -11,9 +11,7 @@
 
   const scanIcon=`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H4a1 1 0 0 0-1 1v4M16 3h4a1 1 0 0 1 1 1v4M21 16v4a1 1 0 0 1-1 1h-4M8 21H4a1 1 0 0 1-1-1v-4"/><rect x="8" y="8" width="3" height="3" rx=".35"/><rect x="14" y="8" width="2" height="2" rx=".3"/><rect x="8" y="14" width="2" height="2" rx=".3"/><path d="M14 14h3v3h-3z"/></svg>`;
 
-  function actionWidth(){
-    return window.innerWidth<=520?78:84;
-  }
+  function actionWidth(){return window.innerWidth<=520?78:84;}
 
   function installStyles(){
     if(document.getElementById('logBottomBarQrSwipeStyles'))return;
@@ -24,21 +22,13 @@
         bottom:max(6px,calc(env(safe-area-inset-bottom) - 6px))!important;
         touch-action:pan-y;
       }
-      #logBottomQrSwipeAction{
-        position:fixed;
-        z-index:79;
-        display:flex;
-        align-items:stretch;
-        justify-content:flex-start;
-        overflow:hidden;
-        pointer-events:none;
-        opacity:0;
-        transition:opacity .12s ease;
-      }
-      #logBottomQrSwipeAction.is-visible{opacity:1;pointer-events:auto}
-      #logBottomQrSwipeAction button{
+      #kmShellTabBar>.log-bottom-scan-action{
+        position:absolute;
+        z-index:1;
+        left:0;
+        top:0;
+        bottom:0;
         width:var(--log-bottom-scan-action-width,78px);
-        flex:0 0 var(--log-bottom-scan-action-width,78px);
         display:flex;
         flex-direction:column;
         align-items:center;
@@ -53,13 +43,15 @@
         font-size:10px;
         font-weight:750;
         line-height:1;
+        opacity:0;
         filter:brightness(.82);
-        transition:filter .15s ease;
+        transform:translateX(-100%);
+        transition:transform .18s cubic-bezier(.2,.8,.2,1),opacity .1s ease,filter .15s ease;
         cursor:pointer;
+        pointer-events:none;
         -webkit-tap-highlight-color:transparent;
       }
-      #logBottomQrSwipeAction.is-open button{filter:brightness(1.08)}
-      #logBottomQrSwipeAction svg{
+      #kmShellTabBar>.log-bottom-scan-action svg{
         width:27px;
         height:27px;
         display:block;
@@ -69,20 +61,36 @@
         stroke-linecap:round;
         stroke-linejoin:round;
       }
-      #kmShellTabBar.log-qr-swipe-dragging{
-        transform:translateX(calc(-50% + var(--log-qr-swipe-x,0px)))!important;
+      #kmShellTabBar>.km-shell-tab-button{z-index:2}
+      #kmShellTabBar.log-qr-swipe-dragging>.log-bottom-scan-action{
+        opacity:1;
+        transform:translateX(calc(-100% + var(--log-qr-swipe-x,0px)));
+        transition:none;
+      }
+      #kmShellTabBar.log-qr-swipe-dragging>.km-shell-tab-button{
+        transform:translateX(var(--log-qr-swipe-x,0px))!important;
         transition:none!important;
       }
-      #kmShellTabBar.log-qr-swipe-open{
-        transform:translateX(calc(-50% + var(--log-qr-swipe-open-x,78px)))!important;
+      #kmShellTabBar.log-qr-swipe-open>.log-bottom-scan-action{
+        opacity:1;
+        filter:brightness(1.08);
+        transform:translateX(0);
+        pointer-events:auto;
+      }
+      #kmShellTabBar.log-qr-swipe-open>.km-shell-tab-button{
+        transform:translateX(var(--log-qr-swipe-open-x,78px))!important;
         transition:transform .18s cubic-bezier(.2,.8,.2,1)!important;
       }
-      #kmShellTabBar.log-qr-swipe-settling{
-        transform:translateX(-50%)!important;
+      #kmShellTabBar.log-qr-swipe-settling>.log-bottom-scan-action{
+        opacity:1;
+        transform:translateX(-100%);
+      }
+      #kmShellTabBar.log-qr-swipe-settling>.km-shell-tab-button{
+        transform:translateX(0)!important;
         transition:transform .18s ease!important;
       }
       @media(prefers-reduced-motion:reduce){
-        #logBottomQrSwipeAction,#logBottomQrSwipeAction button,#kmShellTabBar.log-qr-swipe-open,#kmShellTabBar.log-qr-swipe-settling{transition:none!important}
+        #kmShellTabBar>.log-bottom-scan-action,#kmShellTabBar.log-qr-swipe-open>.km-shell-tab-button,#kmShellTabBar.log-qr-swipe-settling>.km-shell-tab-button{transition:none!important}
       }
     `;
     document.head.appendChild(style);
@@ -123,81 +131,48 @@
     if(!scanButton)return false;
 
     scanButton.click();
-    const cameraStart=document.querySelector('.cards-dialog [data-camera-start]');
-    cameraStart?.click();
+    document.querySelector('.cards-dialog [data-camera-start]')?.click();
     return true;
   }
 
-  function actionHost(){
-    let host=document.getElementById('logBottomQrSwipeAction');
-    if(!host){
-      host=document.createElement('div');
-      host.id='logBottomQrSwipeAction';
-      host.setAttribute('aria-hidden','true');
-      host.innerHTML=`<button type="button" aria-label="Code scannen">${scanIcon}<span>Scan</span></button>`;
-      host.querySelector('button').addEventListener('click',event=>{
+  function ensureAction(bar=boundBar){
+    if(!bar)return null;
+    let action=bar.querySelector(':scope>.log-bottom-scan-action');
+    if(!action){
+      action=document.createElement('button');
+      action.type='button';
+      action.className='log-bottom-scan-action';
+      action.setAttribute('aria-label','Code scannen');
+      action.innerHTML=`${scanIcon}<span>Scan</span>`;
+      action.addEventListener('click',event=>{
         event.preventDefault();
         event.stopPropagation();
         openScanner();
       });
-      document.body.appendChild(host);
+      bar.appendChild(action);
     }
-    return host;
-  }
-
-  function syncActionGeometry(bar=boundBar){
-    if(!bar||bar.hidden)return;
-    const host=actionHost();
-    const rect=bar.getBoundingClientRect();
     const width=actionWidth();
-    host.style.left=`${rect.left}px`;
-    host.style.top=`${rect.top}px`;
-    host.style.width=`${width}px`;
-    host.style.height=`${rect.height}px`;
-    host.style.borderRadius=`${getComputedStyle(bar).borderRadius || '26px'} 9px 9px ${getComputedStyle(bar).borderRadius || '26px'}`;
-    host.style.setProperty('--log-bottom-scan-action-width',`${width}px`);
+    bar.style.setProperty('--log-bottom-scan-action-width',`${width}px`);
     bar.style.setProperty('--log-qr-swipe-open-x',`${width}px`);
+    return action;
   }
 
-  function showAction(open=false){
-    const host=actionHost();
-    host.classList.add('is-visible');
-    host.classList.toggle('is-open',open);
-    host.setAttribute('aria-hidden','false');
-  }
-
-  function hideAction(){
-    const host=document.getElementById('logBottomQrSwipeAction');
-    if(!host)return;
-    host.classList.remove('is-visible','is-open');
-    host.setAttribute('aria-hidden','true');
-  }
-
-  function resetGesture(){
-    gesture=null;
-  }
+  function resetGesture(){gesture=null;}
 
   function closeSwipe(animated=true){
     const bar=boundBar||document.getElementById('kmShellTabBar');
-    if(!bar){hideAction();return;}
+    if(!bar)return;
     bar.classList.remove('log-qr-swipe-dragging','log-qr-swipe-open');
     bar.style.removeProperty('--log-qr-swipe-x');
     if(animated){
       bar.classList.add('log-qr-swipe-settling');
-      setTimeout(()=>{
-        bar.classList.remove('log-qr-swipe-settling');
-        hideAction();
-      },190);
-    }else{
-      bar.classList.remove('log-qr-swipe-settling');
-      hideAction();
-    }
+      setTimeout(()=>bar.classList.remove('log-qr-swipe-settling'),190);
+    }else bar.classList.remove('log-qr-swipe-settling');
     resetGesture();
   }
 
   function openSwipe(bar){
-    syncActionGeometry(bar);
-    showAction(true);
+    ensureAction(bar);
     bar.classList.remove('log-qr-swipe-dragging','log-qr-swipe-settling');
     bar.style.removeProperty('--log-qr-swipe-x');
     bar.classList.add('log-qr-swipe-open');
@@ -207,24 +182,18 @@
     if(!bar||bar.dataset.logQrSwipeBound==='1')return;
     bar.dataset.logQrSwipeBound='1';
     boundBar=bar;
-    syncActionGeometry(bar);
+    ensureAction(bar);
 
     bar.addEventListener('pointerdown',event=>{
       if(event.button!=null&&event.button!==0)return;
       if(event.isPrimary===false||scannerBlocked())return;
+      if(event.target.closest('.log-bottom-scan-action'))return;
       if(bar.classList.contains('log-qr-swipe-open'))return;
       const rect=bar.getBoundingClientRect();
       const startX=event.clientX-rect.left;
       if(startX<0||startX>actionWidth())return;
-      syncActionGeometry(bar);
-      gesture={
-        pointerId:event.pointerId,
-        startX:event.clientX,
-        startY:event.clientY,
-        dx:0,
-        horizontal:false,
-        cancelled:false
-      };
+      ensureAction(bar);
+      gesture={pointerId:event.pointerId,startX:event.clientX,startY:event.clientY,dx:0,horizontal:false,cancelled:false};
       try{bar.setPointerCapture(event.pointerId);}catch(_){ }
     });
 
@@ -239,7 +208,6 @@
         if(ay>ARM_DISTANCE&&ay>ax){active.cancelled=true;return;}
         if(rawX>ARM_DISTANCE&&ax>ay){
           active.horizontal=true;
-          showAction(false);
           bar.classList.add('log-qr-swipe-dragging');
         }else if(rawX<0&&ax>ARM_DISTANCE){
           active.cancelled=true;
@@ -248,34 +216,30 @@
       }
 
       if(event.cancelable)event.preventDefault();
-      const width=actionWidth();
-      const dx=Math.max(0,Math.min(width,rawX));
+      const dx=Math.max(0,Math.min(actionWidth(),rawX));
       active.dx=dx;
       bar.style.setProperty('--log-qr-swipe-x',`${dx}px`);
-      actionHost().classList.toggle('is-open',dx>=OPEN_DISTANCE);
+      ensureAction(bar).style.filter=dx>=OPEN_DISTANCE?'brightness(1.08)':'';
     },{passive:false});
 
     const finish=event=>{
       const active=gesture;
       if(!active||active.pointerId!==event.pointerId)return;
-      if(active.cancelled||!active.horizontal){
-        resetGesture();
-        return;
-      }
+      if(active.cancelled||!active.horizontal){resetGesture();return;}
       suppressClickUntil=Date.now()+CLICK_SUPPRESS_MS;
       if(event.cancelable)event.preventDefault();
       event.stopPropagation();
+      ensureAction(bar).style.filter='';
       if(active.dx>=OPEN_DISTANCE&&Math.abs(event.clientY-active.startY)<=MAX_VERTICAL)openSwipe(bar);
       else closeSwipe(true);
       resetGesture();
     };
 
     bar.addEventListener('pointerup',finish);
-    bar.addEventListener('pointercancel',event=>{
-      if(gesture?.pointerId===event.pointerId)closeSwipe(true);
-    });
+    bar.addEventListener('pointercancel',event=>{if(gesture?.pointerId===event.pointerId)closeSwipe(true);});
 
     bar.addEventListener('click',event=>{
+      if(event.target.closest('.log-bottom-scan-action'))return;
       if(Date.now()<suppressClickUntil){
         event.preventDefault();
         event.stopImmediatePropagation();
@@ -291,16 +255,18 @@
   function bind(){
     installStyles();
     const bar=document.getElementById('kmShellTabBar');
-    if(bar){
-      boundBar=bar;
-      bindBar(bar);
-      if(!bar.classList.contains('log-qr-swipe-dragging')&&!bar.classList.contains('log-qr-swipe-open'))syncActionGeometry(bar);
-    }
+    if(!bar)return;
+    boundBar=bar;
+    ensureAction(bar);
+    bindBar(bar);
   }
 
   function init(){
     bind();
-    const observer=new MutationObserver(bind);
+    const observer=new MutationObserver(()=>{
+      const bar=document.getElementById('kmShellTabBar');
+      if(bar){boundBar=bar;ensureAction(bar);bindBar(bar);}
+    });
     observer.observe(document.body,{childList:true,subtree:true});
     window.addEventListener('pageshow',bind);
     window.addEventListener('log-shell-view-refresh',()=>{
@@ -309,11 +275,7 @@
     });
     window.addEventListener('resize',()=>{
       if(boundBar?.classList.contains('log-qr-swipe-open'))closeSwipe(false);
-      syncActionGeometry();
-    });
-    window.visualViewport?.addEventListener('resize',()=>{
-      if(boundBar?.classList.contains('log-qr-swipe-open'))closeSwipe(false);
-      syncActionGeometry();
+      ensureAction();
     });
   }
 
