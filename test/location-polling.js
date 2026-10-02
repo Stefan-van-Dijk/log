@@ -115,7 +115,9 @@
   function locationCoordinates(location,snapshot,seen=new Set()){
     if(!location||seen.has(location.id))return null;
     seen.add(location.id);
-    const lat=Number(location.lat),lng=Number(location.lng);
+    const hasLat=location.lat!==null&&location.lat!==''&&location.lat!==undefined;
+    const hasLng=location.lng!==null&&location.lng!==''&&location.lng!==undefined;
+    const lat=hasLat?Number(location.lat):NaN,lng=hasLng?Number(location.lng):NaN;
     if(Number.isFinite(lat)&&Number.isFinite(lng)&&Math.abs(lat)<=90&&Math.abs(lng)<=180)return {lat,lng};
     return location.parentId?locationCoordinates((snapshot.locations||[]).find(item=>item.id===location.parentId),snapshot,seen):null;
   }
