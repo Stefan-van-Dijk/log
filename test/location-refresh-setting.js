@@ -48,10 +48,19 @@
     document.head.appendChild(style);
   }
 
+  function syncIntro(section){
+    const notice=section?.querySelector('.cards-notice');
+    if(!notice)return;
+    const text='Log vraagt bij openen je locatie op en ververst die zolang de app zichtbaar is volgens de instelling hierboven. Hiervoor is locatietoestemming nodig. Er is geen aparte hoofdschakelaar. Per actie bepaal je of die actief is. Dit geeft geen locatieherkenning wanneer Log gesloten is.';
+    if(notice.textContent!==text)notice.textContent=text;
+  }
+
   function render(){
     installStyles();
     const section=document.querySelector('#kmShellLocationSettings section');
-    if(!section||section.querySelector('[data-log-location-refresh-setting]'))return;
+    if(!section)return;
+    syncIntro(section);
+    if(section.querySelector('[data-log-location-refresh-setting]'))return;
     const box=document.createElement('div');
     box.className='log-location-refresh-setting';
     box.dataset.logLocationRefreshSetting='1';
