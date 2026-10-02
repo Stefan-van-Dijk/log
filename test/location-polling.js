@@ -3,6 +3,7 @@
   const BUILD='0.37-test.34';
   window.LOG_TEST_BUILD=BUILD;
   const listeners=new Set(),KM='kmreg-test-v4-data';
+  const ALLOWED_INTERVALS=new Set([5000,10000,15000,30000,60000,120000,300000]);
   let latest=null,pending=null,lastAttempt=0,visibleTrip='',started=false;
 
   function syncVisibleBuild(){
@@ -18,6 +19,14 @@
     script.src=`./test-build-ui.js?v=${BUILD}`;
     script.async=false;
     script.dataset.logTestBuildUi='1';
+    document.head.appendChild(script);
+  }
+  function loadLocationRefreshSetting(){
+    if(document.querySelector('script[data-log-location-refresh-setting]'))return;
+    const script=document.createElement('script');
+    script.src='./location-refresh-setting.js?v=1';
+    script.async=false;
+    script.dataset.logLocationRefreshSetting='1';
     document.head.appendChild(script);
   }
   function loadActionDetailsReset(){
@@ -85,8 +94,13 @@
     script.dataset.logSharedUpdateCompact='1';
     document.head.appendChild(script);
   }
-  function trip(){try{return JSON.parse(localStorage.getItem(KM)||'{}').activeTrip?.id||'';}catch(_){return '';}}
-  function interval(){return trip()?60000:6000;}
+  function state(){try{return JSON.parse(localStorage.getItem(KM)||'{}')||{};}catch(_){return {};}}
+  function trip(){return state().activeTrip?.id||'';}
+  function configuredInterval(){
+    const value=Number(state()?.settings?.locationRefreshIntervalMs);
+    return ALLOWED_INTERVALS.has(value)?value:0;
+  }
+  function interval(){return configuredInterval()||(trip()?60000:6000);}
   function request({maxAge=0}={}){
     if(document.hidden)return Promise.reject(new Error('Log staat op de achtergrond.'));
     if(maxAge>0&&latest&&Date.now()-latest.timestamp<=maxAge)return Promise.resolve(latest);
@@ -110,11 +124,18 @@
     if(force||Date.now()-lastAttempt>=interval())request().catch(()=>{});
   }
   function start(){if(!started){started=true;setInterval(()=>poll(),1000);}poll(Date.now()-lastAttempt>1000);syncVisibleBuild();}
-  window.LogLocationPolling={request,interval,subscribe(listener){listeners.add(listener);if(latest&&!document.hidden&&Date.now()-latest.timestamp<=interval())listener(latest);return()=>listeners.delete(listener);}};
+  window.LogLocationPolling={
+    request,
+    interval,
+    refreshNow(){lastAttempt=0;poll(true);},
+    subscribe(listener){listeners.add(listener);if(latest&&!document.hidden&&Date.now()-latest.timestamp<=interval())listener(latest);return()=>listeners.delete(listener);}
+  };
   window.addEventListener('log-km-state-change',()=>poll());
+  window.addEventListener('log-location-refresh-change',()=>{lastAttempt=0;poll(true);});
   window.addEventListener('pageshow',()=>{start();syncVisibleBuild();setTimeout(syncVisibleBuild,100);});
   document.addEventListener('visibilitychange',()=>{if(!document.hidden){poll(true);syncVisibleBuild();}});
   loadTestBuildUI();
+  loadLocationRefreshSetting();
   loadActionDetailsReset();
   loadSharing();
   loadSharedSettingsUI();
