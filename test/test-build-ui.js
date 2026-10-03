@@ -32,7 +32,7 @@
 
   function ensureScript(src,key){
     const existing=[...document.scripts].find(script=>script.dataset[key]==='1');
-    if(existing&&existing.src.includes(`v=${BUILD}`))return;
+    if(existing&&existing.src.includes(src.split('/').pop()))return;
     existing?.remove();
     const script=document.createElement('script');
     script.src=src;
@@ -61,7 +61,7 @@
     ensureScript(`./shared-home-components.js?v=${BUILD}`,'logSharedHomeComponents');
     ensureScript(`./bottom-bar-qr-swipe.js?v=${BUILD}`,'logBottomBarQrSwipe');
     ensureScript(`./identity-sync.js?v=${BUILD}`,'logIdentitySyncBridge');
-    ensureScript(`./people-personcard-network-fix.js?v=${BUILD}-net1`,'logPeoplePersonCardNetworkFix');
+    ensureScript(`./people-personcard-network-fix.js?v=${BUILD}-net2`,'logPeoplePersonCardNetworkFix');
   }
 
   function syncVersionSurface(){
