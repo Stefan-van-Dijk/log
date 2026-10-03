@@ -92,6 +92,7 @@
     loadScript(`./identity-sync.js?v=${BUILD}`,'logIdentitySyncBridge');
     loadScript(`./collaboration-v2.js?v=${BUILD}`,'logCollaborationV2Bridge');
     loadScript(`./collaboration-v2-consistency.js?v=${BUILD}`,'logCollaborationV2Consistency');
+    loadScript(`./collaboration-v2-multiparty.js?v=${BUILD}`,'logCollaborationV2Multiparty');
   }
 
   function syncVersion(){
