@@ -5,7 +5,7 @@
   const listeners=new Set(),KM='kmreg-test-v4-data',REFRESH_KEY='log-test-location-refresh-v1';
   const ALLOWED_INTERVALS=new Set([5000,10000,15000,30000,60000,120000,300000]);
   const AUTO_VISIBLE_INTERVAL=10000,ACTIVE_TRIP_INTERVAL=60000,IDLE_CACHE_MS=8000,ACTIVE_CACHE_MS=3000,POLL_TICK_MS=2000;
-  let latest=null,pending=null,lastAttempt=0,visibleTrip='',started=false;
+  let latest=null,pending=null,pendingHighAccuracy=false,lastAttempt=0,visibleTrip='',started=false;
 
   function syncVisibleBuild(){
     document.querySelectorAll('.log-test-build-badge').forEach(el=>el.remove());
@@ -163,9 +163,15 @@
     const reuseAge=maxAge===null?(active?ACTIVE_CACHE_MS:IDLE_CACHE_MS):Math.max(0,Number(maxAge)||0);
     const accurate=highAccuracy===null?active:Boolean(highAccuracy);
     if(reuseAge>0&&latest&&Date.now()-latest.timestamp<=reuseAge)return Promise.resolve(latest);
-    if(pending)return pending;
+    if(pending){
+      if(accurate&&!pendingHighAccuracy){
+        return pending.catch(()=>null).then(()=>request({maxAge:0,highAccuracy:true}));
+      }
+      return pending;
+    }
     if(!navigator.geolocation)return Promise.reject(new Error('GPS wordt niet ondersteund.'));
     lastAttempt=Date.now();
+    pendingHighAccuracy=accurate;
     window.dispatchEvent(new CustomEvent('log-location-check-start',{detail:{...intervalInfo(),highAccuracy:accurate,reuseAgeMs:reuseAge}}));
     pending=new Promise((resolve,reject)=>{
       navigator.geolocation.getCurrentPosition(pos=>{
@@ -177,6 +183,7 @@
       },reject,{enableHighAccuracy:accurate,maximumAge:reuseAge,timeout:accurate?12000:8000});
     }).catch(error=>{if(!document.hidden)for(const listener of listeners)try{listener(null,error);}catch(_){}throw error;}).finally(()=>{
       pending=null;
+      pendingHighAccuracy=false;
       window.dispatchEvent(new CustomEvent('log-location-check-end'));
     });
     return pending;
