@@ -63,6 +63,7 @@
     ensureScript(`./identity-sync.js?v=${BUILD}`,'logIdentitySyncBridge');
     ensureScript(`./person-id-unification.js?v=${BUILD}-pid1`,'logPersonIdUnification');
     ensureScript(`./people-personcard-network-fix.js?v=${BUILD}-net2`,'logPeoplePersonCardNetworkFix');
+    ensureScript(`./person-connections.js?v=${BUILD}-conn1`,'logPersonConnections');
   }
 
   function syncVersionSurface(){
