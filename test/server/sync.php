@@ -43,7 +43,44 @@ function normalize_rights($rights): array {
     $input = is_array($rights) ? $rights : [];
     return array_values(array_intersect(LOG_SYNC_RIGHTS, array_values(array_unique(array_map('strval', $input)))));
 }
-function state_public(string $id, array $state, ?array $payload = null): array {
+function auth(array $state, string $token): array {
+    if ($token === '') return ['ok' => false, 'owner' => false, 'rights' => [], 'memberHash' => null, 'personId' => null];
+    $hash = token_hash($token);
+    $ownerHash = (string)($state['ownerTokenHash'] ?? '');
+    if ($ownerHash !== '' && hash_equals($ownerHash, $hash)) {
+        return ['ok' => true, 'owner' => true, 'rights' => LOG_SYNC_RIGHTS, 'memberHash' => null, 'personId' => $state['ownerPersonId'] ?? null];
+    }
+    $members = is_array($state['members'] ?? null) ? $state['members'] : [];
+    $member = $members[$hash] ?? null;
+    if (!is_array($member)) return ['ok' => false, 'owner' => false, 'rights' => [], 'memberHash' => null, 'personId' => null];
+    return [
+        'ok' => true,
+        'owner' => false,
+        'rights' => normalize_rights($member['rights'] ?? []),
+        'memberHash' => $hash,
+        'personId' => valid_id((string)($member['personId'] ?? '')) ? (string)$member['personId'] : null,
+    ];
+}
+function require_right(array $auth, string $right): void {
+    if (!$auth['ok'] || (!$auth['owner'] && !in_array($right, $auth['rights'], true))) out(403, ['error' => 'Deze handeling is niet toegestaan voor deze deelnemer.']);
+}
+function acknowledgement_rows(array $state): array {
+    $acks = is_array($state['acknowledgements'] ?? null) ? $state['acknowledgements'] : [];
+    $members = is_array($state['members'] ?? null) ? $state['members'] : [];
+    $rows = [];
+    foreach ($acks as $hash => $ack) {
+        if (!is_array($ack)) continue;
+        $member = $members[$hash] ?? null;
+        if (!is_array($member)) continue;
+        $personId = (string)($member['personId'] ?? '');
+        if (!valid_id($personId)) continue;
+        $status = (string)($ack['status'] ?? '');
+        if (!in_array($status, ['accepted','rejected'], true)) continue;
+        $rows[] = ['personId' => $personId, 'status' => $status, 'at' => $ack['at'] ?? null];
+    }
+    return $rows;
+}
+function state_public(string $id, array $state, ?array $payload = null, ?array $authorization = null): array {
     $result = [
         'ok' => true,
         'id' => $id,
@@ -52,23 +89,21 @@ function state_public(string $id, array $state, ?array $payload = null): array {
         'active' => (bool)($state['active'] ?? false),
         'offline' => (bool)($state['offline'] ?? false),
         'revoked' => (bool)($state['revoked'] ?? false),
+        'participantCount' => count(is_array($state['members'] ?? null) ? $state['members'] : []),
         'updatedAt' => $state['updatedAt'] ?? null,
     ];
     if ($payload !== null) $result['payload'] = $payload;
+    if (is_array($authorization) && ($authorization['ok'] ?? false)) {
+        $result['rights'] = $authorization['owner'] ? LOG_SYNC_RIGHTS : normalize_rights($authorization['rights'] ?? []);
+        $result['role'] = $authorization['owner'] ? 'owner' : 'member';
+        if ($authorization['owner']) {
+            $result['acknowledgements'] = acknowledgement_rows($state);
+        } elseif (!empty($authorization['memberHash'])) {
+            $ack = $state['acknowledgements'][$authorization['memberHash']] ?? null;
+            if (is_array($ack)) $result['acknowledgement'] = ['status' => $ack['status'] ?? null, 'at' => $ack['at'] ?? null];
+        }
+    }
     return $result;
-}
-function auth(array $state, string $token): array {
-    if ($token === '') return ['ok' => false, 'owner' => false, 'rights' => []];
-    $hash = token_hash($token);
-    $ownerHash = (string)($state['ownerTokenHash'] ?? '');
-    if ($ownerHash !== '' && hash_equals($ownerHash, $hash)) return ['ok' => true, 'owner' => true, 'rights' => LOG_SYNC_RIGHTS];
-    $members = is_array($state['members'] ?? null) ? $state['members'] : [];
-    $member = $members[$hash] ?? null;
-    if (!is_array($member)) return ['ok' => false, 'owner' => false, 'rights' => []];
-    return ['ok' => true, 'owner' => false, 'rights' => normalize_rights($member['rights'] ?? [])];
-}
-function require_right(array $auth, string $right): void {
-    if (!$auth['ok'] || (!$auth['owner'] && !in_array($right, $auth['rights'], true))) out(403, ['error' => 'Deze handeling is niet toegestaan voor deze deelnemer.']);
 }
 
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
@@ -98,11 +133,12 @@ if ($method === 'GET') {
     if (!valid_id($id)) out(422, ['error' => 'Identifier moet exact 12 toegestane tekens bevatten.']);
     $state = read_json($stateDir . '/' . $id . '.json');
     if ($state === null) out(404, ['error' => 'Synchronisatiebron niet gevonden.']);
-    if ((bool)($state['revoked'] ?? false)) out(200, state_public($id, $state));
-    if ((bool)($state['offline'] ?? false) || !(bool)($state['active'] ?? false)) out(200, state_public($id, $state));
+    $authorization = auth($state, header_value('X-Log-Access-Token'));
+    if ((bool)($state['revoked'] ?? false)) out(200, state_public($id, $state, null, $authorization));
+    if ((bool)($state['offline'] ?? false) || !(bool)($state['active'] ?? false)) out(200, state_public($id, $state, null, $authorization));
     $payloadDoc = read_json($payloadDir . '/' . $id . '.json');
     $payload = is_array($payloadDoc['payload'] ?? null) ? $payloadDoc['payload'] : null;
-    out(200, state_public($id, $state, $payload));
+    out(200, state_public($id, $state, $payload, $authorization));
 }
 if ($method !== 'POST') out(405, ['error' => 'Alleen GET, POST en OPTIONS zijn toegestaan.']);
 
@@ -117,7 +153,7 @@ if (!is_array($body)) out(400, ['error' => 'Synchronisatiepayload moet een JSON-
 $action = strtolower(trim((string)($body['action'] ?? '')));
 $id = trim((string)($body['id'] ?? ''));
 if (!valid_id($id)) out(422, ['error' => 'Identifier moet exact 12 toegestane tekens bevatten.']);
-if (!in_array($action, ['put','offline','reactivate','revoke','member','remove-member'], true)) out(400, ['error' => 'Onbekende synchronisatieactie.']);
+if (!in_array($action, ['put','offline','reactivate','revoke','member','remove-member','accept','reject'], true)) out(400, ['error' => 'Onbekende synchronisatieactie.']);
 $token = header_value('X-Log-Access-Token');
 $statePath = $stateDir . '/' . $id . '.json';
 $payloadPath = $payloadDir . '/' . $id . '.json';
@@ -135,6 +171,7 @@ if ($action === 'put' && $state === null) {
         'ownerPersonId' => valid_id((string)($body['ownerPersonId'] ?? '')) ? (string)$body['ownerPersonId'] : null,
         'ownerTokenHash' => token_hash($token),
         'members' => [],
+        'acknowledgements' => [],
         'revision' => 1,
         'active' => true,
         'offline' => false,
@@ -144,7 +181,7 @@ if ($action === 'put' && $state === null) {
     ];
     if (!write_json($payloadPath, ['revision' => 1, 'payload' => $payload, 'updatedAt' => $now])) out(500, ['error' => 'Versleutelde payload kon niet worden opgeslagen.']);
     if (!write_json($statePath, $state)) out(500, ['error' => 'Synchronisatiestatus kon niet worden opgeslagen.']);
-    out(200, state_public($id, $state));
+    out(200, state_public($id, $state, null, auth($state, $token)));
 }
 if ($state === null) out(404, ['error' => 'Synchronisatiebron niet gevonden.']);
 if ((bool)($state['revoked'] ?? false)) out(410, ['error' => 'Deze samenwerking of back-up is ingetrokken.']);
@@ -161,14 +198,14 @@ if ($action === 'put') {
     if (!write_json($payloadPath, ['revision' => $revision, 'payload' => $payload, 'updatedAt' => $now])) out(500, ['error' => 'Versleutelde payload kon niet worden opgeslagen.']);
     $state['revision'] = $revision;$state['active'] = true;$state['offline'] = false;$state['updatedAt'] = $now;
     if (!write_json($statePath, $state)) out(500, ['error' => 'Synchronisatiestatus kon niet worden opgeslagen.']);
-    out(200, state_public($id, $state));
+    out(200, state_public($id, $state, null, $authorization));
 }
 if ($action === 'offline') {
     require_right($authorization, 'offline');
     if (is_file($payloadPath) && !unlink($payloadPath)) out(500, ['error' => 'Online payload kon niet worden verwijderd.']);
     $state['active'] = false;$state['offline'] = true;$state['updatedAt'] = $now;
     if (!write_json($statePath, $state)) out(500, ['error' => 'Synchronisatiestatus kon niet worden opgeslagen.']);
-    out(200, state_public($id, $state));
+    out(200, state_public($id, $state, null, $authorization));
 }
 if ($action === 'reactivate') {
     require_right($authorization, 'write');
@@ -179,7 +216,7 @@ if ($action === 'revoke') {
     if (is_file($payloadPath)) @unlink($payloadPath);
     $state['active'] = false;$state['offline'] = false;$state['revoked'] = true;$state['members'] = [];$state['updatedAt'] = $now;
     if (!write_json($statePath, $state)) out(500, ['error' => 'Intrekking kon niet worden opgeslagen.']);
-    out(200, state_public($id, $state));
+    out(200, state_public($id, $state, null, $authorization));
 }
 if ($action === 'member') {
     if (!$authorization['owner']) out(403, ['error' => 'Alleen de eigenaar kan deelnemers toevoegen of rechten wijzigen.']);
@@ -192,17 +229,29 @@ if ($action === 'member') {
     $state['members'][$hash] = ['personId' => $personId, 'rights' => $rights, 'updatedAt' => $now];
     $state['updatedAt'] = $now;
     if (!write_json($statePath, $state)) out(500, ['error' => 'Deelnemer kon niet worden opgeslagen.']);
-    out(200, state_public($id, $state));
+    out(200, state_public($id, $state, null, $authorization));
 }
 if ($action === 'remove-member') {
     if (!$authorization['owner']) out(403, ['error' => 'Alleen de eigenaar kan deelnemers verwijderen.']);
     $personId = trim((string)($body['personId'] ?? ''));
     if (!valid_id($personId)) out(422, ['error' => 'Ongeldige PersonId.']);
     $members = is_array($state['members'] ?? null) ? $state['members'] : [];
-    foreach ($members as $hash => $member) if (is_array($member) && (string)($member['personId'] ?? '') === $personId) unset($members[$hash]);
-    $state['members'] = $members;$state['updatedAt'] = $now;
+    $acks = is_array($state['acknowledgements'] ?? null) ? $state['acknowledgements'] : [];
+    foreach ($members as $hash => $member) {
+        if (is_array($member) && (string)($member['personId'] ?? '') === $personId) { unset($members[$hash]); unset($acks[$hash]); }
+    }
+    $state['members'] = $members;$state['acknowledgements'] = $acks;$state['updatedAt'] = $now;
     if (!write_json($statePath, $state)) out(500, ['error' => 'Deelnemer kon niet worden verwijderd.']);
-    out(200, state_public($id, $state));
+    out(200, state_public($id, $state, null, $authorization));
+}
+if ($action === 'accept' || $action === 'reject') {
+    require_right($authorization, 'accept');
+    if ($authorization['owner'] || empty($authorization['memberHash'])) out(409, ['error' => 'Acceptatie is bedoeld voor een deelnemer aan deze registratie.']);
+    $state['acknowledgements'] = is_array($state['acknowledgements'] ?? null) ? $state['acknowledgements'] : [];
+    $state['acknowledgements'][$authorization['memberHash']] = ['status' => $action === 'accept' ? 'accepted' : 'rejected', 'at' => $now];
+    $state['updatedAt'] = $now;
+    if (!write_json($statePath, $state)) out(500, ['error' => 'Acceptatiestatus kon niet worden opgeslagen.']);
+    out(200, state_public($id, $state, null, $authorization));
 }
 
 out(500, ['error' => 'Onverwachte synchronisatiestatus.']);
