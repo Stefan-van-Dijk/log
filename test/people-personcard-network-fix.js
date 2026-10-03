@@ -14,7 +14,7 @@ function randomId(){const bytes=new Uint8Array(12);crypto.getRandomValues(bytes)
 function randomBytes(length=32){const bytes=new Uint8Array(length);crypto.getRandomValues(bytes);return bytes;}
 function b64url(bytes){let binary='';for(const byte of bytes)binary+=String.fromCharCode(byte);return btoa(binary).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}
 function fromB64url(value){const text=String(value||'').replace(/-/g,'+').replace(/_/g,'/'),padded=text+'='.repeat((4-text.length%4)%4),binary=atob(padded);return Uint8Array.from(binary,c=>c.charCodeAt(0));}
-function makeCode(pairCode){return`log-person-v1:${pairCode}`;}
+function makeCode(pairCode){return String(pairCode||'');}
 function profile(){
   const time=read(TIME,{}),people=Array.isArray(time.colleagues)?time.colleagues:[],localId=String(time.settings?.selfPersonId||''),person=people.find(p=>String(p.id)===localId)||{},personId=window.LogIdentitySync?.personId?.()||person.logPersonId||'';
   if(!VALID.test(String(personId)))throw Error('Log-identiteit is nog niet beschikbaar. Open Instellingen → Mijn Log & samenwerking één keer.');
@@ -59,13 +59,13 @@ async function publish(card,p){
   }
   card={...card,revision:Number(result.revision)||baseRevision+1,signature,updatedAt:result.updatedAt||new Date().toISOString(),online:true};saveCard(card);return card;
 }
-function qrSvg(value){if(typeof window.qrcode!=='function')return'';try{const qr=window.qrcode(0,'M');window.qrcode.stringToBytes=text=>Array.from(new TextEncoder().encode(text));qr.addData(value,'Byte');qr.make();return qr.createSvgTag({cellSize:5,margin:16,scalable:true});}catch(_){return'';}}
+function qrSvg(value){if(typeof window.qrcode!=='function')return'';try{const qr=window.qrcode(0,'M');window.qrcode.stringToBytes=text=>Array.from(new TextEncoder().encode(text));qr.addData(value,'Byte');qr.make();return qr.createSvgTag({cellSize:7,margin:16,scalable:true});}catch(_){return'';}}
 async function copy(value){try{await navigator.clipboard.writeText(String(value));return true;}catch(_){return false;}}
 function host(panel){return panel?.querySelector?.('.cards-dialog-body')||panel;}
 function render(panel,card,p){
   const target=host(panel);if(!target)return null;
   const message=target.querySelector?.('[data-card-message]');
-  const html=`<div class="people-person-card-profile"><strong>${esc(p.displayName)}</strong>${p.organization?`<span>${esc(p.organization)}</span>`:''}</div><div class="people-person-card-qr">${qrSvg(makeCode(card.alias))}</div><div class="people-person-code"><small>Persoonscode</small><strong>${esc(card.alias)}</strong></div><p class="cards-notice">De persoonscode bestaat uit exact 12 tekens. De kaart is direct lokaal beschikbaar; online koppelen wordt apart gecontroleerd.</p><button type="button" class="btn secondary full" data-pcn-copy>12-teken code kopiëren</button><button type="button" class="btn secondary full" data-pcn-publish>Opnieuw online zetten</button><p role="status" data-pcn-status>Online status controleren…</p>`;
+  const html=`<div class="people-person-card-profile"><strong>${esc(p.displayName)}</strong>${p.organization?`<span>${esc(p.organization)}</span>`:''}</div><div class="people-person-card-qr">${qrSvg(makeCode(card.alias))}</div><div class="people-person-code"><small>Persoonscode</small><strong>${esc(card.alias)}</strong></div><p class="cards-notice">De QR bevat exact dezelfde 12 tekens als de persoonscode hieronder. De kaart is direct lokaal beschikbaar; online koppelen wordt apart gecontroleerd.</p><button type="button" class="btn secondary full" data-pcn-copy>12-teken code kopiëren</button><button type="button" class="btn secondary full" data-pcn-publish>Opnieuw online zetten</button><p role="status" data-pcn-status>Online status controleren…</p>`;
   if(message){[...target.children].forEach(child=>{if(child!==message)child.remove();});message.insertAdjacentHTML('beforebegin',html);}else target.innerHTML=html;
   return target;
 }
@@ -80,10 +80,17 @@ async function show(){
   tryPublish(null);
 }
 
+function hideLocalIdentifiers(scope=document){
+  scope.querySelectorAll?.('.people-identifier').forEach(node=>node.closest('details')?.remove());
+}
+
 document.addEventListener('click',event=>{
   const button=event.target.closest?.('[data-person-card-own]');if(!button)return;
   event.preventDefault();event.stopImmediatePropagation();show();
 },true);
+
+hideLocalIdentifiers();
+new MutationObserver(()=>hideLocalIdentifiers()).observe(document.documentElement,{childList:true,subtree:true});
 
 window.LogPeoplePersonCardNetworkFix={show};
 })();
