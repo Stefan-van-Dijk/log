@@ -91,6 +91,7 @@
     loadScript('./shared-config-bridge.js?v=0.35.1-test.7','logExecutablePayloadBridge');
     loadScript(`./identity-sync.js?v=${BUILD}`,'logIdentitySyncBridge');
     loadScript(`./collaboration-v2.js?v=${BUILD}`,'logCollaborationV2Bridge');
+    loadScript(`./collaboration-v2-consistency.js?v=${BUILD}`,'logCollaborationV2Consistency');
   }
 
   function syncVersion(){
