@@ -61,6 +61,7 @@
     ensureScript(`./shared-home-components.js?v=${BUILD}`,'logSharedHomeComponents');
     ensureScript(`./bottom-bar-qr-swipe.js?v=${BUILD}`,'logBottomBarQrSwipe');
     ensureScript(`./identity-sync.js?v=${BUILD}`,'logIdentitySyncBridge');
+    ensureScript(`./people-personcard-network-fix.js?v=${BUILD}-net1`,'logPeoplePersonCardNetworkFix');
   }
 
   function syncVersionSurface(){
