@@ -1,7 +1,7 @@
 (function(){
 'use strict';
 
-const BUILD='0.39-test.2';
+const BUILD='0.39-test.3';
 const KM='kmreg-test-v4-data';
 const TIME='urenregistratie.test.pwa.v1';
 const LEGACY_IDENTITIES='registratie-test-identiteiten-v1';
@@ -13,7 +13,7 @@ let mutating=false;
 let mountQueued=false;
 
 const clone=value=>value==null?value:JSON.parse(JSON.stringify(value));
-const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
+const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function readJson(key,fallback={}){try{const value=JSON.parse(localStorage.getItem(key)||'null');return value&&typeof value==='object'?value:fallback;}catch(_){return fallback;}}
 function writeJson(key,value){localStorage.setItem(key,JSON.stringify(value));}
 function randomId(){const bytes=new Uint8Array(12);crypto.getRandomValues(bytes);return Array.from(bytes,b=>ALPHABET[b&63]).join('');}
@@ -148,9 +148,12 @@ async function api(method,id,body=null,token=''){
 }
 async function publishBackup(password){
   if(String(password||'').length<8)throw Error('Gebruik voor de back-up een wachtwoord van minimaal 8 tekens.');
-  const s=state(),id=VALID.test(String(s.backup.id||''))?s.backup.id:randomId(),token=String(s.backup.ownerToken||'')||b64url(randomBytes(32));
-  const payload=await encryptJson(buildBackup(),password),result=await api('POST','',{action:'put',id,kind:'person-backup',baseRevision:Number(s.backup.revision)||0,ownerPersonId:ensureSelfIdentity(),payload},token);
-  s.backup={id,ownerToken:token,revision:Number(result.revision)||1,updatedAt:result.updatedAt||new Date().toISOString()};saveState(s);return{...s.backup,code:id};
+  const s=state(),id=VALID.test(String(s.backup.id||''))?s.backup.id:randomId(),token=String(s.backup.ownerToken||'')||b64url(randomBytes(32)),baseRevision=Number(s.backup.revision)||0,nextRevision=baseRevision+1;
+  const bundle=buildBackup();
+  const identitySource=bundle?.recovery?.sources?.identity_sync;
+  if(identitySource?.data&&typeof identitySource.data==='object')identitySource.data.backup={...(identitySource.data.backup||{}),id,ownerToken:token,revision:nextRevision,updatedAt:new Date().toISOString()};
+  const payload=await encryptJson(bundle,password),result=await api('POST','',{action:'put',id,kind:'person-backup',baseRevision,ownerPersonId:ensureSelfIdentity(),payload},token);
+  s.backup={id,ownerToken:token,revision:Number(result.revision)||nextRevision,updatedAt:result.updatedAt||new Date().toISOString()};saveState(s);return{...s.backup,code:id};
 }
 async function fetchBackup(id,password){
   if(!VALID.test(String(id||'')))throw Error('Herstelcode moet exact 12 geldige tekens bevatten.');
