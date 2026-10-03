@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const BUILD='0.39-test.2';
+  const BUILD='0.39-test.3';
   const ARCHIVE_KEY='log-test-archive-v1';
   const RECOVERY_FIELD='_log_archive_v1';
   const originalBuild=window.buildCompleteRegistrationExport;
@@ -80,6 +80,7 @@
     if(document.querySelector(`script[data-${key}]`))return;
     const script=document.createElement('script');
     script.src=src;
+    script.async=false;
     script.dataset[key]='1';
     document.head.appendChild(script);
   }
@@ -87,6 +88,7 @@
   function loadBridges(){
     loadScript('./shared-config-bridge.js?v=0.35.1-test.7','logExecutablePayloadBridge');
     loadScript(`./identity-sync.js?v=${BUILD}`,'logIdentitySyncBridge');
+    loadScript(`./collaboration-v2.js?v=${BUILD}`,'logCollaborationV2Bridge');
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',loadBridges,{once:true});
