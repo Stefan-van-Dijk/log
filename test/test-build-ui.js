@@ -60,6 +60,7 @@
     ensureScript(`./time/active-task-layout.js?v=${BUILD}`,'logActiveTaskLayout');
     ensureScript(`./shared-home-components.js?v=${BUILD}`,'logSharedHomeComponents');
     ensureScript(`./bottom-bar-qr-swipe.js?v=${BUILD}`,'logBottomBarQrSwipe');
+    ensureScript(`./identity-sync.js?v=${BUILD}`,'logIdentitySyncBridge');
   }
 
   function syncVersionSurface(){
