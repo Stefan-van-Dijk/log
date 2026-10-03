@@ -7,6 +7,8 @@
   const originalBuild=window.buildCompleteRegistrationExport;
   const originalRestore=window.restoreKilometerPayload;
 
+  window.LOG_TEST_BUILD=BUILD;
+
   if(typeof originalBuild!=='function'||typeof originalRestore!=='function'){
     console.error('Archief-back-up kon niet aan de bestaande herstelroute worden gekoppeld.');
     return;
@@ -91,6 +93,25 @@
     loadScript(`./collaboration-v2.js?v=${BUILD}`,'logCollaborationV2Bridge');
   }
 
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',loadBridges,{once:true});
-  else loadBridges();
+  function syncVersion(){
+    window.LOG_TEST_BUILD=BUILD;
+    document.querySelectorAll('.km-shell-version').forEach(node=>{
+      const label=node.querySelector('.km-shell-version-label');
+      const number=node.querySelector('.km-shell-version-number');
+      if(label)label.textContent='TEST';
+      if(number)number.textContent=BUILD;
+      node.setAttribute('aria-label',`Geladen testversie ${BUILD}`);
+    });
+  }
+
+  function init(){
+    loadBridges();
+    syncVersion();
+    new MutationObserver(syncVersion).observe(document.documentElement,{childList:true,subtree:true});
+    window.addEventListener('pageshow',syncVersion);
+    window.addEventListener('log-shell-view-refresh',syncVersion);
+  }
+
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});
+  else init();
 })();
