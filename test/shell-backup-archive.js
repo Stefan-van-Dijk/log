@@ -95,6 +95,7 @@
     loadScript(`./collaboration-v2-multiparty.js?v=${BUILD}`,'logCollaborationV2Multiparty');
     loadScript(`./collaboration-v2-awareness.js?v=${BUILD}`,'logCollaborationV2Awareness');
     loadScript(`./person-card-v2.js?v=${BUILD}`,'logPersonCardV2');
+    loadScript(`./person-card-v2-dialog-guard.js?v=${BUILD}`,'logPersonCardV2DialogGuard');
   }
 
   function syncVersion(){
