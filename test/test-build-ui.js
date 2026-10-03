@@ -63,8 +63,9 @@
     ensureScript(`./identity-sync.js?v=${BUILD}`,'logIdentitySyncBridge');
     ensureScript(`./person-id-unification.js?v=${BUILD}-pid1`,'logPersonIdUnification');
     ensureScript(`./people-personcard-network-fix.js?v=${BUILD}-net2`,'logPeoplePersonCardNetworkFix');
-    ensureScript(`./person-connections.js?v=${BUILD}-conn2`,'logPersonConnections');
-    ensureScript(`./person-connections-swipe-fix.js?v=${BUILD}-conn3`,'logPersonConnectionSwipeFix');
+    ensureScript(`./person-connections.js?v=${BUILD}-conn4`,'logPersonConnections');
+    ensureScript(`./person-connections-resume-fix.js?v=${BUILD}-conn4`,'logPersonConnectionResumeFix');
+    ensureScript(`./person-connections-swipe-fix.js?v=${BUILD}-conn4`,'logPersonConnectionSwipeFix');
   }
 
   function syncVersionSurface(){
