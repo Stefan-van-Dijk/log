@@ -6,6 +6,7 @@ const STORE='log-test-collaboration-v2';
 const AWARE='log-test-collaboration-v2-awareness';
 let queued=false;
 let processing=false;
+let decorating=false;
 
 const read=(key,fallback={})=>{try{const value=JSON.parse(localStorage.getItem(key)||'null');return value&&typeof value==='object'?value:fallback;}catch(_){return fallback;}};
 const write=(key,value)=>localStorage.setItem(key,JSON.stringify(value));
@@ -49,19 +50,23 @@ function refreshFlags(){
   }finally{processing=false;}
 }
 function hasUpdate(alias){const item=state()[alias],a=awareness();return Boolean(item&&!item.revoked&&Number(a.flagged[alias]||0)>Number(a.seen[alias]||0));}
-function markSeen(alias){if(!alias)return;const item=state()[alias];if(!item)return;const a=awareness(),rev=revision(item);a.seen[alias]=Math.max(Number(a.seen[alias]||0),rev);delete a.flagged[alias];write(AWARE,a);decorate();}
+function markSeen(alias,render=true){if(!alias)return;const item=state()[alias];if(!item)return;const a=awareness(),rev=revision(item);a.seen[alias]=Math.max(Number(a.seen[alias]||0),rev);delete a.flagged[alias];write(AWARE,a);if(render)queue();}
+function markOpenPanelsSeen(){for(const button of document.querySelectorAll('[data-c2-sync]')){const alias=button.dataset.c2Sync;if(alias&&hasUpdate(alias))markSeen(alias,false);}}
 function decorate(){
-  refreshFlags();
-  document.querySelectorAll('[data-c2-open]').forEach(button=>{
-    const alias=button.dataset.c2Open||'',updated=hasUpdate(alias);
-    button.classList.toggle('log-c2-has-update',updated);
-    let dot=button.querySelector('[data-c2-awareness-dot]');
-    if(updated&&!dot){dot=document.createElement('span');dot.dataset.c2AwarenessDot='1';dot.className='log-c2-awareness-dot';dot.title='Nieuwe update van een andere deelnemer';button.prepend(dot);}
-    if(dot)dot.hidden=!updated;
-    const small=button.querySelector('small');
-    if(small){if(updated){if(!small.dataset.c2Original)small.dataset.c2Original=small.textContent||'';small.textContent='Nieuwe update beschikbaar';}else if(small.dataset.c2Original){small.textContent=small.dataset.c2Original;delete small.dataset.c2Original;}}
-  });
-  document.querySelectorAll('[data-c2-sync]').forEach(button=>{const alias=button.dataset.c2Sync;if(alias)markSeen(alias);});
+  if(decorating)return;decorating=true;
+  try{
+    refreshFlags();
+    markOpenPanelsSeen();
+    document.querySelectorAll('[data-c2-open]').forEach(button=>{
+      const alias=button.dataset.c2Open||'',updated=hasUpdate(alias);
+      button.classList.toggle('log-c2-has-update',updated);
+      let dot=button.querySelector('[data-c2-awareness-dot]');
+      if(updated&&!dot){dot=document.createElement('span');dot.dataset.c2AwarenessDot='1';dot.className='log-c2-awareness-dot';dot.title='Nieuwe update van een andere deelnemer';button.prepend(dot);}
+      if(dot)dot.hidden=!updated;
+      const small=button.querySelector('small');
+      if(small){if(updated){if(!small.dataset.c2Original)small.dataset.c2Original=small.textContent||'';small.textContent='Nieuwe update beschikbaar';}else if(small.dataset.c2Original){small.textContent=small.dataset.c2Original;delete small.dataset.c2Original;}}
+    });
+  }finally{decorating=false;}
 }
 function queue(){if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;decorate();});}
 function installStyles(){if(document.getElementById('logCollaborationV2AwarenessStyles'))return;const style=document.createElement('style');style.id='logCollaborationV2AwarenessStyles';style.textContent=`.log-c2-item{position:relative}.log-c2-awareness-dot{width:9px;height:9px;flex:0 0 9px;margin-right:7px;border-radius:50%;background:var(--warn,#ff9f0a);box-shadow:0 0 0 3px color-mix(in srgb,var(--warn,#ff9f0a) 16%,transparent)}.log-c2-awareness-dot[hidden]{display:none!important}.log-c2-item.log-c2-has-update>span:first-of-type{flex:1}`;document.head.appendChild(style);}
