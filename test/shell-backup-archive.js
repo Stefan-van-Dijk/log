@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const BUILD='0.39-test.3';
+  const BUILD='0.39-test.4';
   const ARCHIVE_KEY='log-test-archive-v1';
   const RECOVERY_FIELD='_log_archive_v1';
   const originalBuild=window.buildCompleteRegistrationExport;
@@ -9,8 +9,19 @@
 
   window.LOG_TEST_BUILD=BUILD;
 
+  function loadFeatureLayer(){
+    if([...document.scripts].some(script=>script.dataset.logV2FeatureLoader==='1'))return;
+    const script=document.createElement('script');
+    script.src=`./v2-feature-loader.js?v=${BUILD}`;
+    script.async=false;
+    script.dataset.logV2FeatureLoader='1';
+    document.head.appendChild(script);
+  }
+
+  loadFeatureLayer();
+
   if(typeof originalBuild!=='function'||typeof originalRestore!=='function'){
-    console.error('Archief-back-up kon niet aan de bestaande herstelroute worden gekoppeld.');
+    console.warn('Archief-back-up is nog niet gekoppeld; Log v2 functies blijven wel actief.');
     return;
   }
 
@@ -62,12 +73,8 @@
     const bundle=originalBuild(lastBackupAt);
     const archive=readArchive();
     const source=bundle?.recovery?.sources?.kilometerregistratie;
-    if(source?.data&&typeof source.data==='object'){
-      source.data[RECOVERY_FIELD]=archive;
-    }
-    if(bundle?.counts&&typeof bundle.counts==='object'){
-      bundle.counts.archived_items=archive.records.length;
-    }
+    if(source?.data&&typeof source.data==='object')source.data[RECOVERY_FIELD]=archive;
+    if(bundle?.counts&&typeof bundle.counts==='object')bundle.counts.archived_items=archive.records.length;
     return bundle;
   };
 
@@ -77,46 +84,4 @@
     await originalRestore(payload);
     if(hasArchive)writeArchive(archive);
   };
-
-  function loadScript(src,key){
-    if(document.querySelector(`script[data-${key}]`))return;
-    const script=document.createElement('script');
-    script.src=src;
-    script.async=false;
-    script.dataset[key]='1';
-    document.head.appendChild(script);
-  }
-
-  function loadBridges(){
-    loadScript('./shared-config-bridge.js?v=0.35.1-test.7','logExecutablePayloadBridge');
-    loadScript(`./identity-sync.js?v=${BUILD}`,'logIdentitySyncBridge');
-    loadScript(`./collaboration-v2.js?v=${BUILD}`,'logCollaborationV2Bridge');
-    loadScript(`./collaboration-v2-consistency.js?v=${BUILD}`,'logCollaborationV2Consistency');
-    loadScript(`./collaboration-v2-multiparty.js?v=${BUILD}`,'logCollaborationV2Multiparty');
-    loadScript(`./collaboration-v2-awareness.js?v=${BUILD}`,'logCollaborationV2Awareness');
-    loadScript(`./person-card-v2.js?v=${BUILD}-person12`,'logPersonCardV2');
-    loadScript(`./person-card-v2-dialog-guard.js?v=${BUILD}`,'logPersonCardV2DialogGuard');
-  }
-
-  function syncVersion(){
-    window.LOG_TEST_BUILD=BUILD;
-    document.querySelectorAll('.km-shell-version').forEach(node=>{
-      const label=node.querySelector('.km-shell-version-label');
-      const number=node.querySelector('.km-shell-version-number');
-      if(label)label.textContent='TEST';
-      if(number)number.textContent=BUILD;
-      node.setAttribute('aria-label',`Geladen testversie ${BUILD}`);
-    });
-  }
-
-  function init(){
-    loadBridges();
-    syncVersion();
-    new MutationObserver(syncVersion).observe(document.documentElement,{childList:true,subtree:true});
-    window.addEventListener('pageshow',syncVersion);
-    window.addEventListener('log-shell-view-refresh',syncVersion);
-  }
-
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});
-  else init();
 })();
