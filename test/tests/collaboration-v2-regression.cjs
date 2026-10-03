@@ -10,6 +10,7 @@ const collaboration = read('collaboration-v2.js');
 const consistency = read('collaboration-v2-consistency.js');
 const multiparty = read('collaboration-v2-multiparty.js');
 const bridge = read('shell-backup-archive.js');
+const buildUi = read('test-build-ui.js');
 const serviceWorker = read('service-worker.js');
 const server = read('server/sync.php');
 
@@ -19,6 +20,7 @@ assert.doesNotThrow(() => new Function(collaboration), 'collaboration-v2.js must
 assert.doesNotThrow(() => new Function(consistency), 'collaboration-v2-consistency.js must parse');
 assert.doesNotThrow(() => new Function(multiparty), 'collaboration-v2-multiparty.js must parse');
 assert.doesNotThrow(() => new Function(bridge), 'shell-backup-archive.js must parse');
+assert.doesNotThrow(() => new Function(buildUi), 'test-build-ui.js must parse');
 assert.doesNotThrow(() => new Function(serviceWorker), 'service-worker.js must parse');
 
 assert.match(identity, /driverPersonId/, 'rides must carry a driver PersonId');
@@ -50,6 +52,7 @@ assert.match(server, /\$state\['acknowledgements'\] = \[\]/, 'owner task revisio
 
 assert.match(bridge, /collaboration-v2-consistency\.js/, 'test loader must include consistency rules');
 assert.match(bridge, /collaboration-v2-multiparty\.js/, 'test loader must include multiparty support');
+assert.doesNotMatch(buildUi, /ensureScript\(`\.\/collaboration\.js/, 'legacy collaboration must not be loaded by the test UI');
 assert.match(serviceWorker, /0\.39-test\.3/, 'PWA cache must use the current test build');
 
 console.log('collaboration-v2 regression checks passed');
