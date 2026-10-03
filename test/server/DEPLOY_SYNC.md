@@ -64,10 +64,21 @@ Daarna kan vanuit Log TEST onder **Mijn Log & samenwerking** een versleutelde ba
 5. Noteer de 12-teken herstelcode.
 6. Controleer op een tweede apparaat of de herstelcode + hetzelfde wachtwoord de back-up kan ontsleutelen.
 7. Koppel bij Personen een tweede PersonId.
-8. Deel een tijdregistratie en laat de tweede persoon accepteren/afwijzen.
-9. Deel de auto en registreer op het tweede apparaat een nieuwe rit.
-10. Publiceer die voertuigregistratie terug en controleer de gezamenlijke registratie.
-11. Zet de payload tijdelijk offline en controleer dat de lokale samenwerking blijft bestaan.
-12. Beëindig als eigenaar een testsamenwerking en controleer dat de deelnemer na online controle geen toegang meer heeft.
+8. Deel een tijdregistratie en laat de tweede persoon accepteren/afwijzen. Controleer dat de uren bij de eigenaar als geaccepteerd of afgewezen terugkomen.
+9. Wijzig daarna de voorgelegde uren en publiceer opnieuw. Controleer dat de eerdere acceptatie opnieuw `pending` wordt.
+10. Maak een gesprek met persoon B en voeg daarna persoon C aan dezelfde samenwerking toe. Iedere deelnemer moet een eigen uitnodigingscode krijgen.
+11. Laat B een bericht plaatsen. Controleer op A dat de samenwerking als **Nieuwe update beschikbaar** met een oranje indicator wordt getoond totdat A de samenwerking opent.
+12. Deel de auto met B en voeg eventueel C aan dezelfde autosamenwerking toe.
+13. Activeer de gedeelde auto op B, registreer daar een nieuwe rit en publiceer de voertuigregistratie terug. Controleer op A dat dezelfde VehicleId wordt gebruikt maar B als bestuurder is vastgelegd.
+14. Controleer dat de nieuwe rit ook als update van een andere deelnemer zichtbaar wordt.
+15. Zet de online payload tijdelijk offline en controleer dat de lokale samenwerking op beide apparaten blijft bestaan.
+16. Publiceer daarna vanuit een deelnemer met schrijfrecht opnieuw onder dezelfde samenwerking/alias en controleer dat de andere deelnemer de nieuwe revisie ziet.
+17. Beëindig als eigenaar een testsamenwerking en controleer dat deelnemers na hun eerstvolgende online controle geen toegang meer hebben tot de gedeelde inhoud in Log.
+
+### Belangrijk bij meerdere deelnemers
+
+Taken/uren worden bewust per persoon voorgelegd, zodat toegewezen minuten en acceptatie per persoon afzonderlijk blijven.
+
+Gesprekken en auto's mogen meerdere deelnemers binnen één samenwerking hebben. Een individuele deelnemer verwijderen is nog niet als gebruikersactie vrijgegeven: daarvoor moet ook de gedeelde inhoudssleutel worden geroteerd, anders zou een eerder ontvangen sleutel nog bruikbaar kunnen zijn. De eigenaar kan de volledige samenwerking wel veilig beëindigen; daarbij wordt de online payload verwijderd en de samenwerking ingetrokken.
 
 Live/productie hoeft voor deze test niet te worden gewijzigd.
