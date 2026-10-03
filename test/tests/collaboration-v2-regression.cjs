@@ -54,5 +54,7 @@ assert.match(bridge, /collaboration-v2-consistency\.js/, 'test loader must inclu
 assert.match(bridge, /collaboration-v2-multiparty\.js/, 'test loader must include multiparty support');
 assert.doesNotMatch(buildUi, /ensureScript\(`\.\/collaboration\.js/, 'legacy collaboration must not be loaded by the test UI');
 assert.match(serviceWorker, /0\.39-test\.3/, 'PWA cache must use the current test build');
+assert.match(serviceWorker, /collaboration-v2-consistency\.js/, 'PWA cache must include consistency rules');
+assert.match(serviceWorker, /collaboration-v2-multiparty\.js/, 'PWA cache must include multiparty support');
 
 console.log('collaboration-v2 regression checks passed');
