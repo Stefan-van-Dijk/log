@@ -12,10 +12,12 @@ const multiparty = read('collaboration-v2-multiparty.js');
 const people = read('people.js');
 const personIdentity = read('person-id-unification.js');
 const personCardNetwork = read('people-personcard-network-fix.js');
+const personConnections = read('person-connections.js');
 const bridge = read('shell-backup-archive.js');
 const buildUi = read('test-build-ui.js');
 const serviceWorker = read('service-worker.js');
 const server = read('server/sync.php');
+const connectionServer = read('server/connections.php');
 
 // Syntax: browser/service-worker globals are allowed; parsing catches accidental JS syntax regressions.
 assert.doesNotThrow(() => new Function(identity), 'identity-sync.js must parse');
@@ -25,6 +27,7 @@ assert.doesNotThrow(() => new Function(multiparty), 'collaboration-v2-multiparty
 assert.doesNotThrow(() => new Function(people), 'people.js must parse');
 assert.doesNotThrow(() => new Function(personIdentity), 'person-id-unification.js must parse');
 assert.doesNotThrow(() => new Function(personCardNetwork), 'people-personcard-network-fix.js must parse');
+assert.doesNotThrow(() => new Function(personConnections), 'person-connections.js must parse');
 assert.doesNotThrow(() => new Function(bridge), 'shell-backup-archive.js must parse');
 assert.doesNotThrow(() => new Function(buildUi), 'test-build-ui.js must parse');
 assert.doesNotThrow(() => new Function(serviceWorker), 'service-worker.js must parse');
@@ -69,6 +72,27 @@ assert.match(personIdentity, /setAlias\(current,realPersonId\)/, 'provisional Pe
 assert.match(personIdentity, /remapStoredReferences\(current,realPersonId\)/, 'existing references must be translated to the real PersonId');
 assert.match(personIdentity, /wrapped.__personIdUnified=true/, 'identity linking must trigger PersonId merge without replacing the People UI path');
 
+// Person connections are mutual and separate from conversations/collaborations.
+assert.match(personConnections, /schema:'log\.connection\.v1'/, 'person connections must use their own connection schema');
+assert.match(personConnections, /status:'pending_out'/, 'sender must wait for the other person to confirm');
+assert.match(personConnections, /pending_in/, 'recipient must have an explicit incoming-confirmation state');
+assert.match(personConnections, /confirmations:\{\[ownerPersonId\]:true,\[otherPersonId\]:false\}/, 'new connection request must record only the sender as confirmed');
+assert.match(personConnections, /status==='connected'\?'connected'/, 'mutual confirmation must produce connected status');
+assert.match(personConnections, /renewedFrom:existing\?\.connectionId\|\|null/, 'reconnecting must create a new ConnectionId that can refer to the old connection');
+assert.match(personConnections, /Verbinding verbreken/, 'connected person must expose unilateral connection break');
+assert.match(personConnections, /Groepschat starten/, 'connected person must expose group chat');
+assert.match(personConnections, /connectedPeople\(\)/, 'group chat participant list must be limited to confirmed connections');
+assert.match(personConnections, /api\.addParticipant\(result\.alias,person\.id\)/, 'group chat must reuse the existing multiparty conversation layer');
+assert.match(personConnections, /data-person-connection-swipe/, 'People rows must expose the connection action through swipe');
+assert.match(personConnections, /log-person-connection-dot/, 'People rows must expose connection status with a dot');
+assert.match(personConnections, /qrSvg\(item\.connectionId\)/, 'connection request QR must contain only the 12-character ConnectionId');
+
+assert.match(connectionServer, /\['create','put','revoke'\]/, 'connection relay must support create, status update and revoke');
+assert.match(connectionServer, /memberTokenHash/, 'recipient authority must be separate from owner authority');
+assert.match(connectionServer, /De ontvanger moet de verbinding bevestigen/, 'owner must not be able to self-confirm a pending connection');
+assert.match(connectionServer, /\$state\['revoked'\] = true/, 'either authenticated side must be able to revoke the connection');
+assert.match(connectionServer, /\$state\['payload'\] = null/, 'revoking a connection must remove the online payload');
+
 assert.match(server, /'accept','reject'/, 'server must support task acknowledgements');
 assert.match(server, /LOG_SYNC_RIGHTS/, 'server must enforce explicit rights');
 assert.match(server, /ownerTokenHash/, 'server must separate owner authority from visible alias');
@@ -80,6 +104,7 @@ assert.match(bridge, /collaboration-v2-consistency\.js/, 'test loader must inclu
 assert.match(bridge, /collaboration-v2-multiparty\.js/, 'test loader must include multiparty support');
 assert.doesNotMatch(buildUi, /v2-feature-loader\.js/, 'general v2 feature loader must stay out of the critical UI path');
 assert.match(buildUi, /person-id-unification\.js/, 'test UI must load the isolated PersonId migration layer');
+assert.match(buildUi, /person-connections\.js/, 'test UI must load the isolated mutual connection layer');
 assert.doesNotMatch(buildUi, /ensureScript\(`\.\/collaboration\.js/, 'legacy collaboration must not be loaded by the test UI');
 assert.match(serviceWorker, /0\.39-test\.3/, 'PWA cache must keep the stable current test build');
 assert.match(serviceWorker, /PEOPLE_ASSET='0\.39-test\.3-personcard1'/, 'People module must have its own person-card cache revision');
