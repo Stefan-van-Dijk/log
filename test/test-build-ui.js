@@ -51,7 +51,6 @@
       document.querySelectorAll('.log-public-dialog,.log-share-dialog').forEach(dialog=>{try{dialog.close?.();}catch(_){}dialog.remove();});
       ensureScript(`./sharing-private-ui.js?v=${BUILD}`,'logSharingUi');
     }
-    ensureScript(`./collaboration.js?v=${BUILD}`,'logCollaboration');
     ensureScript(`./shared-id-separation.js?v=${BUILD}`,'logSharedIdSeparation');
     ensureScript(`./offline-share-bridge.js?v=${BUILD}`,'logOfflineShareBridge');
     ensureScript(`./qr-action-direct.js?v=${BUILD}`,'logDirectQrAction');
