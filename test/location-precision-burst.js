@@ -52,6 +52,15 @@
     }
   }
 
+  function syncHelpText(){
+    document.querySelectorAll('.cards-notice').forEach(node=>{
+      const text=String(node.textContent||'');
+      if(text.includes('elke 6 seconden zonder actieve rit')){
+        node.textContent='Log bepaalt bij openen één keer nauwkeurig je locatie. Zolang de app zichtbaar is controleert Log daarna in de automatische stand ongeveer elke 10 seconden zuinig; tijdens een actieve rit elke minuut. Vlak vóór het uitvoeren van een locatieactie wordt opnieuw één nauwkeurige meting gedaan. Er is geen locatieherkenning wanneer Log gesloten is.';
+      }
+    });
+  }
+
   document.addEventListener('click',async event=>{
     const button=event.target.closest?.('[data-la-propose]');
     if(!button)return;
@@ -74,12 +83,15 @@
     }
   },true);
 
-  window.addEventListener('pageshow',()=>setTimeout(preciseOnOpen,120));
-  document.addEventListener('visibilitychange',()=>{if(!document.hidden)setTimeout(preciseOnOpen,120);});
-  window.addEventListener('log-shell-ready',()=>setTimeout(preciseOnOpen,120));
+  window.addEventListener('pageshow',()=>setTimeout(()=>{preciseOnOpen();syncHelpText();},120));
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)setTimeout(()=>{preciseOnOpen();syncHelpText();},120);});
+  window.addEventListener('log-shell-ready',()=>setTimeout(()=>{preciseOnOpen();syncHelpText();},120));
+  window.addEventListener('log-shell-view-refresh',()=>setTimeout(syncHelpText,0));
 
   function install(){
     preciseOnOpen();
+    syncHelpText();
+    new MutationObserver(syncHelpText).observe(document.documentElement,{childList:true,subtree:true});
     window.LogLocationPrecision={precise,preciseOnOpen,lastPreciseAt:()=>lastPreciseAt};
   }
 
