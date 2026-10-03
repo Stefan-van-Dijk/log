@@ -119,7 +119,7 @@
     }
     if(!box.querySelector('.log-location-refresh-slider')){
       const index=indexForMs(readConfig().globalIntervalMs);
-      box.innerHTML=`${sliderMarkup('logLocationRefreshInterval',index,false)}<small>Alleen zolang Log zichtbaar is. Automatisch gebruikt 6 seconden zonder actieve rit en 1 minuut tijdens een actieve rit.</small>`;
+      box.innerHTML=`${sliderMarkup('logLocationRefreshInterval',index,false)}<small>Alleen zolang Log zichtbaar is. Automatisch gebruikt 10 seconden zonder actieve rit en 1 minuut tijdens een actieve rit. Recente locatie mag kort worden hergebruikt om batterij en warmte te beperken.</small>`;
       const range=box.querySelector('input[type="range"]'),output=box.querySelector('[data-log-slider-value]');
       setRangeVisual(range,output,false);
       range.addEventListener('input',()=>setRangeVisual(range,output,false));
