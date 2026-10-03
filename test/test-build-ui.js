@@ -74,7 +74,11 @@
     });
   }
 
-  function render(){installStyles();syncVersionSurface();}
+  function render(){
+    document.documentElement.classList.remove('log-shell-booting');
+    installStyles();
+    syncVersionSurface();
+  }
   function init(){
     render();
     ensureCurrentSharingUI();
