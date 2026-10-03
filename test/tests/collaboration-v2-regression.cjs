@@ -47,13 +47,15 @@ assert.match(multiparty, /addParticipant/, 'owner must be able to add participan
 assert.match(multiparty, /\['vehicle','conversation'\]/, 'multiparty sharing must be limited to shared vehicle/conversation; hours remain person-specific');
 assert.match(multiparty, /doc\.participants\.push/, 'new participant must be part of the encrypted collaboration document');
 
-assert.match(personCard, /log-person-v1:/, 'person card QR format must exist');
-assert.match(personCard, /log\.person-card\.v1/, 'person card encrypted payload schema must exist');
-assert.match(personCard, /contentKey/, 'person card must separate its public alias from its decryption key');
+assert.match(personCard, /CODE=\/\^log-person-v1:\(\[A-Za-z0-9_-\]\{12\}\)\$\//, 'person-card QR must carry one 12-character pair code');
+assert.match(personCard, /log\.person-card\.v2/, 'person-card encrypted payload schema v2 must exist');
+assert.match(personCard, /PAIR12-SHA256\+A256GCM/, '12-character pair code must derive the person-card encryption key');
+assert.match(personCard, /pairCode:card\.alias/, 'visible pair code must be the 12-character public alias');
+assert.match(personCard, /12-teken code kopiëren/, 'person card UI must expose only the short pair code');
+assert.match(personCard, /12-teken persoonscode invoeren/, 'manual fallback must use the same short pair code');
 assert.match(personCard, /openScannerFor/, 'person detail must be able to open the shared QR scanner');
 assert.match(personCard, /LogIdentitySync\.linkContact/, 'scanned person cards must link through the identity layer');
-assert.match(personCard, /Persoonskaart opnieuw scannen/, 'manual PersonId entry must not be the primary linking route');
-assert.match(personCard, /Handmatig koppelen/, 'manual linking remains available as a secondary fallback');
+assert.doesNotMatch(personCard, /log-person-v1:\$\{alias\}\.\$\{/, 'new person-card QR must not append a long decryption key');
 assert.match(personCard, /mask\(/, 'raw technical identities must be masked in the visible identity UI');
 assert.match(personCardDialogGuard, /dialog\.cards-dialog/, 'person-card async dialogs must keep a visible close control');
 
@@ -66,7 +68,7 @@ assert.match(server, /\$state\['acknowledgements'\] = \[\]/, 'owner task revisio
 
 assert.match(bridge, /collaboration-v2-consistency\.js/, 'test loader must include consistency rules');
 assert.match(bridge, /collaboration-v2-multiparty\.js/, 'test loader must include multiparty support');
-assert.match(bridge, /person-card-v2\.js/, 'test loader must include QR person-card pairing');
+assert.match(bridge, /person-card-v2\.js\?v=\$\{BUILD\}-person12/, 'test loader must bust the person-card cache for the 12-character format');
 assert.match(bridge, /person-card-v2-dialog-guard\.js/, 'test loader must include the person-card dialog guard');
 assert.doesNotMatch(buildUi, /ensureScript\(`\.\/collaboration\.js/, 'legacy collaboration must not be loaded by the test UI');
 assert.match(serviceWorker, /0\.39-test\.3/, 'PWA cache must use the current test build');
