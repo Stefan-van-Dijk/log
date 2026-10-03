@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const BUILD='0.39-test.4';
+  const BUILD='0.39-test.3';
   window.LOG_TEST_BUILD=BUILD;
 
   function installStyles(){
@@ -60,7 +60,6 @@
     ensureScript(`./time/active-task-layout.js?v=${BUILD}`,'logActiveTaskLayout');
     ensureScript(`./shared-home-components.js?v=${BUILD}`,'logSharedHomeComponents');
     ensureScript(`./bottom-bar-qr-swipe.js?v=${BUILD}`,'logBottomBarQrSwipe');
-    ensureScript(`./v2-feature-loader.js?v=${BUILD}`,'logV2FeatureLoader');
   }
 
   function syncVersionSurface(){
