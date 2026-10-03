@@ -11,6 +11,7 @@
     ['collaboration-v2-multiparty.js','logCollaborationV2Multiparty',''],
     ['collaboration-v2-awareness.js','logCollaborationV2Awareness',''],
     ['person-card-v2.js','logPersonCardV2','-person12'],
+    ['person-card-v2-anchor.js','logPersonCardV2Anchor',''],
     ['person-card-v2-dialog-guard.js','logPersonCardV2DialogGuard','']
   ];
 
