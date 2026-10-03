@@ -60,6 +60,7 @@
     ensureScript(`./time/active-task-layout.js?v=${BUILD}`,'logActiveTaskLayout');
     ensureScript(`./shared-home-components.js?v=${BUILD}`,'logSharedHomeComponents');
     ensureScript(`./bottom-bar-qr-swipe.js?v=${BUILD}`,'logBottomBarQrSwipe');
+    ensureScript(`./location-precision-burst.js?v=${BUILD}-loc2`,'logLocationPrecisionBurst');
     ensureScript(`./identity-sync.js?v=${BUILD}`,'logIdentitySyncBridge');
     ensureScript(`./person-id-unification.js?v=${BUILD}-pid1`,'logPersonIdUnification');
     ensureScript(`./people-personcard-network-fix.js?v=${BUILD}-net2`,'logPeoplePersonCardNetworkFix');
