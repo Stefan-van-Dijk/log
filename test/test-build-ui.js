@@ -64,7 +64,7 @@
     ensureScript(`./person-id-unification.js?v=${BUILD}-pid1`,'logPersonIdUnification');
     ensureScript(`./people-personcard-network-fix.js?v=${BUILD}-net2`,'logPeoplePersonCardNetworkFix');
     ensureScript(`./person-connections.js?v=${BUILD}-conn2`,'logPersonConnections');
-    ensureScript(`./person-connections-swipe-fix.js?v=${BUILD}-conn2`,'logPersonConnectionSwipeFix');
+    ensureScript(`./person-connections-swipe-fix.js?v=${BUILD}-conn3`,'logPersonConnectionSwipeFix');
   }
 
   function syncVersionSurface(){
