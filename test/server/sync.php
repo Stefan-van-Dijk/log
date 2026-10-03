@@ -197,6 +197,7 @@ if ($action === 'put') {
     $revision = $currentRevision + 1;
     if (!write_json($payloadPath, ['revision' => $revision, 'payload' => $payload, 'updatedAt' => $now])) out(500, ['error' => 'Versleutelde payload kon niet worden opgeslagen.']);
     $state['revision'] = $revision;$state['active'] = true;$state['offline'] = false;$state['updatedAt'] = $now;
+    if (($state['kind'] ?? '') === 'task' && $authorization['owner']) $state['acknowledgements'] = [];
     if (!write_json($statePath, $state)) out(500, ['error' => 'Synchronisatiestatus kon niet worden opgeslagen.']);
     out(200, state_public($id, $state, null, $authorization));
 }
