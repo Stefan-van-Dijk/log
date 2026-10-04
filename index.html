@@ -11,13 +11,13 @@
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="icon" href="./app-icon.svg" type="image/svg+xml">
 <title>Logregistratie</title>
-<link rel="stylesheet" href="./time/styles.css?v=0.35">
-<link rel="stylesheet" href="./time/home-layout.css?v=0.35">
-<link rel="stylesheet" href="./time/home-top.css?v=0.35">
-<link rel="stylesheet" href="./cards.css?v=0.35">
-<link rel="stylesheet" href="./people.css?v=0.35">
-<link rel="stylesheet" href="./location-actions.css?v=0.35">
-<link rel="stylesheet" href="./log-ui.css?v=0.35">
+<link rel="stylesheet" href="./time/styles.css?v=0.35.1-test.2">
+<link rel="stylesheet" href="./time/home-layout.css?v=0.35.1-test.2">
+<link rel="stylesheet" href="./time/home-top.css?v=0.35.1-test.2">
+<link rel="stylesheet" href="./cards.css?v=0.35.1-test.2">
+<link rel="stylesheet" href="./people.css?v=0.35.1-test.2">
+<link rel="stylesheet" href="./location-actions.css?v=0.35.1-test.2">
+<link rel="stylesheet" href="./log-ui.css?v=0.35.1-test.2">
 <style>
 :root{--bg:#0d1117;--card:#161b22;--card2:#1d2430;--text:#f4f7fb;--muted:#9aa7b7;--line:#2a3442;--accent:#4da3ff;--good:#49d17d;--warn:#ffbd4a;--bad:#ff6767;--r:18px}
 *{box-sizing:border-box;min-width:0}html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}body{min-height:100dvh}button,input,select,textarea{font:inherit}.shell{width:100%;max-width:820px;margin:auto;padding:env(safe-area-inset-top) 16px calc(28px + env(safe-area-inset-bottom))}.top{position:sticky;top:0;z-index:10;display:flex;justify-content:space-between;align-items:center;padding:16px 0 20px;background:var(--bg)}.eyebrow,.kicker{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:700}.top h1{margin:3px 0 0;font-size:24px}.hero,.box,.list-item,.summary,.notice,.empty,.accordion{background:var(--card);border:1px solid var(--line);border-radius:var(--r)}.hero{padding:20px;margin-bottom:16px}.hero h2{margin:7px 0;font-size:27px;line-height:1.15}.muted,small,.hint{color:var(--muted)}.btn,.mini,.iconbtn,.action{border:0;cursor:pointer}.btn{min-height:47px;padding:13px 15px;border-radius:13px;background:var(--accent);color:#fff;font-weight:750}.btn.secondary{background:var(--card2);border:1px solid var(--line)}.btn.danger{background:#4b1f24}.btn.full{width:100%}.mini,.iconbtn{padding:9px 11px;border-radius:11px;background:var(--card);border:1px solid var(--line);color:var(--text)}.row{display:flex;gap:9px;flex-wrap:wrap}.row>.btn{flex:1 1 150px}.section{margin-top:20px}.section-title{display:flex;justify-content:space-between;align-items:end;gap:10px;margin-bottom:9px}.section-title h2{margin:0;font-size:20px}.week-head{display:grid;grid-template-columns:42px 1fr 42px;align-items:center;gap:8px;margin-bottom:10px}.week-center{text-align:center}.week-center strong,.week-center small{display:block}.period-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;padding:5px;margin-bottom:10px;border:1px solid var(--line);border-radius:13px;background:#101722}.period-tabs button{min-width:0;padding:9px 6px;border:0;border-radius:9px;background:transparent;color:var(--muted);font-size:12px;font-weight:750;cursor:pointer}.period-tabs button.active{background:var(--card2);color:var(--text)}.ride-tools{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:9px}.ride-tool{padding:11px 12px;border:1px solid var(--line);border-radius:12px;background:#101722;color:var(--text);font-weight:700;text-align:center;cursor:pointer}.route-points{display:grid;gap:7px;margin-top:10px}.route-point{display:flex;gap:9px;align-items:flex-start;padding:10px 11px;border:1px solid var(--line);border-radius:11px;background:#101722}.route-point-icon{flex:0 0 26px;font-size:18px;text-align:center}.route-point-main{flex:1}.route-point-main strong,.route-point-main small{display:block}.route-point-main small{margin-top:2px}.route-point-km{white-space:nowrap;font-size:12px;color:var(--muted)}.summary{overflow:hidden}.summary-head{padding:16px}.summary-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:700}.summary-total{display:flex;justify-content:space-between;align-items:end;gap:10px;margin-top:6px}.summary-total strong{font-size:30px;line-height:1}.summary-parts{display:flex;border-top:1px solid var(--line)}.summary-part{flex:1;padding:12px 13px}.summary-part+.summary-part{border-left:1px solid var(--line)}.summary-part span,.summary-part strong{display:block}.summary-part span{font-size:11px;color:var(--muted)}.summary-part strong{margin-top:3px;font-size:16px}.list{display:grid;gap:9px}.list-item{display:flex;align-items:center;gap:11px;padding:13px}.trip{cursor:pointer}.trip-date{flex:0 0 58px;font-size:12px;color:var(--muted)}.trip-main{flex:1;overflow:hidden}.trip-main strong,.trip-main small{display:block}.trip-main small{margin-top:3px}.trip-km{font-weight:800;white-space:nowrap}.chev{font-size:24px;color:var(--muted)}.empty{padding:20px;text-align:center;color:var(--muted)}.form-group{margin:13px 0;width:100%;overflow:hidden}.form-group label{display:block;margin-bottom:6px;font-size:13px;font-weight:700}.form-group input,.form-group select,.form-group textarea{display:block;width:100%;max-width:100%;min-width:0;padding:12px;border:1px solid var(--line);border-radius:11px;background:#0f141b;color:var(--text)}.form-group input[type=date],.form-group input[type=datetime-local]{width:100%;min-width:0;max-width:100%}.form-group textarea{min-height:86px;resize:vertical}.hint{font-size:12px;line-height:1.4}.notice{padding:13px;color:var(--muted);margin:12px 0}.notice.warning{border-color:#6b5424;color:#ffd98a}.route{padding:13px;margin:10px 0;border:1px solid var(--line);border-radius:13px;background:#101722}.route strong,.route small{display:block}.route small{margin-top:4px}.status{display:inline-flex;align-items:center;gap:6px;padding:6px 9px;border:1px solid var(--line);border-radius:999px;font-size:12px;color:var(--muted)}.dot{width:8px;height:8px;border-radius:50%;background:var(--good)}
@@ -552,7 +552,7 @@ body.time-mode .shell{max-width:760px}
 @media (prefers-color-scheme:light){:root{--bg:#f5f5f7}html,body{background:#f5f5f7}}
 @media (prefers-color-scheme:dark){:root{--bg:#0a0c0f}html,body{background:#0a0c0f}}
 </style>
-<link rel="stylesheet" href="./swipe-ui.css?v=0.35">
+<link rel="stylesheet" href="./swipe-ui.css?v=0.35.1-test.2">
 </head>
 <body>
 <div class="shell">
@@ -572,18 +572,18 @@ body.time-mode .shell{max-width:760px}
 <div id="modal" class="modal" hidden><div id="modalPanel" class="modal-panel"></div></div>
 <div id="toast" class="toast"></div>
 <div id="printReport" class="print-only"></div>
-<script src="./location-polling.js?v=0.35"></script>
-<script src="./swipe-policy.js?v=0.35"></script>
+<script src="./location-polling.js?v=0.35.1-test.2"></script>
+<script src="./swipe-policy.js?v=0.35.1-test.2"></script>
 <script src="./log-json-v2.js?v=2.0.0"></script>
 <script>
 (()=>{
 'use strict';
-const APP_BUILD='0.35',KEY='kmreg-v4-data',APP_MODE_KEY='kmreg-active-app-v1',TIME_STORAGE_KEY='urenregistratie.pwa.v1',REGISTRATION_IDENTITY_KEY='registratie-identiteiten-v1',REGISTRATION_MODEL_SCHEMA='registratie-model.v1',REGISTRATION_EXPORT_KIND='complete_backup',GEOCODE_CACHE_KEY='kmreg-geocode-cache-v1',GEOCODER_DEFAULT_BASE='https://nominatim.openstreetmap.org',SCREEN_EDGE_SWIPE_ZONE=32,SCREEN_EDGE_SWIPE_DISTANCE=72;
+const APP_BUILD='0.35.1-test.2',KEY='kmreg-test-v4-data',APP_MODE_KEY='kmreg-test-active-app-v1',TIME_STORAGE_KEY='urenregistratie.test.pwa.v1',REGISTRATION_IDENTITY_KEY='registratie-test-identiteiten-v1',REGISTRATION_MODEL_SCHEMA='registratie-model.v1',REGISTRATION_EXPORT_KIND='complete_backup',GEOCODE_CACHE_KEY='kmreg-test-geocode-cache-v1',GEOCODER_DEFAULT_BASE='https://nominatim.openstreetmap.org',SCREEN_EDGE_SWIPE_ZONE=32,SCREEN_EDGE_SWIPE_DISTANCE=72;
 const DEFAULT={settings:{name:'',vehicleBrand:'',vehicleModel:'',plate:'',initialOdometer:'',registrationStart:new Date().toISOString().slice(0,10),reportEmail:'',recognitionRadius:500,privateDays:[],privateTimeStart:'',privateTimeEnd:'',navigationMode:'system',lastBackupAt:null,swipeDeleteEnabled:true,locationDeleteEnabled:true,destinationTimeWindowHours:2,geocoderBaseUrl:GEOCODER_DEFAULT_BASE,locationSortMode:'smart',locationOrder:[],bottomBarEnabled:true},locations:[],cards:[],trips:[],events:[],trackPoints:[],activeTrip:null,lastEndpoint:null,lastCompletion:null};
 let data=load(),view='ride',appMode=localStorage.getItem(APP_MODE_KEY)==='time'?'time':'kilometers',selectedWeek=new Date(),periodMode='week',periodChooserOpen=false,gpsWatch=null,gpsTimer=null,gpsLatest=null,odoSwipe=null,periodGesture=null,periodLastTap=0,expandedTripId=null,tripSwipe=null,trackStoreReady=false,trackDbPromise=null,settingsLocationCheck=0,geocodeQueue=Promise.resolve(),geocodeLastAt=0,expandedLocationId=null,settingsLocationsOpen=false,settingsLocationOriginId=null,screenSwipe=null,editorReturnView='ride',editingTripId=null,editingLocationId=null,editingLocationSeed=null,startDraft=null,arrivalDraft=null;
 const DETOUR_COOLDOWN_MS=60000;
 let detourSaving=false,detourCountdownTimer=null;
-window.LOG_BUILD=APP_BUILD;
+window.LOG_TEST_BUILD=APP_BUILD;
 const app=document.getElementById('app'),modal=document.getElementById('modal'),modalPanel=document.getElementById('modalPanel'),toastEl=document.getElementById('toast'),topAction=document.getElementById('topAction'),printReportEl=document.getElementById('printReport'),appModeToggle=document.getElementById('appModeToggle'),appModeLabel=document.getElementById('appModeLabel'),appModeMeta=document.getElementById('appModeMeta'),timeModuleRoot=document.getElementById('timeModuleRoot');
 document.getElementById('today').textContent=new Intl.DateTimeFormat('nl-NL',{weekday:'long',day:'numeric',month:'long'}).format(new Date())+' · '+APP_BUILD;
 window.addEventListener('log-swipe-policy-change',event=>{reloadKilometerData();const previous={...data.settings};const module=event.detail?.module;if(module){if(!Object.hasOwn(window.LogSwipePolicy.modules,module))return;data.settings.swipeLifecycleModules={...data.settings.swipeLifecycleModules,[module]:event.detail.enabled!==false};}else data.settings.swipeLifecycleEnabled=event.detail?.enabled!==false;try{save('swipe-policy');render()}catch(error){data.settings=previous;toast('Instelling kon niet worden opgeslagen.')}window.dispatchEvent(new Event('log-swipe-policy-updated'))});
@@ -612,7 +612,7 @@ function syncTimeAppChrome(){updateTimeAppMeta();topAction.dataset.action='time-
 function syncAppModeChrome(){const time=appMode==='time';document.body.classList.toggle('time-mode',time);app.hidden=time;timeModuleRoot.hidden=!time;appModeLabel.textContent=time?'Tijdsregistratie':'Kilometerregistratie';appModeMeta.hidden=!time;appModeToggle.setAttribute('aria-label',time?'Wissel naar Kilometerregistratie':'Wissel naar Tijdsregistratie');document.title=time?'Tijdsregistratie':'Kilometerregistratie';if(time){window.LogTimeModule?.showHome({scroll:false});syncTimeAppChrome()}}
 function applyAppMode(mode,persist=true){appMode=mode==='time'?'time':'kilometers';if(persist)localStorage.setItem(APP_MODE_KEY,appMode);syncAppModeChrome();if(appMode==='kilometers')render()}
 function toggleAppMode(){applyAppMode(appMode==='time'?'kilometers':'time')}
-function openTimeSettings(){window.dispatchEvent(new CustomEvent('kmreg-shell-open-settings',{detail:{target:'time'}}))}
+function openTimeSettings(){window.dispatchEvent(new CustomEvent('kmreg-test-shell-open-settings',{detail:{target:'time'}}))}
 const ID_ALPHABET='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
 function uid(){const bytes=new Uint8Array(12);if(window.crypto?.getRandomValues)window.crypto.getRandomValues(bytes);else for(let i=0;i<bytes.length;i++)bytes[i]=Math.floor(Math.random()*256);return Array.from(bytes,b=>ID_ALPHABET[b&63]).join('')}
 
@@ -658,8 +658,8 @@ function recordSuccessfulBackup(at){data.settings.lastBackupAt=at;save();render(
 async function exportRegistrationModel(){const exportedAt=new Date().toISOString(),bundle=buildCompleteRegistrationExport(exportedAt),date=exportedAt.slice(0,10),name=`registratie-compleet-${date}.json`,result=await deliverFile(new Blob([JSON.stringify(bundle,null,2)],{type:'application/json'}),name,'Complete registratie-export');if(result==='cancelled')return;recordSuccessfulBackup(exportedAt);toast(result==='shared'?`${bundle.counts.activities} activiteiten en volledige hersteldata gedeeld.`:'Complete export als download aangeboden.')}
 
 function render(){if(appMode==='time'){syncAppModeChrome();return}const editor=view==='trip-edit'||view==='location-edit';document.body.classList.toggle('editor-view',editor);document.body.classList.toggle('has-active-trip',view==='ride'&&!!data.activeTrip);if(view==='trip-edit'){renderTripEditPage();return}if(view==='location-edit'){renderLocationEditPage();return}if(view==='settings'){topAction.dataset.action='home';topAction.textContent='←';topAction.setAttribute('aria-label','Terug');renderSettings()}else{view='ride';topAction.dataset.action='settings';topAction.textContent='⚙︎';topAction.setAttribute('aria-label','Instellingen');renderHome()}}
-function requestShellSection(section){window.dispatchEvent(new CustomEvent('kmreg-shell-select-section',{detail:{section}}))}
-function requestShellSettings(){window.dispatchEvent(new CustomEvent('kmreg-shell-open-settings'))}
+function requestShellSection(section){window.dispatchEvent(new CustomEvent('kmreg-test-shell-select-section',{detail:{section}}))}
+function requestShellSettings(){window.dispatchEvent(new CustomEvent('kmreg-test-shell-open-settings'))}
 
 document.addEventListener('click',async e=>{const el=e.target.closest('[data-action]');if(!el)return;const a=el.dataset.action;try{
 if(a==='toggle-app')toggleAppMode();else if(a==='time-settings')openTimeSettings();else if(a==='settings'){view='settings';render()}else if(a==='home'){view='ride';render()}else if(a==='editor-back')leaveEditor();else if(a==='close')closeModal();else if(a==='start'){periodChooserOpen=false;await openStart()}else if(a==='cancel-start'){startDraft=null;render();}else if(a==='reopen-last-trip')await reopenLastTrip();else if(a==='reopen-trip')await reopenLastTrip(el.dataset.id);else if(a==='arrive'){periodChooserOpen=false;await openArrival()}else if(a==='cancel-arrival'){arrivalDraft=null;render();}else if(a==='navigate-active')await startNavigation(data.activeTrip?.expectedDestination);else if(a==='share-active')await shareActiveRide();else if(a==='trip-toggle'){if(el.dataset.suppressClick==='1'){delete el.dataset.suppressClick}else{const id=el.dataset.id||el.closest('[data-id]')?.dataset.id;expandedTripId=expandedTripId===id?null:id;render()}}else if(a==='location-toggle'){if(el.dataset.suppressClick==='1'){delete el.dataset.suppressClick}else{const id=el.dataset.id||el.closest('[data-id]')?.dataset.id;expandedLocationId=expandedLocationId===id?null:id;settingsLocationsOpen=true;refreshSettingsLocationList()}}else if(a==='location-sort'){const mode=['smart','alpha','custom'].includes(el.dataset.mode)?el.dataset.mode:'smart';data.settings.locationSortMode=mode;if(mode==='custom'){const existing=Array.isArray(data.settings.locationOrder)?data.settings.locationOrder.map(String):[],ids=data.locations.map(x=>String(x.id));data.settings.locationOrder=[...existing.filter(id=>ids.includes(id)),...ids.filter(id=>!existing.includes(id))]}settingsLocationsOpen=true;save();refreshSettingsLocationList()}else if(a==='edit-trip')openTripEdit(el.dataset.id);else if(a==='back-detail')returnFromTripEdit(el.dataset.id);else if(a==='save-trip-edit')saveTripEdit();else if(a==='delete-trip')deleteTrip(el.dataset.id);else if(a==='event-detail')openEventDetail(el.dataset.id||el.closest('[data-event-id]')?.dataset.eventId);else if(a==='edit-event')openEventEdit(el.dataset.id);else if(a==='back-event-detail')openEventDetail(el.dataset.id);else if(a==='save-event')saveEventEdit();else if(a==='delete-event')deleteEvent(el.dataset.id);else if(a==='select-odometer')selectOdometerProposal(el);else if(a==='toggle-odometer-edit')toggleOdometerEdit();else if(a==='arrival-info')openArrivalInfo();else if(a==='arrival-info-close')closeArrivalInfo();else if(a==='period-choose')openPeriodChooser();else if(a==='period-cancel'){periodChooserOpen=false;render()}else if(a==='period-set')setPeriodMode(el.dataset.mode);else if(a==='period-mode')setPeriodMode(el.dataset.mode);else if(a==='period-prev'){shiftPeriod(-1);render()}else if(a==='period-next'){shiftPeriod(1);render()}else if(a==='period-now'){selectedWeek=new Date();render()}else if(a==='add-location')await openLocation(null,false,el.dataset.returnSection||'');else if(a==='current-location')await openLocation(null,true,el.dataset.returnSection||'');else if(a==='gps-location')await fillGps();else if(a==='save-location')await saveLocation();else if(a==='edit-location')await openLocation(el.closest('[data-id]').dataset.id,false,el.dataset.returnSection||'');else if(a==='delete-location')deleteLocation(el.closest('[data-id]').dataset.id);else if(a==='merge-location')openLocationMerge(el.dataset.id||el.closest('[data-id]')?.dataset.id);else if(a==='confirm-location-merge')confirmLocationMerge();else if(a==='tank')await openTank();else if(a==='detour')await recordDetour(el);else if(a==='manual')openManual();else if(a==='private')openPrivate();else if(a==='model-export')await exportRegistrationModel();else if(a==='export'||a==='backup-now')await exportJson();else if(a==='import')document.getElementById('importFile')?.click();else if(a==='merge-import')document.getElementById('mergeImportFile')?.click();else if(a==='id-converter')location.href='./id-converter.html';else if(a==='csv')downloadCsv();else if(a==='share')await shareCsv();else if(a==='email')emailReport();else if(a==='print')printPeriod();
@@ -1088,7 +1088,7 @@ function adjustOdometerDigit(place,direction){const end=document.getElementById(
 function selectOdometerProposal(el){const value=num(el.dataset.value);if(value==null)return;document.querySelectorAll('.estimate-choice').forEach(x=>x.classList.remove('active'));el.classList.add('active');updateOdometerVisual(value,el.dataset.label||'Voorgestelde stand',num(el.dataset.precise));const edit=document.getElementById('odometerEdit');if(edit)edit.hidden=true}
 function toggleOdometerEdit(){const edit=document.getElementById('odometerEdit'),input=document.getElementById('arrivalCustomEnd');if(!edit||!input)return;edit.hidden=!edit.hidden;if(!edit.hidden){input.value=document.getElementById('arrivalEndOdometer')?.value||input.value;setTimeout(()=>{input.focus();input.select()},50)}}
 
-function openTrackDb(){if(trackDbPromise)return trackDbPromise;trackDbPromise=new Promise((resolve,reject)=>{if(!('indexedDB' in window))return reject(new Error('IndexedDB niet beschikbaar.'));const req=indexedDB.open('kmreg-track-v1',1);req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains('points')){const store=db.createObjectStore('points',{keyPath:'id'});store.createIndex('tripId','tripId',{unique:false})}};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error||new Error('GPS-opslag kon niet worden geopend.'))});return trackDbPromise}
+function openTrackDb(){if(trackDbPromise)return trackDbPromise;trackDbPromise=new Promise((resolve,reject)=>{if(!('indexedDB' in window))return reject(new Error('IndexedDB niet beschikbaar.'));const req=indexedDB.open('kmreg-test-track-v1',1);req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains('points')){const store=db.createObjectStore('points',{keyPath:'id'});store.createIndex('tripId','tripId',{unique:false})}};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error||new Error('GPS-opslag kon niet worden geopend.'))});return trackDbPromise}
 function txDone(tx){return new Promise((resolve,reject)=>{tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error||new Error('GPS-opslag mislukt.'));tx.onabort=()=>reject(tx.error||new Error('GPS-opslag afgebroken.'))})}
 async function allTrackPoints(){const db=await openTrackDb(),tx=db.transaction('points','readonly'),req=tx.objectStore('points').getAll(),rows=await new Promise((resolve,reject)=>{req.onsuccess=()=>resolve(req.result||[]);req.onerror=()=>reject(req.error)});await txDone(tx);return rows}
 async function putTrackPoints(points){if(!points?.length)return;const db=await openTrackDb(),tx=db.transaction('points','readwrite'),store=tx.objectStore('points');for(const point of points)store.put(point);await txDone(tx)}
@@ -1266,28 +1266,29 @@ async function deliverFile(blob,name,title){if(typeof File==='function'&&navigat
 function download(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
 })();
 </script>
-<script src="./removal-policy.js?v=0.35"></script>
-<script src="./shell-backup-archive.js?v=0.35"></script>
-<script src="./time/filter-model.js?v=0.35"></script>
-<script src="./time/app.js?v=0.35"></script>
-<script src="./time/home-layout.js?v=0.35"></script>
-<script src="./time/home-top.js?v=0.35"></script>
-<script src="./time/removal-policy-ui.js?v=0.35"></script>
+<script src="./removal-policy.js?v=0.35.1-test.2"></script>
+<script src="./shell-backup-archive.js?v=0.35.1-test.2"></script>
+<script src="./time/filter-model.js?v=0.35.1-test.2"></script>
+<script src="./time/app.js?v=0.35.1-test.2"></script>
+<script src="./time/home-layout.js?v=0.35.1-test.2"></script>
+<script src="./time/home-top.js?v=0.35.1-test.2"></script>
+<script src="./time/removal-policy-ui.js?v=0.35.1-test.2"></script>
 <script src="./vendor/qrcode-2.0.4.js"></script>
 <script src="./vendor/jsbarcode-3.12.1.min.js"></script>
 <script src="./vendor/zxing-0.21.3.min.js"></script>
-<script src="./log-code.js?v=0.35"></script>
-<script src="./cards.js?v=0.35"></script>
-<script src="./contact-import.js?v=0.35"></script>
-<script src="./people.js?v=0.35"></script>
-<script src="./location-actions.js?v=0.35"></script>
-<script src="./shell-ui.js?v=0.35"></script>
-<script src="./shell-ui-stable.js?v=0.35"></script>
-<script src="./shell-gestures.js?v=0.35"></script>
-<script src="./shell-location-status.js?v=0.35"></script>
-<script src="./shell-removal-policy.js?v=0.35"></script>
-<script src="./shell-quick-actions.js?v=0.35"></script>
-<script src="./shell-direct-actions.js?v=0.35"></script>
+<script src="./shared-card-import.js?v=0.35.1-test.2"></script>
+<script src="./log-code.js?v=0.35.1-test.2"></script>
+<script src="./cards.js?v=0.35.1-test.2"></script>
+<script src="./contact-import.js?v=0.35.1-test.2"></script>
+<script src="./people.js?v=0.35.1-test.2"></script>
+<script src="./location-actions.js?v=0.35.1-test.2"></script>
+<script src="./shell-ui.js?v=0.35.1-test.2"></script>
+<script src="./shell-ui-stable.js?v=0.35.1-test.2"></script>
+<script src="./shell-gestures.js?v=0.35.1-test.2"></script>
+<script src="./shell-location-status.js?v=0.35.1-test.2"></script>
+<script src="./shell-removal-policy.js?v=0.35.1-test.2"></script>
+<script src="./shell-quick-actions.js?v=0.35.1-test.2"></script>
+<script src="./shell-direct-actions.js?v=0.35.1-test.2"></script>
 </body>
 </html>
 

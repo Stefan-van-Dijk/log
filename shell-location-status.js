@@ -2,8 +2,8 @@
   'use strict';
 
   const VIEW_ID='kmShellLocationsView';
-  const SECTION_KEY='kmreg-shell-section-v1';
-  const DATA_KEY='kmreg-v4-data';
+  const SECTION_KEY='kmreg-test-shell-section-v1';
+  const DATA_KEY='kmreg-test-v4-data';
   const KM_STATE_EVENT='log-km-state-change';
   let viewObserver=null;
   let observedView=null;
@@ -330,7 +330,7 @@
     });
     bodyObserver.observe(document.body,{attributes:true,attributeFilter:['class'],childList:true,subtree:false});
 
-    window.addEventListener('kmreg-shell-select-section',event=>{
+    window.addEventListener('kmreg-test-shell-select-section',event=>{
       if(event.detail?.section==='locations')requestAnimationFrame(restoreLocationsView);
       queueEnhancements();
     });

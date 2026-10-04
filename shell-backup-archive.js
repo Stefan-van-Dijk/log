@@ -1,11 +1,13 @@
 (function(){
   'use strict';
 
-  const BUILD='0.31.10-test.106';
-  const ARCHIVE_KEY='log-archive-v1';
+  const BUILD='0.39-test.3';
+  const ARCHIVE_KEY='log-test-archive-v1';
   const RECOVERY_FIELD='_log_archive_v1';
   const originalBuild=window.buildCompleteRegistrationExport;
   const originalRestore=window.restoreKilometerPayload;
+
+  window.LOG_TEST_BUILD=BUILD;
 
   if(typeof originalBuild!=='function'||typeof originalRestore!=='function'){
     console.error('Archief-back-up kon niet aan de bestaande herstelroute worden gekoppeld.');
@@ -75,4 +77,44 @@
     await originalRestore(payload);
     if(hasArchive)writeArchive(archive);
   };
+
+  function loadScript(src,key){
+    if(document.querySelector(`script[data-${key}]`))return;
+    const script=document.createElement('script');
+    script.src=src;
+    script.async=false;
+    script.dataset[key]='1';
+    document.head.appendChild(script);
+  }
+
+  function loadBridges(){
+    loadScript('./shared-config-bridge.js?v=0.35.1-test.7','logExecutablePayloadBridge');
+    loadScript(`./identity-sync.js?v=${BUILD}`,'logIdentitySyncBridge');
+    loadScript(`./collaboration-v2.js?v=${BUILD}`,'logCollaborationV2Bridge');
+    loadScript(`./collaboration-v2-consistency.js?v=${BUILD}`,'logCollaborationV2Consistency');
+    loadScript(`./collaboration-v2-multiparty.js?v=${BUILD}`,'logCollaborationV2Multiparty');
+    loadScript(`./collaboration-v2-awareness.js?v=${BUILD}`,'logCollaborationV2Awareness');
+  }
+
+  function syncVersion(){
+    window.LOG_TEST_BUILD=BUILD;
+    document.querySelectorAll('.km-shell-version').forEach(node=>{
+      const label=node.querySelector('.km-shell-version-label');
+      const number=node.querySelector('.km-shell-version-number');
+      if(label)label.textContent='TEST';
+      if(number)number.textContent=BUILD;
+      node.setAttribute('aria-label',`Geladen testversie ${BUILD}`);
+    });
+  }
+
+  function init(){
+    loadBridges();
+    syncVersion();
+    new MutationObserver(syncVersion).observe(document.documentElement,{childList:true,subtree:true});
+    window.addEventListener('pageshow',syncVersion);
+    window.addEventListener('log-shell-view-refresh',syncVersion);
+  }
+
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});
+  else init();
 })();

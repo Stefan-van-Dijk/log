@@ -2,7 +2,7 @@
   'use strict';
 
   const BUILD='0.31.10-test.106';
-  const STORAGE_KEY='urenregistratie.pwa.v1';
+  const STORAGE_KEY='urenregistratie.test.pwa.v1';
   const policy=window.LogRemovalPolicy;
   if(!policy){console.error('LogRemovalPolicy ontbreekt in Tijd en taken.');return;}
 
@@ -111,7 +111,7 @@
   }
 
   function refreshTime(view='settings'){
-    const activeSection=localStorage.getItem('kmreg-shell-section-v1');
+    const activeSection=localStorage.getItem('kmreg-test-shell-section-v1');
     window.LogTimeModule?.reloadFromStorage?.({view:['themes','people'].includes(activeSection)?'home':view});
     window.dispatchEvent(new CustomEvent('log-time-state-change',{detail:{reason:'theme-catalog-change'}}));
     scheduleDecorate();

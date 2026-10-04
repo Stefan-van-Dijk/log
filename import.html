@@ -29,9 +29,9 @@
       await Promise.all(registrations.map(registration=>registration.unregister()));
       if('caches' in window){
         const names=await caches.keys();
-        await Promise.all(names.filter(name=>name.startsWith('kmreg-shell-')).map(name=>caches.delete(name)));
+        await Promise.all(names.filter(name=>name.startsWith('kmreg-test-shell-')).map(name=>caches.delete(name)));
       }
-      localStorage.setItem('kmreg-emergency-repair-0.31.5','done');
+      localStorage.setItem('kmreg-test-emergency-repair-0.31.5','done');
       const status=document.getElementById('kmEmergencyRepairStatus');
       if(status)status.textContent='Herstel voltooid. De app wordt schoon opnieuw geopend…';
       setTimeout(()=>location.replace('./?recovered=0.31.5&ts='+Date.now()),350);
@@ -108,13 +108,13 @@
   </div>
 
   <section id="done" class="card good hidden success"></section>
-  <div class="footer-note">Opslagsleutel: <code>kmreg-v4-data</code> · er worden geen gegevens naar een server verstuurd.</div>
+  <div class="footer-note">Opslagsleutel: <code>kmreg-test-v4-data</code> · er worden geen gegevens naar een server verstuurd.</div>
 </div>
 <div id="toast" class="toast"></div>
 <script>
 (()=>{
 'use strict';
-const KEY='kmreg-v4-data';
+const KEY='kmreg-test-v4-data';
 const DEFAULT={settings:{name:'',vehicleBrand:'',vehicleModel:'',plate:'',initialOdometer:'',registrationStart:'',reportEmail:'',recognitionRadius:500,privateDays:[]},locations:[],trips:[],events:[],trackPoints:[],activeTrip:null,lastEndpoint:null};
 let db=loadDb(),parsed=null,loadedNoteFiles=0;
 const $=s=>document.querySelector(s);

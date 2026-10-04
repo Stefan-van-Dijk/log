@@ -1,0 +1,9 @@
+/* Forceer exact gelijke hoogte voor de ruststand van Ritten en Tijd/taken. */
+#app>.log-top-block[data-log-top-variant="idle"],
+#main>.log-top-block[data-log-top-variant="idle"],
+body:not(.time-mode) #app>.hero.log-top-block[data-log-top-variant="idle"],
+#main>.suggestion.log-top-block[data-log-top-variant="idle"]{
+  height:200px!important;
+  min-height:200px!important;
+  max-height:200px!important;
+}

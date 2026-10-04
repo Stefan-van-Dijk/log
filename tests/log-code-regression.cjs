@@ -1,0 +1,45 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
+const {JSDOM}=require('jsdom');const base=path.resolve(__dirname,'..');
+const dom=new JSDOM('<body></body>',{runScripts:'outside-only',url:'https://example.test'}),w=dom.window,d=w.document;
+w.TextEncoder=TextEncoder;let task=null,ride=null,generated=null;
+w.LogTimeModule={reloadFromStorage(){},prepareFromCode(a){task=a}};w.LogRideStarter={async prepare(id){ride=id}};
+w.LogCardsUI={sheet(title,body){d.body.innerHTML=`<section><h2>${title}</h2>${body}</section>`;return d.querySelector('section')},close(){d.body.innerHTML=''},edit(id,card){generated=card}};
+w.eval(fs.readFileSync(path.join(base,'log-code.js'),'utf8'));
+const api=w.LogCode,km='kmreg-test-v4-data',time='urenregistratie.test.pwa.v1',get=k=>JSON.parse(w.localStorage.getItem(k)||'{}');
+const payload={kind:'log-code',version:1,title:'Project',entities:[{type:'location',id:'sub',name:'Entree',parentId:'loc'},{type:'subtheme',id:'subt',name:'Gevel',themeId:'theme'},{type:'theme',id:'theme',name:'Montage',color:'#123456'},{type:'location',id:'loc',name:'Kantoor',address:'Straat 1',lat:52,lng:6},{type:'person',id:'person',name:'Contact',email:'contact@example.test',phone:'01234'}],actions:[{type:'task',themeId:'theme',subthemeId:'subt',locationId:'sub'},{type:'ride',locationId:'loc'}]};
+const valid=api.parse(JSON.stringify(payload));assert.equal(api.parse('ordinary barcode'),null);assert.equal(api.parse('{"url":"https://example.test"}'),null);
+for(const mutate of [p=>p.version=2,p=>p.entities[3].lat=91,p=>p.entities[3].parentId='sub',p=>p.actions[0].type='eval',p=>p.entities[1].themeId='missing',p=>p.entities.push({...p.entities[0]})]){const p=structuredClone(payload);mutate(p);assert.throws(()=>api.parse(JSON.stringify(p)))}
+w.localStorage.setItem(km,JSON.stringify({trips:[{id:'keep'}],cards:[{id:'keep-card'}],settings:{foo:true}}));w.localStorage.setItem(time,JSON.stringify({timer:{status:'active'},entries:[{id:'keep-entry'}]}));
+api.preview(valid);assert.equal(get(km).locations,undefined,'preview never writes');assert.equal(d.querySelectorAll('.log-code-row').length,5);
+d.querySelector('[data-import-code]').click();assert.equal(get(km).locations.length,2);assert.equal(get(time).themes.length,1);assert.equal(get(time).subthemes.length,1);assert.equal(get(time).colleagues[0].email,'contact@example.test');assert.equal(task,null);assert.equal(ride,null);
+assert.equal(get(time).timer.status,'active');assert.equal(get(km).trips[0].id,'keep');assert.equal(get(km).cards[0].id,'keep-card');assert.equal(get(time).entries[0].id,'keep-entry');
+const before=w.localStorage.getItem(km);api.commit(valid);assert.equal(w.localStorage.getItem(km),before,'repeat scan idempotent');assert.equal(get(time).colleagues.length,1);
+const changed=structuredClone(payload);changed.entities[2].name='Remote rename';assert.match(api.plan(api.parse(JSON.stringify(changed))).rows.find(r=>r.entity.id==='theme').status,/lokale gegevens behouden/);api.commit(api.parse(JSON.stringify(changed)));assert.equal(get(time).themes[0].name,'Montage');
+api.preview(valid);d.querySelector('[data-import-code]').click();d.querySelector('[data-code-starter="0"]').click();assert.equal(task.themeId,get(time).themes[0].id);assert.equal(task.subthemeId,get(time).subthemes[0].id);assert.equal(task.locationName,'Entree');
+api.preview(valid);d.querySelector('[data-import-code]').click();d.querySelector('[data-code-starter="1"]').click();assert.equal(ride,get(km).locations.find(x=>x.name==='Kantoor').id);
+// A storage failure never executes a starter; retry does not duplicate partial additions.
+w.localStorage.clear();const set=w.Storage.prototype.setItem;w.Storage.prototype.setItem=function(key,value){if(key===time)throw Error('quota');return set.call(this,key,value)};assert.throws(()=>api.commit(valid),/Opslaan niet voltooid/);assert.equal(get(km).locations.length,2);w.Storage.prototype.setItem=set;api.commit(valid);assert.equal(get(km).locations.length,2);assert.equal(get(time).colleagues.length,1);
+// Form creates a portable payload; generating it does not import it.
+api.builder();const form=d.querySelector('form');form.elements.title.value='Nieuwe werkplek';for(const type of ['theme','location','person']){form.elements[type].value='new';form.elements[type].onchange();form.elements[type+'Name'].value=type+' nieuw'}form.elements.address.value='Straat 2';form.elements.email.value='new@example.test';form.elements.task.checked=true;form.elements.ride.checked=true;form.elements.consent.checked=true;form.dispatchEvent(new w.Event('submit',{cancelable:true}));assert.equal(generated,null,'preview does not create a card');assert.match(d.querySelector('[data-log-review]').textContent,/Straat 2/);d.querySelector('[data-log-back]').click();assert.equal(form.elements.title.value,'Nieuwe werkplek');form.dispatchEvent(new w.Event('submit',{cancelable:true}));d.querySelector('[data-log-create]').click();assert.ok(generated);const built=api.parse(generated.value);assert.equal(built.actions.length,2);assert.equal(built.entities.length,3);assert.equal(get(time).themes.length,1);
+// Conditional builder fields and discarded irrelevant inputs.
+api.builder();const conditional=d.querySelector('form'),pick=(name,value)=>{conditional.elements[name].value=value;conditional.elements[name].onchange();};
+assert.equal(d.querySelector('[data-group="subtheme"]').hidden,true);
+assert.equal(conditional.elements.email.disabled,true);
+assert.equal(d.querySelector('[data-task-starter]').hidden,true);
+assert.equal(d.querySelector('[data-ride-starter]').hidden,true);
+pick('theme',get(time).themes[0].id);assert.equal(d.querySelector('[data-group="subtheme"]').hidden,false);
+assert.equal(conditional.elements.subtheme.options.length,3);assert.equal(d.querySelector('[data-task-starter]').hidden,false);
+pick('subtheme','new');conditional.elements.subthemeName.value='Temporary';assert.equal(conditional.elements.subthemeName.required,true);
+pick('theme','');assert.equal(conditional.elements.subtheme.value,'');assert.equal(conditional.elements.subthemeName.disabled,true);assert.equal(conditional.elements.subthemeName.required,false);
+pick('person','new');conditional.elements.email.value='not-an-email';assert.equal(d.querySelector('[data-person-help]').hidden,false);
+pick('person','');assert.equal(conditional.elements.email.disabled,true);assert.equal(d.querySelector('[data-person-help]').hidden,true);
+pick('location',get(km).locations.find(x=>x.name==='Entree').id);assert.equal(d.querySelector('[data-location-help]').hidden,false);
+conditional.elements.ride.checked=true;pick('location','');assert.equal(conditional.elements.ride.checked,false);
+pick('theme',get(time).themes[0].id);conditional.elements.title.value='Alleen thema';conditional.elements.consent.checked=true;
+assert.equal(conditional.checkValidity(),true,'hidden invalid email must not block generation');
+conditional.dispatchEvent(new w.Event('submit',{cancelable:true}));
+assert.match(d.querySelector('[data-log-review]').textContent,/Geen starters/);d.querySelector('[data-log-create]').click();const minimal=api.parse(generated.value);assert.equal(minimal.entities.length,1);assert.equal(minimal.entities[0].type,'theme');assert.equal(minimal.actions.length,0);
+// Real ride bridge: no replacement; destination passed to normal confirmation flow.
+const source=fs.readFileSync(path.join(base,'index.html'),'utf8');const bridge=source.slice(source.indexOf('window.LogRideStarter='),source.indexOf('async function openStart('));let destination=null,section=null;
+const ctx={window:{},data:{activeTrip:{id:'running'},locations:[{id:'l'}]},reloadKilometerData(){},openStart:async id=>{destination=id},requestShellSection:s=>{section=s}};vm.createContext(ctx);vm.runInContext(bridge,ctx);
+(async()=>{await assert.rejects(()=>ctx.window.LogRideStarter.prepare('l'),/actieve rit/);assert.equal(destination,null);ctx.data.activeTrip=null;await ctx.window.LogRideStarter.prepare('l');assert.equal(destination,'l');assert.equal(section,'rides');await assert.rejects(()=>ctx.window.LogRideStarter.prepare('missing'),/niet beschikbaar/);console.log('Log-code: validation, preview, relationships, repeat scans, preserved data, partial-write retry, builder and guarded starters passed.');dom.window.close()})().catch(e=>{console.error(e);process.exitCode=1});

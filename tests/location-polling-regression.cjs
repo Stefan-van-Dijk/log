@@ -1,0 +1,22 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),{JSDOM}=require('jsdom'),vm=require('node:vm');
+const base=path.resolve(__dirname,'..'),dom=new JSDOM('<body></body>',{url:'https://example.test',runScripts:'outside-only',pretendToBeVisual:true}),w=dom.window;
+let now=1800000000000,calls=0,tick,success,fail;const RealDate=w.Date;w.Date=class extends RealDate{constructor(...a){super(...(a.length?a:[now]))}static now(){return now}};
+w.setInterval=fn=>{tick=fn;return 1};w.navigator.geolocation={getCurrentPosition(ok,bad,options){calls++;success=ok;fail=bad;assert.equal(options.maximumAge,0);}};
+w.eval(fs.readFileSync(base+'/location-polling.js','utf8'));
+const finish=async()=>{success({coords:{latitude:52,longitude:6,accuracy:5},timestamp:now});await new Promise(r=>setImmediate(r));};
+(async()=>{
+w.document.dispatchEvent(new w.Event('DOMContentLoaded'));assert.equal(calls,1);
+const same=w.LogLocationPolling.request();assert.equal(calls,1,'requests coalesce');await finish();await same;
+now+=5999;tick();assert.equal(calls,1);now++;tick();assert.equal(calls,2);await finish();
+w.localStorage.setItem('kmreg-test-v4-data',JSON.stringify({activeTrip:{id:'trip'}}));w.dispatchEvent(new w.Event('log-km-state-change'));assert.equal(calls,3);await finish();
+assert.equal(w.LogLocationPolling.interval(),60000);now+=59999;tick();assert.equal(calls,3);now++;tick();assert.equal(calls,4);await finish();
+Object.defineProperty(w.document,'hidden',{configurable:true,value:true});now+=120000;tick();assert.equal(calls,4);
+Object.defineProperty(w.document,'hidden',{configurable:true,value:false});w.document.dispatchEvent(new w.Event('visibilitychange'));assert.equal(calls,5);await finish();
+w.localStorage.setItem('kmreg-test-v4-data','{}');w.dispatchEvent(new w.Event('log-km-state-change'));assert.equal(calls,6);await finish();assert.equal(w.LogLocationPolling.interval(),6000);
+now+=6000;tick();fail({code:3});await new Promise(r=>setImmediate(r));now+=1000;tick();assert.equal(calls,7,'timeout does not create rapid retry loop');
+const source=fs.readFileSync(base+'/index.html','utf8'),get=name=>source.split('\n').find(l=>l.startsWith('function '+name+'('));
+const ctx={data:{activeTrip:{id:'trip'},trackPoints:[]},gpsLatest:{lat:52,lng:6,accuracy:5,timestamp:Date.now()},document:{hidden:false},Date,uid:()=>String(Math.random()),trackStoreReady:false,save(){},console};vm.createContext(ctx);
+vm.runInContext(get('trackMinuteKey')+'\n'+get('persistTrack'),ctx);vm.runInContext('persistTrack();persistTrack()',ctx);assert.equal(ctx.data.trackPoints.length,1);assert.equal(ctx.data.trackPoints[0].tripId,'trip');
+ctx.gpsLatest.timestamp=Date.now()-60000;ctx.data.trackPoints=[];vm.runInContext('persistTrack()',ctx);assert.equal(ctx.data.trackPoints.length,0,'stale GPS is never saved as fresh');
+console.log('Shared GPS: immediate, 6s/60s, coalescing, background/resume, timeout and fresh trip points passed.');w.close();
+})().catch(e=>{console.error(e);w.close();process.exitCode=1});
