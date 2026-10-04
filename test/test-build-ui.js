@@ -43,6 +43,7 @@
 
   function ensureCurrentSharingUI(){
     ensureStylesheet(`./shared-page-template.css?v=${BUILD}`,'logSharedPageTemplateCss');
+    ensureStylesheet(`./top-block-idle-height.css?v=${BUILD}-top1`,'logTopIdleHeightCss');
     const wanted=`sharing-private-ui.js?v=${BUILD}`;
     const scripts=[...document.querySelectorAll('script[data-log-sharing-ui]')];
     if(!scripts.some(script=>script.src.includes(wanted))){
