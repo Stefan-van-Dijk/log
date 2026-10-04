@@ -70,6 +70,15 @@ function updateHeroStatus(vehicleId){
 function visualMarkup(name,selectable){
   return `<div class="log-hero-vehicle-visual"><span class="log-hero-vehicle-name">${esc(name)}</span>${selectable?'<span class="log-hero-vehicle-chevron" aria-hidden="true">⌄</span>':''}</div>`;
 }
+function positionHeroControl(hero,row){
+  const odometer=hero.querySelector('.home-odometer');if(!odometer||!row)return;
+  const height=44;
+  const top=Math.max(0,odometer.offsetTop+Math.round((odometer.offsetHeight-height)/2));
+  row.style.top=`${top}px`;
+  row.style.height=`${height}px`;
+  row.style.minHeight=`${height}px`;
+  row.style.maxHeight=`${height}px`;
+}
 function ensureHeroControl(vehicles,vehicleId){
   const hero=document.querySelector('.hero:not(.active-hero)');
   const existing=document.querySelector('[data-log-hero-vehicle]');
@@ -83,6 +92,7 @@ function ensureHeroControl(vehicles,vehicleId){
   if(!selectable){
     const markup=visualMarkup(vehicleName(selected),false);
     if(row.dataset.mode!=='single'||row.innerHTML!==markup){row.dataset.mode='single';row.innerHTML=markup;}
+    positionHeroControl(hero,row);
     return;
   }
   if(row.dataset.mode!=='multi'){
@@ -98,6 +108,7 @@ function ensureHeroControl(vehicles,vehicleId){
   }
   if(select&&select.value!==vehicleId)select.value=vehicleId;
   const name=row.querySelector('.log-hero-vehicle-name');if(name&&name.textContent!==vehicleName(selected))name.textContent=vehicleName(selected);
+  positionHeroControl(hero,row);
 }
 function decorate(){
   queued=false;
@@ -121,16 +132,18 @@ function styles(){
   style.textContent=`
     #startForm .log-start-vehicle[hidden]{display:none!important}
     .hero:not(.active-hero){position:relative}
-    .hero:not(.active-hero)>.kicker,.hero:not(.active-hero)>.home-odometer,.hero:not(.active-hero)>p{max-width:64%}
-    .log-hero-vehicle{position:absolute;z-index:2;top:22px;right:18px;width:30%;max-width:168px;min-height:56px;display:flex;align-items:center;justify-content:center;padding:7px 10px;box-sizing:border-box;border:1px solid var(--line);border-radius:14px;background:var(--card2);overflow:hidden;text-align:center;color:var(--text)}
+    .hero:not(.active-hero)>.home-odometer{max-width:64%}
+    .hero:not(.active-hero)>p{max-width:none!important;width:100%;padding-right:0!important}
+    .log-hero-vehicle{position:absolute;z-index:2;right:18px;width:30%;max-width:168px;display:flex;align-items:center;justify-content:center;padding:5px 10px;box-sizing:border-box;border:1px solid var(--line);border-radius:12px;background:var(--card2);overflow:hidden;text-align:center;color:var(--text)}
     .log-hero-vehicle-visual{display:flex;align-items:center;justify-content:center;gap:7px;max-width:100%}
     .log-hero-vehicle-name{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;font-weight:700}
     .log-hero-vehicle-chevron{flex:none;color:var(--muted);font-size:16px;line-height:1}
     .log-hero-vehicle select{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
     .log-hero-vehicle:not(.selectable){color:var(--muted);background:transparent}
     @media(max-width:520px){
-      .hero:not(.active-hero)>.kicker,.hero:not(.active-hero)>.home-odometer,.hero:not(.active-hero)>p{max-width:65%}
-      .log-hero-vehicle{top:17px;right:14px;width:29%;min-height:52px;padding:6px 9px;border-radius:13px}
+      .hero:not(.active-hero)>.home-odometer{max-width:65%}
+      .hero:not(.active-hero)>p{max-width:none!important;width:100%}
+      .log-hero-vehicle{right:14px;width:29%;padding:5px 8px;border-radius:11px}
       .log-hero-vehicle-name{font-size:13px}
     }
   `;
@@ -138,7 +151,7 @@ function styles(){
 function init(){
   styles();queue();
   new MutationObserver(queue).observe(document.documentElement,{childList:true,subtree:true});
-  ['log-vehicles-change','log-km-state-change','log-shell-view-refresh','pageshow'].forEach(name=>window.addEventListener(name,queue));
+  ['log-vehicles-change','log-km-state-change','log-shell-view-refresh','pageshow','resize'].forEach(name=>window.addEventListener(name,queue));
   window.LogVehicleStartUI={currentVehicleId:()=>currentUiVehicleId,choose:chooseVehicle,refresh:queue};
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
