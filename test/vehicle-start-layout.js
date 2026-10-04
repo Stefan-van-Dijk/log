@@ -60,11 +60,12 @@ function updateHeroStatus(vehicleId){
   const hero=document.querySelector('.hero:not(.active-hero)');if(!hero)return;
   const status=statusFor(vehicleId),odometer=hero.querySelector('.home-odometer');
   if(odometer){const text=formatOdometer(status?.odometer);if(odometer.textContent!==text)odometer.textContent=text;}
-  const paragraph=[...hero.children].find(node=>node.tagName==='P');
+  const paragraph=hero.querySelector('.log-top-subtitle')||hero.querySelector('p');
   if(paragraph){
     const label=status?.location?locationLabel(status.location):'';
     const text=label?`Laatste bestemming: ${label}`:(status?.odometer!=null?'Nog geen bestemming voor deze auto.':'Vul bij de auto eerst de beginstand in.');
     if(paragraph.textContent!==text)paragraph.textContent=text;
+    paragraph.title=text;
   }
 }
 function visualMarkup(name,selectable){
@@ -131,8 +132,8 @@ function styles(){
   style.textContent=`
     #startForm .log-start-vehicle[hidden]{display:none!important}
     .hero:not(.active-hero){position:relative}
-    .hero:not(.active-hero)>.home-odometer{max-width:64%}
-    .hero:not(.active-hero)>p{max-width:none!important;width:100%;padding-right:0!important}
+    .hero:not(.active-hero)>.home-odometer,.hero:not(.active-hero) .log-top-identity>.home-odometer{max-width:64%}
+    .hero:not(.active-hero)>p,.hero:not(.active-hero) .log-top-subtitle,.hero:not(.active-hero) .log-top-identity>p{max-width:100%!important;width:100%!important;padding-right:0!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;overflow-wrap:normal!important}
     .log-hero-vehicle{position:absolute;z-index:2;top:18px;right:18px;width:30%;max-width:168px;display:flex;align-items:center;justify-content:center;padding:5px 10px;box-sizing:border-box;border:1px solid var(--line);border-radius:12px;background:var(--card2);overflow:hidden;text-align:center;color:var(--text)}
     .log-hero-vehicle-visual{display:flex;align-items:center;justify-content:center;gap:7px;max-width:100%}
     .log-hero-vehicle-name{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;font-weight:700}
@@ -140,8 +141,7 @@ function styles(){
     .log-hero-vehicle select{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
     .log-hero-vehicle:not(.selectable){color:var(--muted);background:transparent}
     @media(max-width:520px){
-      .hero:not(.active-hero)>.home-odometer{max-width:65%}
-      .hero:not(.active-hero)>p{max-width:none!important;width:100%}
+      .hero:not(.active-hero)>.home-odometer,.hero:not(.active-hero) .log-top-identity>.home-odometer{max-width:65%}
       .log-hero-vehicle{top:14px;right:14px;width:29%;padding:5px 8px;border-radius:11px}
       .log-hero-vehicle-name{font-size:13px}
     }
