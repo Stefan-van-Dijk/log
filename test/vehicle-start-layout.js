@@ -10,16 +10,24 @@ let currentUiVehicleId='';
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function read(key,fallback={}){try{return JSON.parse(localStorage.getItem(key)||'{}')||fallback;}catch(_){return fallback;}}
 function vehicleName(vehicle,index=0){return String(vehicle?.name||vehicle?.plate||[vehicle?.brand,vehicle?.model].filter(Boolean).join(' ')||`Voertuig ${index+1}`);}
-function formatOdometer(value){const n=Number(value);return Number.isFinite(n)?new Intl.NumberFormat('nl-NL',{maximumFractionDigits:0}).format(n)+' km':'Nog geen beginstand';}
+function formatOdometer(value){const n=Number(value);return Number.isFinite(n)&&String(value??'')!==''?new Intl.NumberFormat('nl-NL',{maximumFractionDigits:0}).format(n)+' km':'Nog geen beginstand';}
 function locationLabel(location){return String(location?.name||location?.address||'');}
 function drivableVehicles(){
   if(!window.LogVehicles?.list)return[];
   return window.LogVehicles.list().filter(vehicle=>window.LogVehicles.rightsFor?.(vehicle.vehicleId)?.includes('drive'));
 }
 function kmState(){return read(KM,{});}
-function storedStatus(vehicleId){return read(STORE,{}).vehicles?.[String(vehicleId||'')]?.lastKnown||null;}
+function vehicleRecord(vehicleId){return read(STORE,{}).vehicles?.[String(vehicleId||'')]||null;}
+function storedStatus(vehicleId){return vehicleRecord(vehicleId)?.lastKnown||null;}
 function statusFor(vehicleId){
-  try{return window.LogVehiclePosition?.lastKnown?.(vehicleId)||storedStatus(vehicleId);}catch(_){return storedStatus(vehicleId);}
+  let status=null;
+  try{status=window.LogVehiclePosition?.lastKnown?.(vehicleId)||storedStatus(vehicleId);}catch(_){status=storedStatus(vehicleId);}
+  if(status)return status;
+  const vehicle=vehicleRecord(vehicleId);
+  if(vehicle&&vehicle.initialOdometer!==undefined&&vehicle.initialOdometer!==null&&String(vehicle.initialOdometer)!==''){
+    return{location:null,odometer:Number(vehicle.initialOdometer),time:vehicle.registrationStart||null,source:'initial'};
+  }
+  return null;
 }
 function startSelect(){return document.querySelector('#startForm [data-log-start-vehicle]');}
 function desiredVehicleId(vehicles){
@@ -55,7 +63,7 @@ function updateHeroStatus(vehicleId){
   const paragraph=[...hero.children].find(node=>node.tagName==='P');
   if(paragraph){
     const label=status?.location?locationLabel(status.location):'';
-    const text=label?`Laatste bestemming: ${label}`:'Nog geen laatste bestemming voor deze auto.';
+    const text=label?`Laatste bestemming: ${label}`:(status?.odometer!=null?'Nog geen bestemming voor deze auto.':'Vul bij de auto eerst de beginstand in.');
     if(paragraph.textContent!==text)paragraph.textContent=text;
   }
 }
@@ -73,7 +81,7 @@ function ensureHeroControl(vehicles,vehicleId){
   const selectable=vehicles.length>1;
   row.classList.toggle('selectable',selectable);
   if(!selectable){
-    const markup=visualMarkup(vehicleName(selected),'');
+    const markup=visualMarkup(vehicleName(selected),false);
     if(row.dataset.mode!=='single'||row.innerHTML!==markup){row.dataset.mode='single';row.innerHTML=markup;}
     return;
   }
@@ -108,19 +116,24 @@ function decorate(){
 }
 function queue(){if(queued)return;queued=true;requestAnimationFrame(decorate);}
 function styles(){
-  if(document.getElementById('logVehicleStartLayoutStyles'))return;
-  const style=document.createElement('style');style.id='logVehicleStartLayoutStyles';style.textContent=`
+  let style=document.getElementById('logVehicleStartLayoutStyles');
+  if(!style){style=document.createElement('style');style.id='logVehicleStartLayoutStyles';document.head.appendChild(style);}
+  style.textContent=`
     #startForm .log-start-vehicle[hidden]{display:none!important}
     .hero:not(.active-hero){position:relative}
-    .hero:not(.active-hero)>.kicker,.hero:not(.active-hero)>.home-odometer,.hero:not(.active-hero)>p{max-width:58%}
-    .log-hero-vehicle{position:absolute;z-index:2;top:18px;right:18px;width:35%;max-width:190px;min-height:150px;display:flex;align-items:center;justify-content:center;padding:14px;border:1px solid var(--line);border-radius:15px;background:var(--card2);overflow:hidden;text-align:center;color:var(--text)}
+    .hero:not(.active-hero)>.kicker,.hero:not(.active-hero)>.home-odometer,.hero:not(.active-hero)>p{max-width:64%}
+    .log-hero-vehicle{position:absolute;z-index:2;top:22px;right:18px;width:30%;max-width:168px;min-height:88px;display:flex;align-items:center;justify-content:center;padding:10px 12px;box-sizing:border-box;border:1px solid var(--line);border-radius:14px;background:var(--card2);overflow:hidden;text-align:center;color:var(--text)}
     .log-hero-vehicle-visual{display:flex;align-items:center;justify-content:center;gap:7px;max-width:100%}
-    .log-hero-vehicle-name{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px;font-weight:700}
-    .log-hero-vehicle-chevron{flex:none;color:var(--muted);font-size:18px;line-height:1}
+    .log-hero-vehicle-name{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;font-weight:700}
+    .log-hero-vehicle-chevron{flex:none;color:var(--muted);font-size:16px;line-height:1}
     .log-hero-vehicle select{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
     .log-hero-vehicle:not(.selectable){color:var(--muted);background:transparent}
-    @media(max-width:520px){.log-hero-vehicle{top:14px;right:14px;width:34%;min-height:134px;padding:10px}.log-hero-vehicle-name{font-size:14px}}
-  `;document.head.appendChild(style);
+    @media(max-width:520px){
+      .hero:not(.active-hero)>.kicker,.hero:not(.active-hero)>.home-odometer,.hero:not(.active-hero)>p{max-width:65%}
+      .log-hero-vehicle{top:17px;right:14px;width:29%;min-height:82px;padding:8px 9px;border-radius:13px}
+      .log-hero-vehicle-name{font-size:13px}
+    }
+  `;
 }
 function init(){
   styles();queue();
