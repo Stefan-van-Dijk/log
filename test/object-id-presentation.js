@@ -82,16 +82,15 @@ function decorateCard(card){
     button.addEventListener('click',event=>{event.stopPropagation();if(row.hidden)revealRow(card,row,button);else hideRow(card,row,button);});
   }
 }
-function replaceWording(root=document){
-  root.querySelectorAll?.('#kmShellVehicleIdentities .cards-notice,.log-vehicle-list~*,.log-vehicle-card .log-vehicle-id span').forEach(node=>{
-    if(node.childElementCount===0&&node.textContent.includes('VehicleId'))node.textContent=node.textContent.replaceAll('VehicleId','ID');
+function cleanIdCopy(root=document){
+  root.querySelectorAll?.('.cards-notice').forEach(node=>{
+    const text=String(node.textContent||'').trim();
+    if(/VehicleId|12-teken\s+(?:ID|identifier)|eigen\s+(?:ID|identifier)/i.test(text))node.remove();
   });
-  const settingsNote=root.querySelector?.('#kmShellVehicleIdentities .cards-notice');
-  if(settingsNote&&settingsNote.textContent.includes('VehicleId'))settingsNote.textContent=settingsNote.textContent.replaceAll('VehicleId','ID');
   document.querySelectorAll('.log-public-dialog .log-vehicle-id span,[data-id-context="external"] .log-vehicle-id span').forEach(node=>node.textContent='ID');
 }
 function decorate(){
-  queued=false;ensurePolicies();replaceWording();
+  queued=false;ensurePolicies();cleanIdCopy();
   document.querySelectorAll('.log-vehicle-card[data-vehicle-card]').forEach(decorateCard);
 }
 function queueDecorate(){if(queued)return;queued=true;requestAnimationFrame(decorate);}
@@ -101,8 +100,7 @@ function installStyles(){
     .log-object-id-toggle{flex:0 0 auto;display:grid;place-items:center;width:31px;height:31px;padding:0;border:1px solid var(--line);border-radius:9px;background:transparent;color:var(--muted);cursor:pointer}
     .log-object-id-toggle span{font:750 10px/1 "SFMono-Regular",Consolas,monospace;letter-spacing:-.04em}.log-object-id-toggle[aria-expanded="true"]{color:var(--text);background:var(--card)}
     .log-vehicle-id[hidden]{display:none!important}.log-object-id-open .log-vehicle-id{display:grid}
-  `;document.head.appendChild(style);
-}
+  `;document.head.appendChild(style);}
 function init(){
   installStyles();ensurePolicies();queueDecorate();
   new MutationObserver(queueDecorate).observe(document.documentElement,{childList:true,subtree:true});
