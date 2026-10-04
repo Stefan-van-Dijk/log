@@ -1,13 +1,17 @@
 (function(){
 'use strict';
 
-const CONNECTION_ENDPOINT='https://sharon.life/log/api/connections.php';
-const SYNC_ENDPOINT='https://sharon.life/log/api/sync.php';
+const CONNECTION_ENDPOINTS=['https://sharon.life/log/api/connections.php','https://www.sharon.life/log/api/connections.php'];
+const SYNC_ENDPOINTS=['https://sharon.life/log/api/sync.php','https://www.sharon.life/log/api/sync.php'];
+const CONNECTION_STORE='log-test-person-connections-v1';
+const TIME_STORE='urenregistratie.test.pwa.v1';
 const VALID=/^[A-Za-z0-9_-]{12}$/;
 let attempts=0;
 let basePreview=null;
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function read(key,fallback={}){try{const value=JSON.parse(localStorage.getItem(key)||'null');return value&&typeof value==='object'?value:fallback;}catch(_){return fallback;}}
+function write(key,value){localStorage.setItem(key,JSON.stringify(value));}
 function b64url(bytes){let binary='';for(const byte of bytes)binary+=String.fromCharCode(byte);return btoa(binary).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}
 function fromB64url(value){const text=String(value||'').replace(/-/g,'+').replace(/_/g,'/'),padded=text+'='.repeat((4-text.length%4)%4),binary=atob(padded);return Uint8Array.from(binary,c=>c.charCodeAt(0));}
 async function memberToken(id){const digest=new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(`log.connection.member.v1:${id}`)));return b64url(digest);}
@@ -19,23 +23,52 @@ async function decryptPersonPayload(envelope,id){
     return JSON.parse(new TextDecoder().decode(plain));
   }catch(_){throw Error('De persoonskaart kan niet met deze code worden geopend.');}
 }
-async function fetchJson(url,options={}){
-  let response;
-  try{response=await fetch(url,{cache:'no-store',...options});}
-  catch(error){error.identifierNetwork=true;throw error;}
-  let result={};try{result=await response.json();}catch(_){}
-  return{response,result};
+function alternateSharonUrl(value){
+  let url;try{url=new URL(String(value));}catch(_){return'';}
+  if(url.hostname==='sharon.life')url.hostname='www.sharon.life';
+  else if(url.hostname==='www.sharon.life')url.hostname='sharon.life';
+  else return'';
+  return url.toString();
+}
+function installSharonFetchRetry(){
+  if(window.__logSharonFetchRetry)return;
+  const nativeFetch=window.fetch.bind(window);
+  window.fetch=async function(input,init){
+    const source=typeof input==='string'?input:(input instanceof Request?input.url:String(input||''));
+    const alternate=alternateSharonUrl(source);
+    if(!alternate)return nativeFetch(input,init);
+    try{return await nativeFetch(input,init);}
+    catch(firstError){
+      try{
+        const retryInput=input instanceof Request?new Request(alternate,input):alternate;
+        return await nativeFetch(retryInput,init);
+      }catch(_){throw firstError;}
+    }
+  };
+  window.__logSharonFetchRetry=true;
+}
+async function fetchJsonCandidates(urls,options={}){
+  let lastNetworkError=null;
+  for(const url of urls){
+    let response;
+    try{response=await fetch(url,{cache:'no-store',...options});}
+    catch(error){lastNetworkError=error;continue;}
+    let result={};try{result=await response.json();}catch(_){}
+    return{response,result,url};
+  }
+  const error=lastNetworkError||new TypeError('Online Log-bron niet bereikbaar.');
+  error.identifierNetwork=true;throw error;
 }
 async function probeConnection(id){
   if(!VALID.test(String(id||'')))return null;
-  const token=await memberToken(id),{response,result}=await fetchJson(`${CONNECTION_ENDPOINT}?id=${encodeURIComponent(id)}`,{method:'GET',headers:{Accept:'application/json','X-Log-Access-Token':token}});
+  const token=await memberToken(id),urls=CONNECTION_ENDPOINTS.map(base=>`${base}?id=${encodeURIComponent(id)}`),{response,result}=await fetchJsonCandidates(urls,{method:'GET',headers:{Accept:'application/json','X-Log-Access-Token':token}});
   if(response.status===404||response.status===403)return null;
   if(!response.ok){const error=Error(result.error||`Verbindingsserver reageerde met ${response.status}.`);error.status=response.status;throw error;}
   return String(result.connectionId||'')===String(id)?result:null;
 }
 async function probePersonCard(id){
   if(!VALID.test(String(id||'')))return null;
-  const {response,result}=await fetchJson(`${SYNC_ENDPOINT}?id=${encodeURIComponent(id)}`,{method:'GET',headers:{Accept:'application/json'}});
+  const urls=SYNC_ENDPOINTS.map(base=>`${base}?id=${encodeURIComponent(id)}`),{response,result}=await fetchJsonCandidates(urls,{method:'GET',headers:{Accept:'application/json'}});
   if(response.status===404)return null;
   if(!response.ok){const error=Error(result.error||`Synchronisatieserver reageerde met ${response.status}.`);error.status=response.status;throw error;}
   if(result.revoked||result.offline||!result.active||result.kind!=='collaboration'||!result.payload)return null;
@@ -47,7 +80,7 @@ function locallyConfiguredAction(id){
   try{return !!window.LogLocationActions?.snapshot?.().rules?.some(rule=>String(rule?.logCodeId||'')===String(id));}catch(_){return false;}
 }
 function normalized(value){return String(value||'').trim().toLocaleLowerCase('nl-NL').replace(/\s+/g,' ');}
-function timePeople(){try{const raw=JSON.parse(localStorage.getItem('urenregistratie.test.pwa.v1')||'{}');return Array.isArray(raw.colleagues)?raw.colleagues:[];}catch(_){return[];}}
+function timePeople(){const raw=read(TIME_STORE,{});return Array.isArray(raw.colleagues)?raw.colleagues:[];}
 function existingPersonFor(document){
   const personId=String(document.personId||''),people=timePeople();
   const linked=people.find(person=>String(person.id)===personId||String(person.logPersonId||'')===personId);if(linked)return linked;
@@ -97,7 +130,7 @@ async function routeBareIdentifier(id,fallback,payload){
   let connectionError=null,personError=null;
   try{if(await probeConnection(id)){await openConnection(id);return true;}}catch(error){connectionError=error;console.warn('Verbindingscode controleren mislukt.',error);}
   try{const person=await probePersonCard(id);if(person){showPersonCard(id,person.document);return true;}}catch(error){personError=error;console.warn('Persoonscode controleren mislukt.',error);}
-  if(connectionError?.identifierNetwork&&personError?.identifierNetwork){showRouteError('Code zoeken','De online Log-bronnen zijn niet bereikbaar.','Controleer internet of de API op sharon.life en probeer opnieuw.');return true;}
+  if(connectionError?.identifierNetwork&&personError?.identifierNetwork){showRouteError('Code zoeken','De online Log-bronnen zijn niet bereikbaar.','Log heeft zowel sharon.life als www.sharon.life geprobeerd.');return true;}
   if(connectionError&&!connectionError.identifierNetwork&&connectionError.status&&connectionError.status!==404&&connectionError.status!==403){showRouteError('Verbinding controleren',connectionError.message);return true;}
   return fallback(payload);
 }
@@ -128,11 +161,38 @@ function normalizeConnectionQr(scope=document){
     if(button&&button.dataset.bareIdentifier!==id){const replacement=button.cloneNode(true);replacement.dataset.bareIdentifier=id;replacement.onclick=async()=>{const status=panel.querySelector('[data-oneqr-status]');if(status)status.textContent=await copy(id)?'12-teken verbindingscode gekopieerd.':'Kopiëren wordt op dit apparaat niet ondersteund.';};button.replaceWith(replacement);}
   });
 }
-function keepRouterInstalled(){
-  const api=window.LogCode;if(api?.preview&&!api.preview.__bare12IdentifierRouter)installPreviewRouter();
+function activeConnectionForLocal(localId){
+  const people=timePeople(),person=people.find(row=>String(row.id)===String(localId)),ids=new Set([String(localId||''),String(person?.id||''),String(person?.logPersonId||'')].filter(Boolean));
+  const store=read(CONNECTION_STORE,{}),items=store.items&&typeof store.items==='object'?store.items:{};
+  return Object.values(items).filter(item=>ids.has(String(item?.otherPersonId||''))||ids.has(String(item?.pendingLocalId||''))).sort((a,b)=>String(b?.updatedAt||b?.createdAt||'').localeCompare(String(a?.updatedAt||a?.createdAt||''))).find(item=>['pending_out','pending_in','connected'].includes(String(item?.status||''))&&!item?.revoked)||null;
 }
+function retireLegacyConnection(item){
+  const store=read(CONNECTION_STORE,{});store.items=store.items&&typeof store.items==='object'?store.items:{};
+  const id=String(item?.connectionId||'');if(!id||!store.items[id])return;
+  store.items[id]={...store.items[id],status:'revoked',revoked:true,migratedToOneQr:true,updatedAt:new Date().toISOString()};write(CONNECTION_STORE,store);
+  window.dispatchEvent(new CustomEvent('log-person-connections-change'));
+}
+async function createFreshOneQr(localId){
+  for(let i=0;i<80;i++){
+    if(window.LogOneQrConnections?.createOpenRequest)return window.LogOneQrConnections.createOpenRequest(localId);
+    await new Promise(resolve=>setTimeout(resolve,50));
+  }
+  throw Error('De nieuwe verbindingsmodule is nog niet geladen. Open Log opnieuw en probeer nogmaals.');
+}
+function installLegacyConnectionMigration(){
+  document.addEventListener('click',event=>{
+    const button=event.target.closest?.('[data-person-connection-swipe]');if(!button)return;
+    const localId=String(button.dataset.personConnectionSwipe||'');if(!localId)return;
+    const active=activeConnectionForLocal(localId);
+    if(!active||active.oneQr===true||active.status==='connected')return;
+    event.preventDefault();event.stopImmediatePropagation();
+    retireLegacyConnection(active);
+    createFreshOneQr(localId).catch(error=>showRouteError('Verbinden',error.message));
+  },true);
+}
+function keepRouterInstalled(){const api=window.LogCode;if(api?.preview&&!api.preview.__bare12IdentifierRouter)installPreviewRouter();}
 function init(){
-  installPreviewRouter();normalizeConnectionQr();
+  installSharonFetchRetry();installPreviewRouter();installLegacyConnectionMigration();normalizeConnectionQr();
   new MutationObserver(records=>{for(const record of records){if(record.addedNodes.length){normalizeConnectionQr();keepRouterInstalled();break;}}}).observe(document.documentElement,{childList:true,subtree:true});
   window.addEventListener('pageshow',()=>{installPreviewRouter();normalizeConnectionQr();});
   setInterval(keepRouterInstalled,1500);
