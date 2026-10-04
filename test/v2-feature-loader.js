@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const BUILD='0.39-test.4';
+  const BUILD='0.39-test.5';
   window.LOG_TEST_BUILD=BUILD;
 
   const scripts=[
