@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const BUILD='0.39-test.6';
+  const BUILD='0.39-test.7';
   window.LOG_TEST_BUILD=BUILD;
 
   function installStyles(){
@@ -70,6 +70,7 @@
     ensureScript(`./person-connections.js?v=${BUILD}-conn5`,'logPersonConnections');
     ensureScript(`./person-connections-resume-fix.js?v=${BUILD}-conn5`,'logPersonConnectionResumeFix');
     ensureScript(`./person-connections-swipe-fix.js?v=${BUILD}-conn5`,'logPersonConnectionSwipeFix');
+    ensureScript(`./connection-start-fix.js?v=${BUILD}-start1`,'logConnectionStartFix');
     ensureScript(`./vehicle-identities.js?v=${BUILD}-veh1`,'logVehicleIdentities');
     ensureScript(`./vehicle-identities-fix.js?v=${BUILD}-veh1fix1`,'logVehicleIdentitiesFix');
     ensureScript(`./vehicle-endpoint-prediction.js?v=${BUILD}-veh2`,'logVehicleEndpointPrediction');
