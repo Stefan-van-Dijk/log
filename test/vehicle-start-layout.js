@@ -132,6 +132,7 @@ function styles(){
   style.textContent=`
     #startForm .log-start-vehicle[hidden]{display:none!important}
     .hero:not(.active-hero){position:relative}
+    .hero.log-top-block[data-log-top-variant="idle"]{min-height:192px!important}
     .hero:not(.active-hero)>.home-odometer,.hero:not(.active-hero) .log-top-identity>.home-odometer{max-width:64%}
     .hero:not(.active-hero)>p,.hero:not(.active-hero) .log-top-subtitle,.hero:not(.active-hero) .log-top-identity>p{max-width:100%!important;width:100%!important;padding-right:0!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;overflow-wrap:normal!important}
     .log-hero-vehicle{position:absolute;z-index:2;top:18px;right:18px;width:30%;max-width:168px;display:flex;align-items:center;justify-content:center;padding:5px 10px;box-sizing:border-box;border:1px solid var(--line);border-radius:12px;background:var(--card2);overflow:hidden;text-align:center;color:var(--text)}
