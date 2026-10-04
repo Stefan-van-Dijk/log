@@ -28,6 +28,7 @@ function allowedTripIds(vehicleId,trips){
 function recentSection(){return [...document.querySelectorAll('#app .section')].find(section=>section.querySelector('.section-title h2')?.textContent.trim()==='Recente ritten')||null;}
 function eventsSection(){return [...document.querySelectorAll('#app .section')].find(section=>section.querySelector('.section-title h2')?.textContent.trim()==='Onderweg geregistreerd')||null;}
 function setText(node,text){if(node&&node.textContent!==text)node.textContent=text;}
+function setVisible(node,show){if(!node)return;node.classList.toggle('log-vehicle-scope-hidden',!show);node.setAttribute('aria-hidden',show?'false':'true');}
 function scopeRecent(vehicleId,trips,allowed){
   const section=recentSection();if(!section)return[];
   const byId=new Map(trips.map(trip=>[String(trip.id||''),trip]));
@@ -35,16 +36,20 @@ function scopeRecent(vehicleId,trips,allowed){
   for(const entry of section.querySelectorAll('.trip-entry[data-id]')){
     const trip=byId.get(String(entry.dataset.id||''));
     const show=Boolean(trip&&String(trip.vehicleId||'')===vehicleId&&allowed.has(String(trip.id||'')));
-    entry.hidden=!show;
+    setVisible(entry,show);
     if(show)visible.push(trip);
   }
-  section.querySelectorAll('.trip-group').forEach(group=>{group.hidden=!group.querySelector('.trip-entry[data-id]:not([hidden])');});
+  section.querySelectorAll('.trip-group').forEach(group=>{
+    const hasVisible=Boolean(group.querySelector('.trip-entry[data-id]:not(.log-vehicle-scope-hidden)'));
+    setVisible(group,hasVisible);
+  });
   setText(section.querySelector('.section-title .muted'),String(visible.length));
   let empty=section.querySelector('[data-log-vehicle-rides-empty]');
   const coreEmpty=section.querySelector('.empty:not([data-log-vehicle-rides-empty])');
-  if(!visible.length&&!coreEmpty){
+  if(coreEmpty)setVisible(coreEmpty,false);
+  if(!visible.length){
     if(!empty){empty=document.createElement('div');empty.className='empty';empty.dataset.logVehicleRidesEmpty='1';empty.textContent='Geen ritten voor deze auto in deze periode.';section.appendChild(empty);}
-    empty.hidden=false;
+    setVisible(empty,true);
   }else if(empty)empty.remove();
   return visible;
 }
@@ -80,11 +85,11 @@ function scopeEvents(vehicleId,trips,allowed){
     const event=eventById.get(String(row.dataset.id||'')),trip=event?.tripId?tripById.get(String(event.tripId)):null;
     const eventVehicle=String(event?.vehicleId||trip?.vehicleId||'');
     const show=Boolean(event&&eventVehicle===vehicleId&&(!trip||allowed.has(String(trip.id||''))));
-    row.hidden=!show;if(show)count++;
+    setVisible(row,show);if(show)count++;
   });
   setText(section.querySelector('.section-title .muted'),String(count));
   let empty=section.querySelector('[data-log-vehicle-events-empty]');
-  if(!count){if(!empty){empty=document.createElement('div');empty.className='empty';empty.dataset.logVehicleEventsEmpty='1';empty.textContent='Geen punten voor deze auto in deze periode.';section.appendChild(empty);}}else empty?.remove();
+  if(!count){if(!empty){empty=document.createElement('div');empty.className='empty';empty.dataset.logVehicleEventsEmpty='1';empty.textContent='Geen punten voor deze auto in deze periode.';section.appendChild(empty);}setVisible(empty,true);}else empty?.remove();
 }
 function scopeHeader(vehicleId,trips,allowed){
   const title=document.getElementById('kmShellTitle'),meta=document.getElementById('kmShellMeta');
@@ -103,8 +108,12 @@ function apply(){
   document.documentElement.dataset.logRideVehicle=vehicleId;
 }
 function queue(){if(queued)return;queued=true;requestAnimationFrame(apply);}
+function installStyles(){
+  if(document.getElementById('logVehicleRideScopeStyles'))return;
+  const style=document.createElement('style');style.id='logVehicleRideScopeStyles';style.textContent='.log-vehicle-scope-hidden{display:none!important}';document.head.appendChild(style);
+}
 function init(){
-  queue();
+  installStyles();queue();
   new MutationObserver(queue).observe(document.documentElement,{childList:true,subtree:true});
   ['log-vehicle-scope-change','log-vehicles-change','log-km-state-change','log-shell-view-refresh','pageshow'].forEach(name=>window.addEventListener(name,queue));
   window.LogVehicleRideScope={vehicleId:activeVehicleId,refresh:queue};
