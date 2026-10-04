@@ -72,7 +72,8 @@
     ensureScript(`./vehicle-endpoint-prediction.js?v=${BUILD}-veh2`,'logVehicleEndpointPrediction');
     ensureScript(`./vehicle-start-input.js?v=${BUILD}-veh6`,'logVehicleStartInput');
     ensureScript(`./vehicle-start-layout.js?v=${BUILD}-veh6`,'logVehicleStartLayout');
-    ensureScript(`./vehicle-ride-scope.js?v=${BUILD}-veh6`,'logVehicleRideScope');
+    ensureScript(`./vehicle-ride-scope.js?v=${BUILD}-veh7`,'logVehicleRideScope');
+    ensureScript(`./vehicle-delete.js?v=${BUILD}-veh7`,'logVehicleDelete');
     ensureScript(`./object-id-presentation.js?v=${BUILD}-id2`,'logObjectIdPresentation');
   }
 
