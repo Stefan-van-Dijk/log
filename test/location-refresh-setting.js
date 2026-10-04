@@ -42,11 +42,14 @@ function renderGlobal(){
   syncIntro(section);
   let box=section.querySelector('[data-log-location-refresh-setting]');
   if(!box){box=document.createElement('div');box.className='log-location-refresh-setting';box.dataset.logLocationRefreshSetting='1';const heading=section.querySelector('h3');if(heading)heading.insertAdjacentElement('afterend',box);else section.prepend(box);}
-  const config=readConfig(),options=OPTIONS.map(([value,label])=>`<option value="${value}"${config.globalIntervalMs===value?' selected':''}>${label}</option>`).join('');
+  const config=readConfig(),signature=`${config.automaticEnabled?'1':'0'}:${config.globalIntervalMs}`;
+  if(box.dataset.locationSettingSignature===signature)return;
+  box.dataset.locationSettingSignature=signature;
+  const options=OPTIONS.map(([value,label])=>`<option value="${value}"${config.globalIntervalMs===value?' selected':''}>${label}</option>`).join('');
   box.innerHTML=`<label class="log-location-auto-row"><span><strong>Aanvullende automatische locatiecontrole</strong><small>Extra controles zolang Log zichtbaar is. Niet nodig voor openen, handelingen of actieve ritten.</small></span><input type="checkbox" role="switch" data-log-location-auto ${config.automaticEnabled?'checked':''}></label><div class="log-location-auto-options" data-log-location-auto-options ${config.automaticEnabled?'':'hidden'}><label for="logLocationAutoInterval">Extra controle</label><select id="logLocationAutoInterval" data-log-location-auto-interval>${options}</select><span class="log-location-auto-note">Bij uitgeschakelde automatische controle blijft Log event-driven werken. Tijdens een actieve rit blijft de interval 1 minuut.</span></div>`;
   const toggle=box.querySelector('[data-log-location-auto]'),interval=box.querySelector('[data-log-location-auto-interval]'),advanced=box.querySelector('[data-log-location-auto-options]');
-  toggle.onchange=()=>{const current=readConfig();current.automaticEnabled=toggle.checked;writeConfig(current,'automatic-toggle');advanced.hidden=!toggle.checked;};
-  interval.onchange=()=>{const current=readConfig();current.globalIntervalMs=Number(interval.value);writeConfig(current,'automatic-interval');};
+  toggle.onchange=()=>{const current=readConfig();current.automaticEnabled=toggle.checked;writeConfig(current,'automatic-toggle');advanced.hidden=!toggle.checked;box.dataset.locationSettingSignature='';};
+  interval.onchange=()=>{const current=readConfig();current.globalIntervalMs=Number(interval.value);writeConfig(current,'automatic-interval');box.dataset.locationSettingSignature='';};
 }
 function ensurePulse(){
   const button=document.getElementById('kmShellMenuButton');if(!button)return null;
