@@ -1,73 +1,83 @@
 (function(){
 'use strict';
 
-const STORE='log-test-vehicles-v1';
 let queued=false;
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-function read(){try{return JSON.parse(localStorage.getItem(STORE)||'{}')||{};}catch(_){return{};}}
 function vehicleName(vehicle,index=0){return String(vehicle?.name||vehicle?.plate||[vehicle?.brand,vehicle?.model].filter(Boolean).join(' ')||`Voertuig ${index+1}`);}
-function formatOdometer(value){const n=Number(value);return Number.isFinite(n)?new Intl.NumberFormat('nl-NL',{maximumFractionDigits:0}).format(n)+' km':'—';}
-function locationLabel(location){return String(location?.name||location?.address||'');}
 function drivableVehicles(){
   if(!window.LogVehicles?.list)return[];
   return window.LogVehicles.list().filter(vehicle=>window.LogVehicles.rightsFor?.(vehicle.vehicleId)?.includes('drive'));
 }
-function singleMarkup(vehicle){
-  const status=read().vehicles?.[vehicle.vehicleId]?.lastKnown||vehicle.lastKnown||null;
-  const details=[status?.odometer!=null?formatOdometer(status.odometer):'',status?.location?`laatst bij ${locationLabel(status.location)}`:''].filter(Boolean).join(' · ');
-  return `<div class="log-start-vehicle-single-main"><span class="log-start-vehicle-single-icon" aria-hidden="true">🚗</span><div><strong>${esc(vehicleName(vehicle))}</strong>${details?`<small>${esc(details)}</small>`:''}</div></div>`;
+function selectedVehicle(select,vehicles){
+  return vehicles.find(vehicle=>vehicle.vehicleId===String(select?.value||''))||vehicles[0]||null;
+}
+function ensureHeroControl(form,wrap,vehicles,select){
+  const hero=document.querySelector('.hero.start-preparing');
+  if(!hero)return;
+  let row=hero.querySelector('[data-log-hero-vehicle]');
+  if(!row){
+    row=document.createElement('div');
+    row.dataset.logHeroVehicle='1';
+    row.className='log-hero-vehicle';
+    const p=hero.querySelector('p');
+    if(p)p.insertAdjacentElement('afterend',row);
+    else hero.querySelector('[data-action="cancel-start"],[data-action="start"]')?.insertAdjacentElement('beforebegin',row);
+  }
+
+  const selected=selectedVehicle(select,vehicles);
+  if(!selected){row.remove();return;}
+
+  if(vehicles.length===1){
+    if(select&&select.value!==selected.vehicleId)select.value=selected.vehicleId;
+    const markup=`<span class="log-hero-vehicle-name">${esc(vehicleName(selected))}</span>`;
+    if(row.innerHTML!==markup)row.innerHTML=markup;
+    row.classList.remove('selectable');
+    return;
+  }
+
+  row.classList.add('selectable');
+  const options=vehicles.map((vehicle,index)=>`<option value="${esc(vehicle.vehicleId)}"${vehicle.vehicleId===selected.vehicleId?' selected':''}>${esc(vehicleName(vehicle,index))}</option>`).join('');
+  let proxy=row.querySelector('[data-log-hero-vehicle-select]');
+  if(!proxy){
+    row.innerHTML=`<select data-log-hero-vehicle-select aria-label="Auto voor deze rit">${options}</select>`;
+    proxy=row.querySelector('[data-log-hero-vehicle-select]');
+    proxy.addEventListener('change',()=>{
+      if(!select)return;
+      select.value=proxy.value;
+      select.dispatchEvent(new Event('change',{bubbles:true}));
+      queue();
+    });
+  }else{
+    const current=proxy.value;
+    if(proxy.innerHTML!==options)proxy.innerHTML=options;
+    proxy.value=selected.vehicleId||current;
+  }
 }
 function decorate(){
   queued=false;
   const form=document.getElementById('startForm');
-  if(!form)return;
+  const existingHero=document.querySelector('[data-log-hero-vehicle]');
+  if(!form){existingHero?.remove();return;}
   const wrap=form.querySelector('.log-start-vehicle');
   if(!wrap)return;
 
-  const choice=form.querySelector('.start-inline-choice');
-  if(choice&&wrap.nextElementSibling!==choice)choice.insertAdjacentElement('beforebegin',wrap);
-
+  wrap.hidden=true;
+  wrap.setAttribute('aria-hidden','true');
   const vehicles=drivableVehicles();
   const select=wrap.querySelector('[data-log-start-vehicle]');
-  const hint=wrap.querySelector('[data-log-start-vehicle-hint]');
-  let single=wrap.querySelector('[data-log-start-vehicle-single]');
-
-  if(vehicles.length===1){
-    const vehicle=vehicles[0];
-    if(select)select.value=vehicle.vehicleId;
-    wrap.classList.add('log-start-vehicle-one');
-    wrap.querySelector('label')?.setAttribute('hidden','');
-    if(select){select.hidden=true;select.setAttribute('aria-hidden','true');}
-    if(hint)hint.hidden=true;
-    if(!single){
-      single=document.createElement('div');
-      single.dataset.logStartVehicleSingle='1';
-      single.className='log-start-vehicle-single';
-      wrap.appendChild(single);
-    }
-    const markup=singleMarkup(vehicle);
-    if(single.innerHTML!==markup)single.innerHTML=markup;
-  }else{
-    wrap.classList.remove('log-start-vehicle-one');
-    wrap.querySelector('label')?.removeAttribute('hidden');
-    if(select){select.hidden=false;select.removeAttribute('aria-hidden');}
-    if(hint)hint.hidden=false;
-    single?.remove();
-  }
+  if(!vehicles.length){existingHero?.remove();return;}
+  ensureHeroControl(form,wrap,vehicles,select);
 }
 function queue(){if(queued)return;queued=true;requestAnimationFrame(decorate);}
 function styles(){
   if(document.getElementById('logVehicleStartLayoutStyles'))return;
   const style=document.createElement('style');style.id='logVehicleStartLayoutStyles';style.textContent=`
-    #startForm>.log-start-vehicle{margin:12px 0 18px}
-    #startForm>.log-start-vehicle-one{margin:8px 0 16px;padding:0}
-    .log-start-vehicle-single{padding:8px 2px;color:var(--muted)}
-    .log-start-vehicle-single-main{display:flex;align-items:center;gap:9px}
-    .log-start-vehicle-single-icon{font-size:16px;opacity:.72}
-    .log-start-vehicle-single-main>div{min-width:0}
-    .log-start-vehicle-single strong{display:block;color:var(--text);font-size:13px;font-weight:650}
-    .log-start-vehicle-single small{display:block;margin-top:2px;font-size:11px;color:var(--muted)}
+    #startForm>.log-start-vehicle[hidden]{display:none!important}
+    .hero.start-preparing .log-hero-vehicle{display:flex;align-items:center;min-height:22px;margin:-2px 0 12px;color:var(--muted);font-size:12px;font-weight:600}
+    .hero.start-preparing .log-hero-vehicle-name{opacity:.88}
+    .hero.start-preparing .log-hero-vehicle select{appearance:auto;-webkit-appearance:auto;max-width:100%;padding:0 20px 0 0;border:0;background:transparent;color:var(--muted);font:inherit;font-weight:650;outline:0}
+    .hero.start-preparing .log-hero-vehicle.selectable select{cursor:pointer}
   `;document.head.appendChild(style);
 }
 function init(){
