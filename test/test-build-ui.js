@@ -70,6 +70,7 @@
     ensureScript(`./vehicle-identities.js?v=${BUILD}-veh1`,'logVehicleIdentities');
     ensureScript(`./vehicle-identities-fix.js?v=${BUILD}-veh1fix1`,'logVehicleIdentitiesFix');
     ensureScript(`./vehicle-endpoint-prediction.js?v=${BUILD}-veh2`,'logVehicleEndpointPrediction');
+    ensureScript(`./object-id-presentation.js?v=${BUILD}-id1`,'logObjectIdPresentation');
   }
 
   function syncVersionSurface(){
