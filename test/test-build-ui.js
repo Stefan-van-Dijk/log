@@ -68,6 +68,7 @@
     ensureScript(`./person-connections-resume-fix.js?v=${BUILD}-conn4`,'logPersonConnectionResumeFix');
     ensureScript(`./person-connections-swipe-fix.js?v=${BUILD}-conn4`,'logPersonConnectionSwipeFix');
     ensureScript(`./vehicle-identities.js?v=${BUILD}-veh1`,'logVehicleIdentities');
+    ensureScript(`./vehicle-identities-fix.js?v=${BUILD}-veh1fix1`,'logVehicleIdentitiesFix');
   }
 
   function syncVersionSurface(){
