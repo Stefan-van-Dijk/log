@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const BUILD='0.39-test.3';
+  const BUILD='0.39-test.5';
   window.LOG_TEST_BUILD=BUILD;
 
   function installStyles(){
@@ -65,9 +65,10 @@
     ensureScript(`./identity-sync.js?v=${BUILD}`,'logIdentitySyncBridge');
     ensureScript(`./person-id-unification.js?v=${BUILD}-pid1`,'logPersonIdUnification');
     ensureScript(`./people-personcard-network-fix.js?v=${BUILD}-net2`,'logPeoplePersonCardNetworkFix');
-    ensureScript(`./person-connections.js?v=${BUILD}-conn4`,'logPersonConnections');
-    ensureScript(`./person-connections-resume-fix.js?v=${BUILD}-conn4`,'logPersonConnectionResumeFix');
-    ensureScript(`./person-connections-swipe-fix.js?v=${BUILD}-conn4`,'logPersonConnectionSwipeFix');
+    ensureScript(`./person-connections-one-qr.js?v=${BUILD}-oneqr1`,'logPersonConnectionsOneQr');
+    ensureScript(`./person-connections.js?v=${BUILD}-conn5`,'logPersonConnections');
+    ensureScript(`./person-connections-resume-fix.js?v=${BUILD}-conn5`,'logPersonConnectionResumeFix');
+    ensureScript(`./person-connections-swipe-fix.js?v=${BUILD}-conn5`,'logPersonConnectionSwipeFix');
     ensureScript(`./vehicle-identities.js?v=${BUILD}-veh1`,'logVehicleIdentities');
     ensureScript(`./vehicle-identities-fix.js?v=${BUILD}-veh1fix1`,'logVehicleIdentitiesFix');
     ensureScript(`./vehicle-endpoint-prediction.js?v=${BUILD}-veh2`,'logVehicleEndpointPrediction');
