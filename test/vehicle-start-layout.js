@@ -70,11 +70,10 @@ function updateHeroStatus(vehicleId){
 function visualMarkup(name,selectable){
   return `<div class="log-hero-vehicle-visual"><span class="log-hero-vehicle-name">${esc(name)}</span>${selectable?'<span class="log-hero-vehicle-chevron" aria-hidden="true">⌄</span>':''}</div>`;
 }
-function positionHeroControl(hero,row){
-  const odometer=hero.querySelector('.home-odometer');if(!odometer||!row)return;
+function positionHeroControl(row){
+  if(!row)return;
   const height=44;
-  const top=Math.max(0,odometer.offsetTop+Math.round((odometer.offsetHeight-height)/2));
-  row.style.top=`${top}px`;
+  row.style.top='';
   row.style.height=`${height}px`;
   row.style.minHeight=`${height}px`;
   row.style.maxHeight=`${height}px`;
@@ -92,7 +91,7 @@ function ensureHeroControl(vehicles,vehicleId){
   if(!selectable){
     const markup=visualMarkup(vehicleName(selected),false);
     if(row.dataset.mode!=='single'||row.innerHTML!==markup){row.dataset.mode='single';row.innerHTML=markup;}
-    positionHeroControl(hero,row);
+    positionHeroControl(row);
     return;
   }
   if(row.dataset.mode!=='multi'){
@@ -108,7 +107,7 @@ function ensureHeroControl(vehicles,vehicleId){
   }
   if(select&&select.value!==vehicleId)select.value=vehicleId;
   const name=row.querySelector('.log-hero-vehicle-name');if(name&&name.textContent!==vehicleName(selected))name.textContent=vehicleName(selected);
-  positionHeroControl(hero,row);
+  positionHeroControl(row);
 }
 function decorate(){
   queued=false;
@@ -134,7 +133,7 @@ function styles(){
     .hero:not(.active-hero){position:relative}
     .hero:not(.active-hero)>.home-odometer{max-width:64%}
     .hero:not(.active-hero)>p{max-width:none!important;width:100%;padding-right:0!important}
-    .log-hero-vehicle{position:absolute;z-index:2;right:18px;width:30%;max-width:168px;display:flex;align-items:center;justify-content:center;padding:5px 10px;box-sizing:border-box;border:1px solid var(--line);border-radius:12px;background:var(--card2);overflow:hidden;text-align:center;color:var(--text)}
+    .log-hero-vehicle{position:absolute;z-index:2;top:18px;right:18px;width:30%;max-width:168px;display:flex;align-items:center;justify-content:center;padding:5px 10px;box-sizing:border-box;border:1px solid var(--line);border-radius:12px;background:var(--card2);overflow:hidden;text-align:center;color:var(--text)}
     .log-hero-vehicle-visual{display:flex;align-items:center;justify-content:center;gap:7px;max-width:100%}
     .log-hero-vehicle-name{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;font-weight:700}
     .log-hero-vehicle-chevron{flex:none;color:var(--muted);font-size:16px;line-height:1}
@@ -143,7 +142,7 @@ function styles(){
     @media(max-width:520px){
       .hero:not(.active-hero)>.home-odometer{max-width:65%}
       .hero:not(.active-hero)>p{max-width:none!important;width:100%}
-      .log-hero-vehicle{right:14px;width:29%;padding:5px 8px;border-radius:11px}
+      .log-hero-vehicle{top:14px;right:14px;width:29%;padding:5px 8px;border-radius:11px}
       .log-hero-vehicle-name{font-size:13px}
     }
   `;
