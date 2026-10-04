@@ -67,6 +67,7 @@ function public_state(string $id, array $state, array $authorization): array {
         $result['role'] = $authorization['role'];
         $result['ownerPersonId'] = $state['ownerPersonId'] ?? null;
         $result['memberPersonId'] = $state['memberPersonId'] ?? null;
+        $result['openInvite'] = empty($state['memberPersonId']);
         if (!(bool)($state['revoked'] ?? false) && is_array($state['payload'] ?? null)) $result['payload'] = $state['payload'];
     }
     return $result;
@@ -113,7 +114,7 @@ if (!is_array($body)) out(400, ['error' => 'Verbindingspayload moet een object z
 $action = strtolower(trim((string)($body['action'] ?? '')));
 $id = trim((string)($body['id'] ?? ''));
 if (!valid_id($id)) out(422, ['error' => 'ConnectionId moet exact 12 tekens bevatten.']);
-if (!in_array($action, ['create','put','revoke'], true)) out(400, ['error' => 'Onbekende verbindingsactie.']);
+if (!in_array($action, ['create','claim','put','revoke'], true)) out(400, ['error' => 'Onbekende verbindingsactie.']);
 $path = $root . '/' . $id . '.json';
 $state = read_json($path);
 $token = header_value('X-Log-Access-Token');
@@ -126,11 +127,12 @@ if ($action === 'create') {
     $memberToken = trim((string)($body['memberToken'] ?? ''));
     $payload = $body['payload'] ?? null;
     if (strlen($token) < 32 || strlen($memberToken) < 32) out(401, ['error' => 'Sterke toegangssleutels zijn vereist.']);
-    if (!valid_id($ownerPersonId) || !valid_id($memberPersonId) || $ownerPersonId === $memberPersonId) out(422, ['error' => 'Twee verschillende geldige PersonId’s zijn vereist.']);
+    if (!valid_id($ownerPersonId)) out(422, ['error' => 'Een geldige PersonId van de afzender is vereist.']);
+    if ($memberPersonId !== '' && (!valid_id($memberPersonId) || $ownerPersonId === $memberPersonId)) out(422, ['error' => 'De PersonId van de ontvanger is ongeldig.']);
     if (!is_array($payload) || (int)($payload['v'] ?? 0) < 1 || !is_string($payload['data'] ?? null)) out(422, ['error' => 'Versleutelde verbindingsinhoud ontbreekt.']);
     $state = [
         'ownerPersonId' => $ownerPersonId,
-        'memberPersonId' => $memberPersonId,
+        'memberPersonId' => $memberPersonId !== '' ? $memberPersonId : null,
         'ownerTokenHash' => token_hash($token),
         'memberTokenHash' => token_hash($memberToken),
         'revision' => 1,
@@ -148,6 +150,22 @@ if ($state === null) out(404, ['error' => 'Verbindingsverzoek niet gevonden.']);
 $authorization = auth($state, $token);
 if (!$authorization['ok']) out(403, ['error' => 'Geen toegang tot deze verbinding.']);
 
+if ($action === 'claim') {
+    if ((bool)($state['revoked'] ?? false)) out(410, ['error' => 'Deze verbinding is verbroken.']);
+    if ($authorization['role'] !== 'member') out(403, ['error' => 'Alleen de ontvanger kan deze uitnodiging bevestigen.']);
+    $memberPersonId = trim((string)($body['memberPersonId'] ?? ''));
+    if (!valid_id($memberPersonId) || $memberPersonId === (string)($state['ownerPersonId'] ?? '')) out(422, ['error' => 'Een andere geldige PersonId van de ontvanger is vereist.']);
+    $currentMember = trim((string)($state['memberPersonId'] ?? ''));
+    if ($currentMember !== '' && $currentMember !== $memberPersonId) out(409, ['error' => 'Deze uitnodiging is al door een andere Log-identiteit bevestigd.']);
+    if ($currentMember === '') {
+        $state['memberPersonId'] = $memberPersonId;
+        $state['revision'] = max(0, (int)($state['revision'] ?? 0)) + 1;
+        $state['updatedAt'] = $now;
+        if (!write_json($path, $state)) out(500, ['error' => 'Ontvanger kon niet aan de verbinding worden gekoppeld.']);
+    }
+    out(200, public_state($id, $state, auth($state, $token)));
+}
+
 if ($action === 'put') {
     if ((bool)($state['revoked'] ?? false)) out(410, ['error' => 'Deze verbinding is verbroken.']);
     $baseRevision = max(0, (int)($body['baseRevision'] ?? 0));
@@ -158,6 +176,7 @@ if ($action === 'put') {
     if (!is_array($payload) || (int)($payload['v'] ?? 0) < 1 || !is_string($payload['data'] ?? null)) out(422, ['error' => 'Versleutelde verbindingsinhoud ontbreekt.']);
     if (!in_array($status, ['pending','connected','rejected'], true)) out(422, ['error' => 'Ongeldige verbindingsstatus.']);
     if ($authorization['role'] === 'owner' && $status === 'connected' && ($state['status'] ?? '') !== 'connected') out(403, ['error' => 'De ontvanger moet de verbinding bevestigen.']);
+    if ($authorization['role'] === 'member' && $status === 'connected' && empty($state['memberPersonId'])) out(409, ['error' => 'Bevestig eerst welke Log-identiteit deze uitnodiging accepteert.']);
     $state['payload'] = $payload;
     $state['status'] = $status;
     $state['revision'] = $currentRevision + 1;
