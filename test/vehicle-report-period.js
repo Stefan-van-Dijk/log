@@ -58,6 +58,7 @@ function periodSubLabel(state=periodState()){
   const startText=new Intl.DateTimeFormat('nl-NL',{day:'numeric',month:'short'}).format(range.start),endText=new Intl.DateTimeFormat('nl-NL',{day:'numeric',month:'short',year:'numeric'}).format(end);
   return`${startText} – ${endText}`;
 }
+function periodSignature(state=periodState()){const range=periodRange(state);return`${state.mode}|${range.start?.toISOString()||'all'}|${range.end?.toISOString()||'all'}`;}
 function tripTime(trip){return new Date(trip?.departureTime||trip?.startTime||trip?.startedAt||trip?.date||trip?.createdAt||0);}
 function inSelectedPeriod(trip,state=periodState()){
   const range=periodRange(state);if(!range.start)return true;
@@ -87,9 +88,9 @@ function vehicleName(vehicle){return String(vehicle?.name||vehicle?.plate||[vehi
 function safeSlug(value){return String(value||'').toLocaleLowerCase('nl').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');}
 function fileName(vehicle,state){return`ritten-${safeSlug(vehicleName(vehicle))||'auto'}-${safeSlug(periodLabel(state))||'periode'}.csv`;}
 function downloadBlob(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1000);}
-async function runReport(vehicleId,action){
+async function runReport(vehicleId,action,emailOverride=''){
   const vehicles=read(STORE,{}).vehicles||{},vehicle=vehicles[String(vehicleId||'')];if(!vehicle)return;
-  const state=periodState(),rows=selectedTrips(vehicleId,state),{trips,total}=reportTotals(vehicleId,state),csv=csvFor(vehicleId,state),blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),filename=fileName(vehicle,state),name=vehicleName(vehicle),email=String(vehicle?.rideSettings?.reportEmail||'');
+  const state=periodState(),rows=selectedTrips(vehicleId,state),{trips,total}=reportTotals(vehicleId,state),csv=csvFor(vehicleId,state),blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),filename=fileName(vehicle,state),name=vehicleName(vehicle),email=String(emailOverride||vehicle?.rideSettings?.reportEmail||'');
   if(action==='csv'){downloadBlob(blob,filename);return;}
   if(action==='share'){
     if(typeof File==='function'&&navigator.share&&navigator.canShare){const file=new File([blob],filename,{type:blob.type});try{if(navigator.canShare({files:[file]})){await navigator.share({files:[file],title:`Ritten ${name} · ${periodLabel(state)}`});return;}}catch(error){if(error?.name==='AbortError')return;}}
@@ -106,26 +107,26 @@ async function runReport(vehicleId,action){
   }
 }
 function selectorMarkup(state){
-  const all=state.mode==='all',sub=periodSubLabel(state);
-  return`<div class="auto-report-period" data-auto-report-period><div class="auto-report-period-tabs">${MODES.map(mode=>`<button type="button" class="${state.mode===mode?'active':''}" data-auto-period-mode="${mode}">${modeLabel(mode)}</button>`).join('')}</div><div class="auto-report-period-nav">${all?'<span></span>':'<button type="button" class="auto-report-period-arrow" data-auto-period-shift="-1" aria-label="Vorige periode">‹</button>'}<button type="button" class="auto-report-period-title" data-auto-period-now title="Huidige periode"><strong>${esc(periodLabel(state))}</strong>${sub?`<small>${esc(sub)}</small>`:''}</button>${all?'<span></span>':'<button type="button" class="auto-report-period-arrow" data-auto-period-shift="1" aria-label="Volgende periode">›</button>'}</div></div>`;
+  const all=state.mode==='all',sub=periodSubLabel(state),signature=periodSignature(state);
+  return`<div class="auto-report-period" data-auto-report-period data-period-signature="${esc(signature)}"><div class="auto-report-period-tabs">${MODES.map(mode=>`<button type="button" class="${state.mode===mode?'active':''}" data-auto-period-mode="${mode}">${modeLabel(mode)}</button>`).join('')}</div><div class="auto-report-period-nav">${all?'<span></span>':'<button type="button" class="auto-report-period-arrow" data-auto-period-shift="-1" aria-label="Vorige periode">‹</button>'}<button type="button" class="auto-report-period-title" data-auto-period-now title="Huidige periode"><strong>${esc(periodLabel(state))}</strong>${sub?`<small>${esc(sub)}</small>`:''}</button>${all?'<span></span>':'<button type="button" class="auto-report-period-arrow" data-auto-period-shift="1" aria-label="Volgende periode">›</button>'}</div></div>`;
 }
 function reportSection(form){return [...form.querySelectorAll('.auto-settings-section')].find(section=>String(section.querySelector('h3')?.textContent||'').trim()==='Rapportage')||null;}
 function updateForm(form){
   if(!form)return;const id=String(form.dataset.autoSettingsForm||''),section=reportSection(form);if(!id||!section)return;
   let holder=section.querySelector('[data-auto-report-period]');
-  const state=periodState(),markup=selectorMarkup(state);
+  const state=periodState(),signature=periodSignature(state),markup=selectorMarkup(state);
   if(!holder){const email=section.querySelector('label');email?.insertAdjacentHTML('afterend',markup);holder=section.querySelector('[data-auto-report-period]');}
-  else holder.outerHTML=markup;
-  const summary=section.querySelector('.auto-report-summary'),{trips,total}=reportTotals(id,state);
-  if(summary)summary.innerHTML=`<strong>${esc(Math.round(total))} km</strong><span>${trips.length} ${trips.length===1?'rit':'ritten'} · ${esc(periodLabel(state))}</span>`;
+  else if(holder.dataset.periodSignature!==signature)holder.outerHTML=markup;
+  const summary=section.querySelector('.auto-report-summary'),{trips,total}=reportTotals(id,state),summaryMarkup=`<strong>${esc(Math.round(total))} km</strong><span>${trips.length} ${trips.length===1?'rit':'ritten'} · ${esc(periodLabel(state))}</span>`;
+  if(summary&&summary.innerHTML!==summaryMarkup)summary.innerHTML=summaryMarkup;
 }
 function decorate(){queued=false;document.querySelectorAll('[data-auto-settings-form]').forEach(updateForm);}
 function queue(){if(queued)return;queued=true;requestAnimationFrame(decorate);}
 function onClick(event){
   const reportButton=event.target.closest?.('[data-auto-report]');
-  if(reportButton){const form=reportButton.closest('[data-auto-settings-form]');if(!form)return;event.preventDefault();event.stopImmediatePropagation();runReport(form.dataset.autoSettingsForm,reportButton.dataset.autoReport);return;}
+  if(reportButton){const form=reportButton.closest('[data-auto-settings-form]');if(!form)return;event.preventDefault();event.stopImmediatePropagation();runReport(form.dataset.autoSettingsForm,reportButton.dataset.autoReport,form.elements?.reportEmail?.value||'');return;}
   const modeButton=event.target.closest?.('[data-auto-period-mode]');
-  if(modeButton){event.preventDefault();const state=periodState();state.mode=MODES.includes(modeButton.dataset.autoPeriodMode)?modeButton.dataset.autoPeriodMode:'week';state.anchor=new Date();savePeriod(state);queue();return;}
+  if(modeButton){event.preventDefault();const state=periodState();state.mode=MODES.includes(modeButton.dataset.autoPeriodMode)?modeButton.dataset.autoPeriodMode:'week';savePeriod(state);queue();return;}
   const shiftButton=event.target.closest?.('[data-auto-period-shift]');
   if(shiftButton){event.preventDefault();savePeriod(shift(periodState(),Number(shiftButton.dataset.autoPeriodShift)||0));queue();return;}
   const nowButton=event.target.closest?.('[data-auto-period-now]');
