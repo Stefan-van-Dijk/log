@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const BUILD='0.39-test.5';
+  const BUILD='0.39-test.6';
   window.LOG_TEST_BUILD=BUILD;
 
   const scripts=[
@@ -15,42 +15,19 @@
     ['person-card-v2-dialog-guard.js','logPersonCardV2DialogGuard','']
   ];
 
-  function existing(key){
-    return [...document.scripts].find(script=>script.dataset[key]==='1')||null;
-  }
-
+  function existing(key){return [...document.scripts].find(script=>script.dataset[key]==='1')||null;}
   function load(src,key,suffix=''){
     return new Promise(resolve=>{
       if(existing(key)){resolve();return;}
-      const script=document.createElement('script');
-      script.src=`./${src}?v=${BUILD}${suffix}`;
-      script.async=false;
-      script.dataset[key]='1';
-      script.onload=()=>resolve();
-      script.onerror=()=>{console.error(`Log v2 kon ${src} niet laden.`);resolve();};
-      document.head.appendChild(script);
+      const script=document.createElement('script');script.src=`./${src}?v=${BUILD}${suffix}`;script.async=false;script.dataset[key]='1';script.onload=()=>resolve();script.onerror=()=>{console.error(`Log v2 kon ${src} niet laden.`);resolve();};document.head.appendChild(script);
     });
   }
-
   function syncVersion(){
     window.LOG_TEST_BUILD=BUILD;
-    document.querySelectorAll('.km-shell-version').forEach(node=>{
-      const label=node.querySelector('.km-shell-version-label');
-      const number=node.querySelector('.km-shell-version-number');
-      if(label)label.textContent='TEST';
-      if(number)number.textContent=BUILD;
-      node.setAttribute('aria-label',`Geladen testversie ${BUILD}`);
-    });
+    document.querySelectorAll('.km-shell-version').forEach(node=>{const label=node.querySelector('.km-shell-version-label'),number=node.querySelector('.km-shell-version-number');if(label&&label.textContent!=='TEST')label.textContent='TEST';if(number&&number.textContent!==BUILD)number.textContent=BUILD;const aria=`Geladen testversie ${BUILD}`;if(node.getAttribute('aria-label')!==aria)node.setAttribute('aria-label',aria);});
   }
-
-  async function start(){
-    for(const [src,key,suffix] of scripts)await load(src,key,suffix);
-    syncVersion();
-    window.dispatchEvent(new CustomEvent('log-v2-feature-layer-ready',{detail:{build:BUILD}}));
-  }
-
+  async function start(){for(const [src,key,suffix] of scripts)await load(src,key,suffix);syncVersion();window.dispatchEvent(new CustomEvent('log-v2-feature-layer-ready',{detail:{build:BUILD}}));}
   start();
-  new MutationObserver(syncVersion).observe(document.documentElement,{childList:true,subtree:true});
   window.addEventListener('pageshow',syncVersion);
   window.addEventListener('log-shell-view-refresh',syncVersion);
 })();
