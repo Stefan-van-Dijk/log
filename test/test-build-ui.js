@@ -70,7 +70,8 @@
     ensureScript(`./vehicle-identities.js?v=${BUILD}-veh1`,'logVehicleIdentities');
     ensureScript(`./vehicle-identities-fix.js?v=${BUILD}-veh1fix1`,'logVehicleIdentitiesFix');
     ensureScript(`./vehicle-endpoint-prediction.js?v=${BUILD}-veh2`,'logVehicleEndpointPrediction');
-    ensureScript(`./vehicle-start-layout.js?v=${BUILD}-veh4`,'logVehicleStartLayout');
+    ensureScript(`./vehicle-start-layout.js?v=${BUILD}-veh5`,'logVehicleStartLayout');
+    ensureScript(`./vehicle-ride-scope.js?v=${BUILD}-veh5`,'logVehicleRideScope');
     ensureScript(`./object-id-presentation.js?v=${BUILD}-id2`,'logObjectIdPresentation');
   }
 
