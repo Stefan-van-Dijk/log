@@ -32,6 +32,23 @@ function installEnergyGuard(){
 }
 installEnergyGuard();
 
+function ensureScript(src,key,onload){
+  const existing=[...document.scripts].find(script=>script.dataset[key]==='1');
+  if(existing){if(onload){if(existing.dataset.loaded==='1')onload();else existing.addEventListener('load',onload,{once:true});}return existing;}
+  const script=document.createElement('script');script.src=src;script.async=false;script.dataset[key]='1';script.addEventListener('load',()=>{script.dataset.loaded='1';onload?.();},{once:true});document.head.appendChild(script);return script;
+}
+function loadDependencies(){
+  ensureScript(`./test-build-ui.js?v=${BUILD}`,'logTestBuildUi');
+  ensureScript(`./location-refresh-setting.js?v=${BUILD}`,'logLocationRefreshSetting');
+  ensureScript(`./action-details-reset.js?v=${BUILD}`,'logActionDetailsReset');
+  ensureScript(`./sharing.js?v=${BUILD}`,'logSharing',()=>ensureScript(`./sharing-private-ui.js?v=${BUILD}`,'logSharingUi'));
+  ensureScript(`./shared-settings-ui.js?v=${BUILD}`,'logSharedSettingsUi');
+  ensureScript(`./shared-config-bridge.js?v=${BUILD}`,'logSharedConfigBridge');
+  ensureScript(`./shared-diff-rights.js?v=${BUILD}`,'logSharedDiffRights');
+  ensureScript(`./shared-update-compact.js?v=${BUILD}`,'logSharedUpdateCompact');
+  ensureScript(`./connection-chat.js?v=${BUILD}-chat1`,'logConnectionChat');
+}
+
 function state(){try{return JSON.parse(localStorage.getItem(KM)||'{}')||{};}catch(_){return {};}}
 function trip(){return String(state().activeTrip?.id||'');}
 function refreshConfig(){
@@ -116,5 +133,6 @@ window.addEventListener('log-location-refresh-change',()=>{clearPollTimer();sche
 window.addEventListener('pageshow',()=>start());
 document.addEventListener('visibilitychange',()=>{if(document.hidden)clearPollTimer();else checkOnOpen('foreground');});
 document.addEventListener('click',event=>{if(isActionElement(event.target))checkForAction();},false);
+loadDependencies();
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();
