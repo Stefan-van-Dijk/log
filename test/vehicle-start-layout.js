@@ -122,7 +122,7 @@ function styles(){
     #startForm .log-start-vehicle[hidden]{display:none!important}
     .hero:not(.active-hero){position:relative}
     .hero:not(.active-hero)>.kicker,.hero:not(.active-hero)>.home-odometer,.hero:not(.active-hero)>p{max-width:64%}
-    .log-hero-vehicle{position:absolute;z-index:2;top:22px;right:18px;width:30%;max-width:168px;min-height:88px;display:flex;align-items:center;justify-content:center;padding:10px 12px;box-sizing:border-box;border:1px solid var(--line);border-radius:14px;background:var(--card2);overflow:hidden;text-align:center;color:var(--text)}
+    .log-hero-vehicle{position:absolute;z-index:2;top:22px;right:18px;width:30%;max-width:168px;min-height:56px;display:flex;align-items:center;justify-content:center;padding:7px 10px;box-sizing:border-box;border:1px solid var(--line);border-radius:14px;background:var(--card2);overflow:hidden;text-align:center;color:var(--text)}
     .log-hero-vehicle-visual{display:flex;align-items:center;justify-content:center;gap:7px;max-width:100%}
     .log-hero-vehicle-name{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;font-weight:700}
     .log-hero-vehicle-chevron{flex:none;color:var(--muted);font-size:16px;line-height:1}
@@ -130,7 +130,7 @@ function styles(){
     .log-hero-vehicle:not(.selectable){color:var(--muted);background:transparent}
     @media(max-width:520px){
       .hero:not(.active-hero)>.kicker,.hero:not(.active-hero)>.home-odometer,.hero:not(.active-hero)>p{max-width:65%}
-      .log-hero-vehicle{top:17px;right:14px;width:29%;min-height:82px;padding:8px 9px;border-radius:13px}
+      .log-hero-vehicle{top:17px;right:14px;width:29%;min-height:52px;padding:6px 9px;border-radius:13px}
       .log-hero-vehicle-name{font-size:13px}
     }
   `;
