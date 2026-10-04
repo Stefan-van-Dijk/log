@@ -70,12 +70,13 @@
     ensureScript(`./vehicle-identities.js?v=${BUILD}-veh1`,'logVehicleIdentities');
     ensureScript(`./vehicle-identities-fix.js?v=${BUILD}-veh1fix1`,'logVehicleIdentitiesFix');
     ensureScript(`./vehicle-endpoint-prediction.js?v=${BUILD}-veh2`,'logVehicleEndpointPrediction');
-    ensureScript(`./vehicle-start-input.js?v=${BUILD}-veh9`,'logVehicleStartInput');
-    ensureScript(`./vehicle-start-layout.js?v=${BUILD}-veh9`,'logVehicleStartLayout');
-    ensureScript(`./vehicle-ride-scope.js?v=${BUILD}-veh9`,'logVehicleRideScope');
-    ensureScript(`./vehicle-delete.js?v=${BUILD}-veh9`,'logVehicleDelete');
-    ensureScript(`./vehicle-module.js?v=${BUILD}-veh9`,'logVehicleModule');
-    ensureScript(`./vehicle-settings-module.js?v=${BUILD}-veh9`,'logVehicleSettingsModule');
+    ensureScript(`./vehicle-start-input.js?v=${BUILD}-veh10`,'logVehicleStartInput');
+    ensureScript(`./vehicle-start-layout.js?v=${BUILD}-veh10`,'logVehicleStartLayout');
+    ensureScript(`./vehicle-ride-scope.js?v=${BUILD}-veh10`,'logVehicleRideScope');
+    ensureScript(`./vehicle-delete.js?v=${BUILD}-veh10`,'logVehicleDelete');
+    ensureScript(`./vehicle-module.js?v=${BUILD}-veh10`,'logVehicleModule');
+    ensureScript(`./vehicle-settings-module.js?v=${BUILD}-veh10`,'logVehicleSettingsModule');
+    ensureScript(`./vehicle-report-period.js?v=${BUILD}-veh10`,'logVehicleReportPeriod');
     ensureScript(`./object-id-presentation.js?v=${BUILD}-id2`,'logObjectIdPresentation');
   }
 
