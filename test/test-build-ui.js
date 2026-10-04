@@ -70,10 +70,11 @@
     ensureScript(`./vehicle-identities.js?v=${BUILD}-veh1`,'logVehicleIdentities');
     ensureScript(`./vehicle-identities-fix.js?v=${BUILD}-veh1fix1`,'logVehicleIdentitiesFix');
     ensureScript(`./vehicle-endpoint-prediction.js?v=${BUILD}-veh2`,'logVehicleEndpointPrediction');
-    ensureScript(`./vehicle-start-input.js?v=${BUILD}-veh6`,'logVehicleStartInput');
-    ensureScript(`./vehicle-start-layout.js?v=${BUILD}-veh6`,'logVehicleStartLayout');
-    ensureScript(`./vehicle-ride-scope.js?v=${BUILD}-veh7`,'logVehicleRideScope');
-    ensureScript(`./vehicle-delete.js?v=${BUILD}-veh7`,'logVehicleDelete');
+    ensureScript(`./vehicle-start-input.js?v=${BUILD}-veh8`,'logVehicleStartInput');
+    ensureScript(`./vehicle-start-layout.js?v=${BUILD}-veh8`,'logVehicleStartLayout');
+    ensureScript(`./vehicle-ride-scope.js?v=${BUILD}-veh8`,'logVehicleRideScope');
+    ensureScript(`./vehicle-delete.js?v=${BUILD}-veh8`,'logVehicleDelete');
+    ensureScript(`./vehicle-module.js?v=${BUILD}-veh8`,'logVehicleModule');
     ensureScript(`./object-id-presentation.js?v=${BUILD}-id2`,'logObjectIdPresentation');
   }
 
@@ -93,6 +94,7 @@
     installStyles();
     syncVersionSurface();
   }
+
   function init(){
     render();
     ensureCurrentSharingUI();
