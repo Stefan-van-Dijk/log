@@ -46,7 +46,8 @@ function decorate(){
       single.className='log-start-vehicle-single';
       wrap.appendChild(single);
     }
-    single.innerHTML=singleMarkup(vehicle);
+    const markup=singleMarkup(vehicle);
+    if(single.innerHTML!==markup)single.innerHTML=markup;
   }else{
     wrap.classList.remove('log-start-vehicle-one');
     wrap.querySelector('label')?.removeAttribute('hidden');
