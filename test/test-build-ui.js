@@ -66,6 +66,7 @@
     ensureScript(`./person-id-unification.js?v=${BUILD}-pid1`,'logPersonIdUnification');
     ensureScript(`./people-personcard-network-fix.js?v=${BUILD}-net2`,'logPeoplePersonCardNetworkFix');
     ensureScript(`./person-connections-one-qr.js?v=${BUILD}-oneqr1`,'logPersonConnectionsOneQr');
+    ensureScript(`./bare-id-router.js?v=${BUILD}-bare1`,'logBareIdentifierRouter');
     ensureScript(`./person-connections.js?v=${BUILD}-conn5`,'logPersonConnections');
     ensureScript(`./person-connections-resume-fix.js?v=${BUILD}-conn5`,'logPersonConnectionResumeFix');
     ensureScript(`./person-connections-swipe-fix.js?v=${BUILD}-conn5`,'logPersonConnectionSwipeFix');
