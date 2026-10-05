@@ -575,11 +575,11 @@ body.time-mode .shell{max-width:760px}
 <script src="./location-polling.js?v=0.35.1-test.2"></script>
 <script src="./swipe-policy.js?v=0.35.1-test.2"></script>
 <script src="./log-json-v2.js?v=2.0.0"></script>
-<script src="./backup-state.js?v=0.40.2"></script>
+<script src="./backup-state.js?v=0.40.3"></script>
 <script>
 (()=>{
 'use strict';
-const APP_BUILD='0.40.2',KEY='kmreg-test-v4-data',APP_MODE_KEY='kmreg-test-active-app-v1',TIME_STORAGE_KEY='urenregistratie.test.pwa.v1',REGISTRATION_IDENTITY_KEY='registratie-test-identiteiten-v1',REGISTRATION_MODEL_SCHEMA='registratie-model.v1',REGISTRATION_EXPORT_KIND='complete_backup',GEOCODE_CACHE_KEY='kmreg-test-geocode-cache-v1',GEOCODER_DEFAULT_BASE='https://nominatim.openstreetmap.org',SCREEN_EDGE_SWIPE_ZONE=32,SCREEN_EDGE_SWIPE_DISTANCE=72;
+const APP_BUILD='0.40.3',KEY='kmreg-test-v4-data',APP_MODE_KEY='kmreg-test-active-app-v1',TIME_STORAGE_KEY='urenregistratie.test.pwa.v1',REGISTRATION_IDENTITY_KEY='registratie-test-identiteiten-v1',REGISTRATION_MODEL_SCHEMA='registratie-model.v1',REGISTRATION_EXPORT_KIND='complete_backup',GEOCODE_CACHE_KEY='kmreg-test-geocode-cache-v1',GEOCODER_DEFAULT_BASE='https://nominatim.openstreetmap.org',SCREEN_EDGE_SWIPE_ZONE=32,SCREEN_EDGE_SWIPE_DISTANCE=72;
 const DEFAULT={settings:{name:'',vehicleBrand:'',vehicleModel:'',plate:'',initialOdometer:'',registrationStart:new Date().toISOString().slice(0,10),reportEmail:'',recognitionRadius:500,privateDays:[],privateTimeStart:'',privateTimeEnd:'',navigationMode:'system',lastBackupAt:null,swipeDeleteEnabled:true,locationDeleteEnabled:true,destinationTimeWindowHours:2,geocoderBaseUrl:GEOCODER_DEFAULT_BASE,locationSortMode:'smart',locationOrder:[],bottomBarEnabled:true},locations:[],cards:[],trips:[],events:[],trackPoints:[],activeTrip:null,lastEndpoint:null,lastCompletion:null};
 let data=load(),view='ride',appMode=localStorage.getItem(APP_MODE_KEY)==='time'?'time':'kilometers',selectedWeek=new Date(),periodMode='week',periodChooserOpen=false,gpsWatch=null,gpsTimer=null,gpsLatest=null,odoSwipe=null,periodGesture=null,periodLastTap=0,expandedTripId=null,tripSwipe=null,trackStoreReady=false,trackDbPromise=null,settingsLocationCheck=0,geocodeQueue=Promise.resolve(),geocodeLastAt=0,expandedLocationId=null,settingsLocationsOpen=false,settingsLocationOriginId=null,screenSwipe=null,editorReturnView='ride',editingTripId=null,editingLocationId=null,editingLocationSeed=null,startDraft=null,arrivalDraft=null;
 const DETOUR_COOLDOWN_MS=60000;
@@ -1320,6 +1320,6 @@ function download(blob,name){const a=document.createElement('a');a.href=URL.crea
 <script src="./shell-removal-policy.js?v=0.35.1-test.2"></script>
 <script src="./shell-quick-actions.js?v=0.35.1-test.2"></script>
 <script src="./shell-direct-actions.js?v=0.35.1-test.2"></script>
-<script src="./guided-help.js?v=0.40.2"></script>
+<script src="./guided-help.js?v=0.40.3"></script>
 </body>
 </html>

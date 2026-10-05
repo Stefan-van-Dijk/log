@@ -596,7 +596,7 @@ function wireHome() {
   $('#editActive')?.addEventListener('click', openActiveEdit);
   $$('[data-entry]').forEach(el => el.addEventListener('click', () => openEntryDetail(el.dataset.entry)));
   if (state.timer.status === 'active') {
-    const update = () => { const el = $('#timerClock'); if (!el) return; const start = state.timer.interruption?.startISO || state.timer.startISO; el.textContent = durationText(Date.now() - new Date(start).getTime()); };
+    const update = () => { if(document.hidden||window.LogModuleHost?.getMode?.()==='kilometers')return; const el = $('#timerClock'); if (!el||el.closest('[hidden],.hidden')) return; const start = state.timer.interruption?.startISO || state.timer.startISO; const text = durationText(Date.now() - new Date(start).getTime()); if(el.textContent!==text)el.textContent=text; };
     update(); timerTick = setInterval(update, 1000);
   }
 }

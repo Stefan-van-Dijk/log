@@ -127,7 +127,7 @@
       if(origin&&distance(p,origin)-p.accuracy>(rule?.radius||500)+50&&s.locations.some(l=>{const pos=coordinates(l.id,s);return l.id!==snooze.locationId&&pos&&distance(p,pos)+p.accuracy<=Math.max(25,Number(s.km.settings?.recognitionRadius)||500);})){delete snoozes[id];changed=true;}
     }
     if(changed)localStorage.setItem(SNOOZES,JSON.stringify(snoozes));
-    localStorage.setItem(VISITS,JSON.stringify(state));status='Locatie gecontroleerd om '+new Date(now).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'});refresh();
+    saveState(VISITS,state);status='Locatie gecontroleerd om '+new Date(now).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'});refresh();
   }
   function saveState(key,value){const text=JSON.stringify(value);if(localStorage.getItem(key)!==text)localStorage.setItem(key,text);}
   function observedInside(rule,s,previous,now){
@@ -463,13 +463,23 @@
     document.querySelectorAll('[data-la-editor-status][data-rule-id]').forEach(el=>{const rule=rules.find(r=>r.id===el.dataset.ruleId);if(rule){const text=availability(rule);if(el.textContent!==text)el.textContent=text;}});
   }
   function drain(){
+    if(document.hidden||!point)return;
     observeTransitions();updateRuleStatus();
     const rules=eligible().filter(r=>!failed.has(r.id)&&!(r.type==='ride'&&read(KM).activeTrip));
     const card=rules.find(r=>r.type==='card');if(card&&!uiBlocked(true)){propose(card.id);return;}
     if(uiBlocked())return;
     const rule=rules[0];if(rule)propose(rule.id);else prepareSmartRide();
   }
-  setInterval(drain,1000);
+  let drainTimer=null;
+  function syncDrainTimer(){
+    if(drainTimer!==null)clearInterval(drainTimer);
+    drainTimer=null;
+    if(!document.hidden){drain();drainTimer=setInterval(drain,5000);}
+  }
+  document.addEventListener('visibilitychange',syncDrainTimer);
+  window.addEventListener('pagehide',()=>{if(drainTimer!==null)clearInterval(drainTimer);drainTimer=null;});
+  window.addEventListener('pageshow',syncDrainTimer);
+  syncDrainTimer();
   function showResetNotice(timed=false){
     let note=document.getElementById('laResetNotice');
     if(!note){note=document.createElement('div');note.id='laResetNotice';note.className='la-reset-notice';note.setAttribute('role','status');document.body.append(note);}
@@ -505,4 +515,3 @@
   window.addEventListener('storage',refresh);
   window.addEventListener('log-navigation-modules-change',refresh);
 })();
-

@@ -1,7 +1,7 @@
 (function(){
 'use strict';
 
-const BUILD='0.40.2';
+const BUILD='0.40.3';
 window.LOG_BUILD=BUILD;
 window.LOG_TEST_BUILD=BUILD;
 
@@ -39,7 +39,7 @@ const DEFAULT_AUTO_INTERVAL=300000;
 const ACTIVE_TRIP_INTERVAL=60000;
 const OPEN_CACHE_MS=15000;
 const ACTION_CACHE_MS=30000;
-const ACTIVE_ACTION_CACHE_MS=10000;
+const ACTIVE_ACTION_CACHE_MS=60000;
 const SUBSCRIBE_CACHE_MS=60000;
 const MIN_TIMER_MS=1000;
 const listeners=new Set();

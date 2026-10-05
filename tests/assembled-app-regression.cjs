@@ -41,7 +41,7 @@ async function run(){
     assert.ok(w.document.querySelector('#startInlinePanel'));
     const vehicle=w.LogVehicles.active();assert.equal(Number(vehicle.initialOdometer),700,'Setup updates the real active vehicle');
     w.localStorage.setItem('log-test-archive-v1',JSON.stringify({version:1,records:[{id:'archive-fixture'}]}));
-    const backup=w.buildCompleteRegistrationExport();assert.equal(backup.app.build,'0.40.2');assert.equal(backup.counts.archived_items,1);
+    const backup=w.buildCompleteRegistrationExport();assert.equal(backup.app.build,'0.40.3');assert.equal(backup.counts.archived_items,1);
     assert.ok(backup.recovery.sources.app_local.data.entries.some(item=>item.key==='log-test-vehicles-v1'));
     backup.recovery.sources.kilometerregistratie.data.trackPoints=[{id:'gps-fixture',tripId:'test-trip',lat:52,lng:6,time:'2026-10-05T12:00:00Z'}];
     await w.LogBackupHost.restore(backup);await sleep(100);

@@ -106,9 +106,9 @@ async function previewInvite(value){
 }
 
 async function syncOwners(){
-  if(syncBusy||!navigator.onLine)return;syncBusy=true;
+  if(syncBusy||document.hidden||!navigator.onLine)return;syncBusy=true;
   try{
-    const items=Object.values(state().items).filter(item=>item.role==='owner'&&!item.revoked&&['pending_out','connected'].includes(item.status)&&item.connectionId&&item.ownerToken);
+    const items=Object.values(state().items).filter(item=>item.role==='owner'&&!item.revoked&&item.status==='pending_out'&&item.connectionId&&item.ownerToken);
     for(const item of items){
       try{
         const remote=await api('GET',item.connectionId,null,item.ownerToken);if(remote.revoked){saveItem(item.connectionId,{status:'revoked',revoked:true,cache:null,revision:Number(remote.revision)||item.revision});continue;}if(!remote.payload||Number(remote.revision)===Number(item.revision))continue;

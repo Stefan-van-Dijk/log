@@ -3,7 +3,8 @@
   "private": true,
   "scripts": {
     "verify": "node tests/production-syntax.cjs && node tests/public-readiness-regression.cjs && node tests/assembled-app-regression.cjs && node tests/screen-update-idle-regression.cjs && node tests/gps-track-resume-regression.cjs",
-    "test:legacy": "node tests/run-legacy.cjs"
+    "test:legacy": "node tests/run-legacy.cjs",
+    "verify:energy": "node tests/energy-gps-regression.cjs && node tests/energy-connections-regression.cjs && node tests/energy-activity-regression.cjs"
   },
   "devDependencies": {
     "fake-indexeddb": "6.2.5",
