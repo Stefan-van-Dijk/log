@@ -242,7 +242,7 @@
     gpsPending=true;
     gps={...gps,status:'loading',error:''};
     decorateLocations();
-    window.LogLocationPolling.request({maxAge:force?0:window.LogLocationPolling.interval()}).then(
+    window.LogLocationPolling.request({maxAge:force?0:60000}).then(
       pos=>{gpsPending=false;analyzePosition(pos);},
       err=>{gpsPending=false;gps={...gps,status:'error',error:err.code===1?'Geen locatietoestemming.':'Huidige locatie kon niet worden bepaald.',updatedAt:Date.now()};decorateLocations();}
     );
@@ -336,4 +336,3 @@
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});
   else init();
 })();
-

@@ -227,7 +227,7 @@
     const failure=e=>{if(token!==generation)return;point=null;status=e.code===1?'Geen locatietoestemming. Sta locatie toe en tik op Opnieuw controleren.':'Geen betrouwbare locatie beschikbaar. Probeer opnieuw.';if(e.code===1){permissionState='denied';stop();}refresh();};
     if(window.LogLocationPolling){
       pollingUnsubscribe=window.LogLocationPolling.subscribe((p,error)=>error?failure(error):success(p));
-      window.LogLocationPolling.request({maxAge:window.LogLocationPolling.interval()}).catch(failure);return;
+      window.LogLocationPolling.request({maxAge:60000}).catch(failure);return;
     }
     const options={enableHighAccuracy:true,maximumAge:15000,timeout:15000};
     watch=navigator.geolocation.watchPosition(success,failure,options);
@@ -471,14 +471,28 @@
     const rule=rules[0];if(rule)propose(rule.id);else prepareSmartRide();
   }
   let drainTimer=null;
-  function syncDrainTimer(){
-    if(drainTimer!==null)clearInterval(drainTimer);
+  function syncDrainTimer(soon=false){
+    if(drainTimer!==null)clearTimeout(drainTimer);
     drainTimer=null;
-    if(!document.hidden){drain();drainTimer=setInterval(drain,5000);}
+    if(document.hidden||!point)return;
+    const s=snapshot(),now=Date.now(),edges=read(EDGES),departure=read(DEPARTURE);
+    const ready=Object.entries(edges).some(([id,edge])=>edge.ready&&!failed.has(id))||(departure.ready===true&&localStorage.getItem('kmreg-test-shell-section-v1')==='rides');
+    const timed=s.rules.some(rule=>rule.enabled&&rule.trigger!=='qr');
+    const statusVisible=Boolean(root)||Boolean(document.querySelector('[data-la-details],[data-la-editor-status][data-rule-id]'));
+    if(!ready&&!timed&&!statusVisible)return;
+    // Location transitions need a new sample. Only time windows, waits or an
+    // already-ready offer need a timer between samples.
+    let delay=soon?50:60000-now%60000;
+    if(ready)delay=Math.min(delay,5000);
+    for(const snooze of Object.values(read(SNOOZES))){
+      if(Number.isFinite(snooze.until)&&snooze.until>now)delay=Math.min(delay,snooze.until-now);
+    }
+    if(point.time+120000>now)delay=Math.min(delay,point.time+120000-now);
+    drainTimer=setTimeout(()=>{drainTimer=null;drain();syncDrainTimer();},Math.max(50,delay));
   }
-  document.addEventListener('visibilitychange',syncDrainTimer);
-  window.addEventListener('pagehide',()=>{if(drainTimer!==null)clearInterval(drainTimer);drainTimer=null;});
-  window.addEventListener('pageshow',syncDrainTimer);
+  document.addEventListener('visibilitychange',()=>syncDrainTimer(true));
+  window.addEventListener('pagehide',()=>{if(drainTimer!==null)clearTimeout(drainTimer);drainTimer=null;});
+  window.addEventListener('pageshow',()=>syncDrainTimer(true));
   syncDrainTimer();
   function showResetNotice(timed=false){
     let note=document.getElementById('laResetNotice');
@@ -498,7 +512,7 @@
     const rules=s.rules.filter(r=>(r.name+' '+label(r.locationId,s)+' '+targetName(r,s)).toLocaleLowerCase('nl').includes(query));
     root.innerHTML=`<section class="cards-module"><button type="button" class="btn primary full contact-update" data-la-new>＋ Actie toevoegen</button>${rules.map(r=>`<div class="code-card-swipe" data-la-row data-la-type="${esc(r.type)}" style="--card-color:${(typeUI[r.type]||typeUI.card).color};--card-action-count:${allowed?2:1}"><div class="la-reset-actions" inert aria-hidden="true"><button type="button" class="swipe-reopen" data-la-reset="${esc(r.id)}" aria-label="Actie opnieuw klaarzetten">Reset</button></div><div class="code-card-actions" inert aria-hidden="true">${allowed?`<button type="button" class="swipe-delete" data-la-delete="${esc(r.id)}">Verwijder</button>`:''}<button type="button" class="swipe-edit" data-la-edit="${esc(r.id)}">Bewerk</button></div><div class="code-card-surface"><button type="button" class="code-card" data-la-open="${esc(r.id)}" aria-label="${esc(r.name)}${r.enabled?'':' · uitgeschakeld'}"><span class="code-card-icon" role="img" aria-label="${(typeUI[r.type]||typeUI.card).label}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${(typeUI[r.type]||typeUI.card).path}"/></svg></span><span class="code-card-copy"><strong>${esc(r.name)}</strong><small>${esc(description(r,s))}</small><small class="la-next" data-la-next="${esc(r.id)}">${esc(compactStatus(r))}</small></span></button><button type="button" class="btn secondary" style="margin:0 0 10px 44px;min-height:36px;padding:6px 12px" data-la-toggle="${esc(r.id)}" aria-label="${esc(r.name)} ${r.enabled?'pauzeren':'hervatten'}" aria-pressed="${!r.enabled}">${r.enabled?'Pauzeren':'Hervatten'}</button></div></div>`).join('')||'<p class="cards-empty">Nog geen acties voor deze selectie. Voeg een actie toe en kies Kaart tonen om een kaart op locatie te openen.</p>'}</section>`;
   }
-  function refresh(){observeTransitions();updateRuleStatus();updateSettings();renderSuggestions();if(!root)return;const next=JSON.stringify([snapshot(),query,window.LogSwipePolicy?.enabled('locationactions')]);if(next!==signature){signature=next;render();}}
+  function refresh(){observeTransitions();updateRuleStatus();updateSettings();renderSuggestions();syncDrainTimer(true);if(!root)return;const next=JSON.stringify([snapshot(),query,window.LogSwipePolicy?.enabled('locationactions')]);if(next!==signature){signature=next;render();}}
   function mount(target){
     if(root===target&&root.querySelector('[data-la-new]'))return;root=target;signature='';
     root.onclick=e=>{const b=e.target.closest('button');if(!b)return;if(b.hasAttribute('data-la-open')&&Date.now()<Math.max(suppressOpenUntil,Number(b.closest('[data-la-row]')?.dataset.suppressUntil||0)))return;

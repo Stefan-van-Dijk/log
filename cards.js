@@ -285,15 +285,15 @@
     start.click();
   }
   function findNearby() {
-    if(!navigator.geolocation){notice='Locatiebepaling is niet beschikbaar. Kies zelf een locatie.';renderList();return;}
+    if(!navigator.geolocation||!window.LogLocationPolling?.request){notice='Locatiebepaling is niet beschikbaar. Kies zelf een locatie.';renderList();return;}
     const target=root,button=$('[data-cards-near]',root);button.disabled=true;notice='Locatie bepalen…';renderList();
-    navigator.geolocation.getCurrentPosition(position=>{
+    window.LogLocationPolling.request({maxAge:30000,highAccuracy:true,reason:'cards-nearby'}).then(position=>{
       if(root!==target)return;button.disabled=false;
       const radius=Math.max(25,Number(snapshot().settings.recognitionRadius)||500);
       nearby={ids:nearbyIds(position,locations(),radius),time:Date.now()};filter='';$('[data-cards-location]',root).value='';
       const count=records().filter(card=>nearby.ids.has(String(card.locationId))).length;
       notice=count?`${count} ${count===1?'kaart past':'kaarten passen'} bij locaties in de buurt · bovenaan gezet.`:'Geen gekoppelde kaarten in de buurt. Alle kaarten blijven beschikbaar.';renderList();
-    },()=>{if(root!==target)return;button.disabled=false;notice='Locatie niet beschikbaar. Kies zelf een locatie.';renderList()}, {enableHighAccuracy:true,timeout:10000,maximumAge:30000});
+    },()=>{if(root!==target)return;button.disabled=false;notice='Locatie niet beschikbaar. Kies zelf een locatie.';renderList()});
   }
   window.LogCardsUI={sheet,close,edit,renderCode,validate(card){validate(card);makeCode(card);}};
   window.LogCardsModule={mount,show,closeSwipe:row=>setSwipe(row,false),unmount(){if(root){close();root=null;}},search(value){query=String(value||'').toLocaleLowerCase('nl');return renderList()},refresh};
