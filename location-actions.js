@@ -476,7 +476,8 @@
     drainTimer=null;
     if(document.hidden||!point)return;
     const s=snapshot(),now=Date.now(),edges=read(EDGES),departure=read(DEPARTURE);
-    const ready=Object.entries(edges).some(([id,edge])=>edge.ready&&!failed.has(id))||(departure.ready===true&&localStorage.getItem('kmreg-test-shell-section-v1')==='rides');
+    const fresh=now-point.time<=120000;
+    const ready=fresh&&(Object.entries(edges).some(([id,edge])=>edge.ready&&!failed.has(id))||(departure.ready===true&&localStorage.getItem('kmreg-test-shell-section-v1')==='rides'));
     const timed=s.rules.some(rule=>rule.enabled&&rule.trigger!=='qr');
     const statusVisible=Boolean(root)||Boolean(document.querySelector('[data-la-details],[data-la-editor-status][data-rule-id]'));
     if(!ready&&!timed&&!statusVisible)return;

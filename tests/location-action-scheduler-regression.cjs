@@ -25,5 +25,6 @@ try{
   assert.equal(timers.size,1,'Only one scheduler serves all location actions');
   hidden=true;w.document.dispatchEvent(new w.Event('visibilitychange'));assert.equal(timers.size,0,'Background clears scheduled action work');
   hidden=false;sample();advance(50);assert.equal(timers.size,1,'New foreground sample restores only one schedule');
+  advance(125000);assert.ok([...timers.values()].every(timer=>timer.at-now>5000),'A stale GPS point must not keep a ready offer in the fast retry loop');
   console.log('Location scheduler passed: idle, twelve shared actions, exact wait expiry, one timer and background pause.');
 }finally{w.close();}
