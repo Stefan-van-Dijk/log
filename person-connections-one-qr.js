@@ -1,13 +1,15 @@
 (function(){
 'use strict';
 
-const BUILD='0.39-test.5';
+const BUILD='0.40.6';
 const TIME='urenregistratie.test.pwa.v1';
 const STORE='log-test-person-connections-v1';
 const ENDPOINT='https://sharon.life/log/api/connections.php';
 const VALID=/^[A-Za-z0-9_-]{12}$/;
 const CODE=/^log-connect-v2:([A-Za-z0-9_-]{12})$/;
 const ALPHABET='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+const REQUEST_TIMEOUT_MS=10000;
+const CRYPTO_TIMEOUT_MS=5000;
 let scanPatchAttempts=0;
 let syncBusy=false;
 
@@ -29,6 +31,19 @@ function sheet(title,body){return window.LogCardsUI?.sheet?.(title,body)||null;}
 function closeSheet(){window.LogCardsUI?.close?.();}
 function qrSvg(value){if(typeof window.qrcode!=='function')return'';try{const qr=window.qrcode(0,'M');window.qrcode.stringToBytes=text=>Array.from(new TextEncoder().encode(text));qr.addData(String(value),'Byte');qr.make();return qr.createSvgTag({cellSize:6,margin:16,scalable:true});}catch(_){return'';}}
 async function copy(value){try{await navigator.clipboard.writeText(String(value));return true;}catch(_){return false;}}
+function withTimeout(promise,ms,message){return new Promise((resolve,reject)=>{let settled=false;const timer=setTimeout(()=>{if(settled)return;settled=true;reject(Error(message));},ms);Promise.resolve(promise).then(value=>{if(settled)return;settled=true;clearTimeout(timer);resolve(value);},error=>{if(settled)return;settled=true;clearTimeout(timer);reject(error);});});}
+function panelBody(panel){return panel?.querySelector?.('.cards-dialog-body')||panel||null;}
+function progress(panel,text){const host=panel?.querySelector?.('[data-oneqr-progress]');if(host)host.textContent=text;}
+function startPanel(person){return sheet('Verbinden',`<div class="log-oneqr-profile"><strong>${esc(person?.name||'Persoon')}</strong><span>verbinding voorbereiden…</span></div><p class="cards-notice">De 12-teken verbindingscode wordt veilig aangemaakt.</p><p role="status" data-oneqr-progress>Verbindingscode voorbereiden…</p>`);}
+function showStartError(panel,person,localId,error){
+  const target=panel?.isConnected?panel:document.querySelector('.cards-dialog');
+  const body=panelBody(target);if(!body)return;
+  let message=String(error?.message||'De verbinding kon niet worden aangemaakt.');
+  if(Number(error?.status)===422&&/(ontvanger|memberpersonid|member person|personid)/i.test(message))message='De verbindingsserver gebruikt nog niet de nieuwste één-QR-versie. Werk /log/api/connections.php op sharon.life bij en probeer daarna opnieuw.';
+  body.innerHTML=`<div class="log-oneqr-profile"><strong>${esc(person?.name||'Persoon')}</strong><span>verbinding niet aangemaakt</span></div><p class="cards-notice">${esc(message)}</p><button type="button" class="btn primary full" data-oneqr-retry>Opnieuw proberen</button><button type="button" class="btn secondary full" data-oneqr-close>Sluiten</button>`;
+  body.querySelector('[data-oneqr-retry]')?.addEventListener('click',()=>createOpenRequest(localId).catch(()=>{}));
+  body.querySelector('[data-oneqr-close]')?.addEventListener('click',closeSheet);
+}
 
 async function digestBytes(text){return new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text)));}
 async function memberToken(connectionId){return b64url(await digestBytes(`log.connection.member.v1:${connectionId}`));}
@@ -40,7 +55,13 @@ async function api(method,id='',body=null,token=''){
   const url=id?`${ENDPOINT}?id=${encodeURIComponent(id)}`:ENDPOINT,options={method,cache:'no-store',headers:{Accept:'application/json'}};
   if(body!==null){options.headers['Content-Type']='application/json';options.body=JSON.stringify(body);}
   if(token)options.headers['X-Log-Access-Token']=token;
-  let response;try{response=await fetch(url,options);}catch(_){throw Error('De verbindingsserver is niet bereikbaar.');}
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),REQUEST_TIMEOUT_MS);options.signal=controller.signal;
+  let response;
+  try{response=await fetch(url,options);}
+  catch(error){
+    if(error?.name==='AbortError')throw Error('De verbindingsserver reageert te langzaam. Probeer opnieuw.');
+    throw Error('De verbindingsserver is niet bereikbaar.');
+  }finally{clearTimeout(timer);}
   let result={};try{result=await response.json();}catch(_){}
   if(!response.ok){const error=Error(result.error||`Verbindingsserver reageerde met ${response.status}.`);error.status=response.status;throw error;}
   return result;
@@ -48,23 +69,36 @@ async function api(method,id='',body=null,token=''){
 function makeCode(id){return`log-connect-v2:${id}`;}
 function parseCode(value){const match=String(value||'').trim().match(CODE);return match?{connectionId:match[1],code:String(value).trim()}:null;}
 
-function showOutgoing(item,person){
-  const code=makeCode(item.connectionId),panel=sheet('Verbinden',`<div class="log-oneqr-profile"><strong>${esc(person?.name||'Persoon')}</strong><span>één QR · één bevestiging</span></div><div class="log-oneqr-qr">${qrSvg(code)}</div><div class="log-oneqr-code"><small>ConnectionId</small><strong>${esc(item.connectionId)}</strong></div><p class="cards-notice">Laat de andere persoon deze QR één keer scannen in Log. Die persoon hoeft jou niet eerst apart te koppelen. Na bevestigen wordt de echte PersonId automatisch aan deze persoon gekoppeld.</p><button type="button" class="btn secondary full" data-oneqr-copy>Verbindingscode kopiëren</button><p role="status" data-oneqr-status></p>`);
-  if(!panel)return;const status=panel.querySelector('[data-oneqr-status]');panel.querySelector('[data-oneqr-copy]').onclick=async()=>{status.textContent=await copy(code)?'Verbindingscode gekopieerd.':'Kopiëren wordt op dit apparaat niet ondersteund.';};
+function showOutgoing(item,person,panel=null){
+  const code=makeCode(item.connectionId),target=panel?.isConnected?panel:null;
+  const body=target?panelBody(target):null;
+  const content=`<div class="log-oneqr-profile"><strong>${esc(person?.name||'Persoon')}</strong><span>één QR · één bevestiging</span></div><div class="log-oneqr-qr">${qrSvg(code)}</div><div class="log-oneqr-code"><small>ConnectionId</small><strong>${esc(item.connectionId)}</strong></div><p class="cards-notice">Laat de andere persoon deze QR één keer scannen in Log. Die persoon hoeft jou niet eerst apart te koppelen. Na bevestigen wordt de echte PersonId automatisch aan deze persoon gekoppeld.</p><button type="button" class="btn secondary full" data-oneqr-copy>Verbindingscode kopiëren</button><p role="status" data-oneqr-status></p>`;
+  const host=target||sheet('Verbinden',content);if(!host)return;
+  if(body)body.innerHTML=content;
+  const status=host.querySelector('[data-oneqr-status]');host.querySelector('[data-oneqr-copy]')?.addEventListener('click',async()=>{if(status)status.textContent=await copy(code)?'Verbindingscode gekopieerd.':'Kopiëren wordt op dit apparaat niet ondersteund.';});
 }
 async function createOpenRequest(localId){
   const person=personById(localId);if(!person)throw Error('Persoon niet gevonden.');
-  const existing=currentForLocal(localId);if(existing){window.LogPersonConnections?.show?.(localId);return existing;}
-  const ownerPersonId=selfId();if(!VALID.test(ownerPersonId))throw Error('Eigen PersonId is nog niet beschikbaar. Open Instellingen → Mijn Log & samenwerking één keer en probeer opnieuw.');
-  const connectionId=randomId(),ownerToken=b64url(randomBytes(32)),member=await memberToken(connectionId),now=new Date().toISOString(),profile=selfProfile();
-  const document={schema:'log.connection.v1',version:1,connectionId,fromPersonId:ownerPersonId,toPersonId:null,openInvite:true,fromProfile:profile,targetHint:String(person.name||'').slice(0,120),confirmations:{[ownerPersonId]:true},status:'pending',createdAt:now,updatedAt:now};
-  const payload=await encrypt(document,connectionId);let remote;
-  try{remote=await api('POST','',{action:'create',id:connectionId,ownerPersonId,memberPersonId:'',memberToken:member,payload},ownerToken);}catch(error){
-    if(error.status===422)throw Error('De verbinding gebruikt de nieuwe één-QR-serverfunctie nog niet. Vervang /log/api/connections.php op sharon.life door de nieuwste versie uit test/server/.');
+  const existing=currentForLocal(localId);if(existing){showOutgoing(existing,person);return existing;}
+  const panel=startPanel(person);
+  try{
+    const ownerPersonId=selfId();if(!VALID.test(ownerPersonId))throw Error('Eigen PersonId is nog niet beschikbaar. Open Instellingen → Mijn Log & samenwerking één keer en probeer opnieuw.');
+    const connectionId=randomId(),ownerToken=b64url(randomBytes(32)),now=new Date().toISOString(),profile=selfProfile();
+    progress(panel,'Veilige toegangssleutel maken…');
+    const member=await withTimeout(memberToken(connectionId),CRYPTO_TIMEOUT_MS,'De beveiliging van de verbindingscode reageert niet. Probeer opnieuw.');
+    const document={schema:'log.connection.v1',version:1,connectionId,fromPersonId:ownerPersonId,toPersonId:null,openInvite:true,fromProfile:profile,targetHint:String(person.name||'').slice(0,120),confirmations:{[ownerPersonId]:true},status:'pending',createdAt:now,updatedAt:now};
+    progress(panel,'Verbindingsgegevens versleutelen…');
+    const payload=await withTimeout(encrypt(document,connectionId),CRYPTO_TIMEOUT_MS,'Het versleutelen duurt te lang. Probeer opnieuw.');
+    progress(panel,'Verbinding online vastleggen…');
+    const remote=await api('POST','',{action:'create',id:connectionId,ownerPersonId,memberPersonId:'',memberToken:member,payload},ownerToken);
+    const item=saveItem(connectionId,{role:'owner',otherPersonId:String(person.id),pendingLocalId:String(person.id),ownerPersonId,ownerToken,accessToken:ownerToken,revision:Number(remote.revision)||1,status:'pending_out',cache:document,createdAt:now,revoked:false,oneQr:true});
+    progress(panel,'Verbindingscode gereed.');
+    showOutgoing(item,person,panel);return item;
+  }catch(error){
+    showStartError(panel,person,localId,error);
+    error.__logConnectionShown=true;
     throw error;
   }
-  const item=saveItem(connectionId,{role:'owner',otherPersonId:String(person.id),pendingLocalId:String(person.id),ownerPersonId,ownerToken,accessToken:ownerToken,revision:Number(remote.revision)||1,status:'pending_out',cache:document,createdAt:now,revoked:false,oneQr:true});
-  showOutgoing(item,person);return item;
 }
 
 function normalized(value){return String(value||'').trim().toLocaleLowerCase('nl-NL').replace(/\s+/g,' ');}
@@ -125,7 +159,14 @@ function installScanBridge(){
   if(!dispatcher.classify.__oneQrConnection){const old=dispatcher.classify.bind(dispatcher),classify=value=>{const parsed=parseCode(value);return parsed?{kind:'payload',payload:{kind:'log-person-connection-v2',version:2,code:parsed.code},value:parsed.code}:old(value);};classify.__oneQrConnection=true;classify.__original=old;dispatcher.classify=classify;}
 }
 function installStyles(){if(document.getElementById('logOneQrConnectionStyles'))return;const style=document.createElement('style');style.id='logOneQrConnectionStyles';style.textContent=`.log-oneqr-qr{display:grid;place-items:center;max-width:300px;margin:8px auto 12px;padding:8px;background:#fff;border-radius:14px}.log-oneqr-qr svg{width:100%;height:auto}.log-oneqr-code{display:grid;place-items:center;gap:3px;margin:8px 0 14px}.log-oneqr-code small{font-size:10px;color:var(--muted)}.log-oneqr-code strong{font:700 19px/1.2 "SFMono-Regular",Consolas,monospace;letter-spacing:.08em}.log-oneqr-profile{display:grid;gap:3px;text-align:center;margin:4px 0 12px}.log-oneqr-profile strong{font-size:18px}.log-oneqr-profile span{font-size:12px;color:var(--muted)}`;document.head.appendChild(style);}
-function interceptConnectionStart(event){const button=event.target.closest?.('[data-person-connection-swipe]');if(!button||button.dataset.connectionSelf==='1')return;const localId=String(button.dataset.personConnectionSwipe||'');if(!localId)return;const current=currentForLocal(localId);if(current&&['connected','pending_out','pending_in'].includes(current.status)&&!current.revoked)return;event.preventDefault();event.stopImmediatePropagation();createOpenRequest(localId).catch(error=>sheet('Verbinden',`<p class="cards-notice">${esc(error.message)}</p>`));}
+function interceptConnectionStart(event){
+  const button=event.target.closest?.('[data-person-connection-swipe]');if(!button||button.dataset.connectionSelf==='1')return;
+  const localId=String(button.dataset.personConnectionSwipe||'');if(!localId)return;
+  const current=currentForLocal(localId);if(current&&['connected','pending_out','pending_in'].includes(current.status)&&!current.revoked)return;
+  event.preventDefault();event.stopImmediatePropagation();
+  try{window.LogPersonConnectionSwipe?.setSide?.(button.closest('[data-person-row]'),'closed');}catch(_){}
+  createOpenRequest(localId).catch(error=>{if(!error?.__logConnectionShown)sheet('Verbinden',`<p class="cards-notice">${esc(error.message)}</p>`);});
+}
 function init(){window.LOG_TEST_BUILD=BUILD;installStyles();document.addEventListener('click',interceptConnectionStart,true);installScanBridge();window.addEventListener('online',()=>syncOwners());window.addEventListener('pageshow',()=>syncOwners());window.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')syncOwners();});setTimeout(syncOwners,1200);setInterval(()=>{if(document.visibilityState==='visible')syncOwners();},5000);window.LogOneQrConnections={createOpenRequest,previewInvite,syncOwners,parseCode};}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();

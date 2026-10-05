@@ -1,9 +1,9 @@
-const BUILD='0.40.5';
+const BUILD='0.40.6';
 const CACHE=`kmreg-shell-${BUILD}`;
 const CORE=[
   './','./index.html','./manifest.webmanifest','./app-icon.svg',
   `./backup-state.js?v=${BUILD}`,`./guided-help.js?v=${BUILD}`,
-  `./location-polling.js?v=${BUILD}`,`./build-ui.js?v=${BUILD}`,`./person-chat-direct.js?v=${BUILD}`,`./connection-chat.js?v=${BUILD}`,`./location-refresh-setting.js?v=${BUILD}`,
+  `./location-polling.js?v=${BUILD}`,`./build-ui.js?v=${BUILD}`,`./person-connections-one-qr.js?v=${BUILD}`,`./connection-start-fix.js?v=${BUILD}`,`./person-chat-direct.js?v=${BUILD}`,`./connection-chat.js?v=${BUILD}`,`./location-refresh-setting.js?v=${BUILD}`,
   `./shell-ui.js?v=${BUILD}`,`./people.js?v=${BUILD}`,`./cards.js?v=${BUILD}`,`./log-code.js?v=${BUILD}`,
   `./shared-page-template.css?v=${BUILD}`,`./shared-home-components.css?v=${BUILD}`,`./shared-shell-header.css?v=${BUILD}`,
   `./config/modules.json?v=${BUILD}`

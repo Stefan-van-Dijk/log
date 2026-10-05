@@ -1,13 +1,14 @@
 (function(){
 'use strict';
 
-const BUILD='0.39-test.7';
+const BUILD='0.40.6';
 const TIME='urenregistratie.test.pwa.v1';
 const STORE='log-test-person-connections-v1';
 const ENDPOINT='https://sharon.life/log/api/connections.php';
 const VALID=/^[A-Za-z0-9_-]{12}$/;
 const ALPHABET='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
 const REQUEST_TIMEOUT_MS=10000;
+const CRYPTO_TIMEOUT_MS=5000;
 let busy=false;
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -32,6 +33,7 @@ async function encrypt(value,connectionId){const key=await importSecret(await co
 function sheet(title,body){return window.LogCardsUI?.sheet?.(title,body)||null;}
 function qrSvg(value){if(typeof window.qrcode!=='function')return'';try{const qr=window.qrcode(0,'M');window.qrcode.stringToBytes=text=>Array.from(new TextEncoder().encode(text));qr.addData(String(value),'Byte');qr.make();return qr.createSvgTag({cellSize:6,margin:16,scalable:true});}catch(_){return'';}}
 async function copy(value){try{await navigator.clipboard.writeText(String(value));return true;}catch(_){return false;}}
+function withTimeout(promise,ms,message){return new Promise((resolve,reject)=>{let settled=false;const timer=setTimeout(()=>{if(settled)return;settled=true;reject(Error(message));},ms);Promise.resolve(promise).then(value=>{if(settled)return;settled=true;clearTimeout(timer);resolve(value);},error=>{if(settled)return;settled=true;clearTimeout(timer);reject(error);});});}
 function closeSwipe(row){if(!row)return;row.classList.remove('actions-open');const surface=row.querySelector('.code-card-surface'),actions=row.querySelector('.code-card-actions');if(surface)surface.style.transform='';if(actions){actions.setAttribute('inert','');actions.setAttribute('aria-hidden','true');}}
 function panelBody(panel){return panel?.querySelector?.('.cards-dialog-body')||panel||null;}
 function renderOutgoing(panel,item,person){
@@ -59,9 +61,9 @@ async function createRequest(localId,panel){
   const person=personById(localId);if(!person)throw Error('Persoon niet gevonden.');
   const existing=currentForLocal(localId);if(existing){renderOutgoing(panel,existing,person);return existing;}
   const ownerPersonId=selfId();if(!VALID.test(ownerPersonId))throw Error('Eigen PersonId is nog niet beschikbaar. Open Mijn Log één keer en probeer opnieuw.');
-  const connectionId=randomId(),ownerToken=b64url(randomBytes(32)),member=await memberToken(connectionId),now=new Date().toISOString(),profile=selfProfile();
+  const connectionId=randomId(),ownerToken=b64url(randomBytes(32)),member=await withTimeout(memberToken(connectionId),CRYPTO_TIMEOUT_MS,'De beveiliging van de verbindingscode reageert niet. Probeer opnieuw.'),now=new Date().toISOString(),profile=selfProfile();
   const document={schema:'log.connection.v1',version:1,connectionId,fromPersonId:ownerPersonId,toPersonId:null,openInvite:true,fromProfile:profile,targetHint:String(person.name||'').slice(0,120),confirmations:{[ownerPersonId]:true},status:'pending',createdAt:now,updatedAt:now};
-  const payload=await encrypt(document,connectionId);
+  const payload=await withTimeout(encrypt(document,connectionId),CRYPTO_TIMEOUT_MS,'Het versleutelen duurt te lang. Probeer opnieuw.');
   const remote=await apiCreate({action:'create',id:connectionId,ownerPersonId,memberPersonId:'',memberToken:member,payload},ownerToken);
   const item=saveItem(connectionId,{role:'owner',otherPersonId:String(person.id),pendingLocalId:String(person.id),ownerPersonId,ownerToken,accessToken:ownerToken,revision:Number(remote.revision)||1,status:'pending_out',cache:document,createdAt:now,revoked:false,oneQr:true});
   renderOutgoing(panel,item,person);return item;
@@ -74,9 +76,10 @@ function start(localId){
   if(current?.status==='pending_out'){showExisting(localId,current);return;}
   busy=true;
   const panel=sheet('Verbinden',`<div class="log-oneqr-profile"><strong>${esc(person.name||'Persoon')}</strong><span>verbinding voorbereiden…</span></div><p class="cards-notice">De 12-teken verbindingscode wordt aangemaakt.</p><p role="status" data-startfix-progress>Even geduld…</p>`);
-  createRequest(localId,panel).catch(error=>{const body=panelBody(panel);if(body)body.innerHTML=`<p class="cards-notice">${esc(error.message)}</p><button type="button" class="btn secondary full" data-startfix-close>Sluiten</button>`;body?.querySelector?.('[data-startfix-close]')?.addEventListener('click',()=>window.LogCardsUI?.close?.());}).finally(()=>{busy=false;});
+  createRequest(localId,panel).catch(error=>{const target=panel?.isConnected?panel:document.querySelector('.cards-dialog');const body=panelBody(target);if(body)body.innerHTML=`<p class="cards-notice">${esc(error.message)}</p><button type="button" class="btn secondary full" data-startfix-close>Sluiten</button>`;body?.querySelector?.('[data-startfix-close]')?.addEventListener('click',()=>window.LogCardsUI?.close?.());}).finally(()=>{busy=false;});
 }
 function intercept(event){
+  if(window.LogOneQrConnections?.createOpenRequest)return;
   const button=event.target.closest?.('[data-person-connection-swipe]');if(!button||button.dataset.connectionSelf==='1')return;
   const localId=String(button.dataset.personConnectionSwipe||'');if(!localId)return;
   const current=currentForLocal(localId);

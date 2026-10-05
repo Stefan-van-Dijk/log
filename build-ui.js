@@ -1,7 +1,7 @@
 (function(){
 'use strict';
 
-const BUILD='0.40.5';
+const BUILD='0.40.6';
 window.LOG_BUILD=BUILD;
 window.LOG_TEST_BUILD=BUILD;
 
