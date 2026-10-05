@@ -647,15 +647,18 @@
         }finally{button.disabled=false;button.textContent=old;syncSettingsPanel();}
       };
     }
-    panel.removeAttribute('data-settings-target');panel.hidden=false;panel.style.display='';
+    if(panel.hasAttribute('data-settings-target'))panel.removeAttribute('data-settings-target');
+    if(panel.hidden)panel.hidden=false;
+    if(panel.style.display)panel.style.display='';
     syncSettingsPanel();
   }
   function syncSettingsPanel(){
     const panel=document.querySelector('#kmShellSharedCardSettings');if(!panel)return;
     const mode=updateMode(),select=panel.querySelector('[data-shared-update-mode]'),button=panel.querySelector('[data-shared-check-now]'),status=panel.querySelector('[data-shared-update-status]');
     if(select&&select.value!==mode)select.value=mode;
-    if(button)button.hidden=mode==='off';
-    if(status)status.textContent=settingsStatus();
+    if(button&&button.hidden!==(mode==='off'))button.hidden=mode==='off';
+    const statusText=settingsStatus();
+    if(status&&status.textContent!==statusText)status.textContent=statusText;
   }
 
   function badge(copy,id){
@@ -669,7 +672,7 @@
       node.textContent='Update beschikbaar';
       copy.appendChild(node);
     }
-    if(node)node.hidden=!show;
+    if(node&&node.hidden!==!show)node.hidden=!show;
   }
   function decorateObjects(){
     const state=discoverConfigurations();

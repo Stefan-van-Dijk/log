@@ -29,9 +29,9 @@
     const group=sharedGroup(content);
     if(panel.parentElement!==group)group.appendChild(panel);
 
-    panel.removeAttribute('data-settings-target');
-    panel.hidden=false;
-    panel.style.display='';
+    if(panel.hasAttribute('data-settings-target'))panel.removeAttribute('data-settings-target');
+    if(panel.hidden)panel.hidden=false;
+    if(panel.style.display)panel.style.display='';
 
     const title=panel.querySelector('.km-shell-settings-accordion-title strong');
     const subtitle=panel.querySelector('.km-shell-settings-accordion-title small');
