@@ -1,0 +1,12 @@
+{
+  "name": "log-release-checks",
+  "private": true,
+  "scripts": {
+    "verify": "node tests/production-syntax.cjs && node tests/public-readiness-regression.cjs && node tests/assembled-app-regression.cjs && node tests/screen-update-idle-regression.cjs && node tests/gps-track-resume-regression.cjs",
+    "test:legacy": "node tests/run-legacy.cjs"
+  },
+  "devDependencies": {
+    "fake-indexeddb": "6.2.5",
+    "jsdom": "26.1.0"
+  }
+}

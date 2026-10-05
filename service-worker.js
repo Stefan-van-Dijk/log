@@ -1,7 +1,8 @@
-const BUILD='0.40.1';
+const BUILD='0.40.2';
 const CACHE=`kmreg-shell-${BUILD}`;
 const CORE=[
   './','./index.html','./manifest.webmanifest','./app-icon.svg',
+  `./backup-state.js?v=${BUILD}`,`./guided-help.js?v=${BUILD}`,
   `./location-polling.js?v=${BUILD}`,`./build-ui.js?v=${BUILD}`,`./location-refresh-setting.js?v=${BUILD}`,
   `./shell-ui.js?v=${BUILD}`,`./people.js?v=${BUILD}`,`./cards.js?v=${BUILD}`,`./log-code.js?v=${BUILD}`,
   `./shared-page-template.css?v=${BUILD}`,`./shared-home-components.css?v=${BUILD}`,`./shared-shell-header.css?v=${BUILD}`,

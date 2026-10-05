@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 
-const repositoryRoot = path.resolve(__dirname, '..', '..');
+const repositoryRoot = path.resolve(__dirname, '..');
 const builds = [
   ['live', path.join(repositoryRoot, 'index.html')],
   ['test', path.join(repositoryRoot, 'test', 'index.html')]

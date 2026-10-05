@@ -162,11 +162,10 @@ async function fetchBackup(id,password){
 }
 async function restoreBackup(id,password){
   const bundle=await fetchBackup(id,password),sources=bundle?.recovery?.sources;if(!sources||typeof sources!=='object')throw Error('De back-up bevat geen herstelgegevens.');
-  const km=sources.kilometerregistratie?.data,time=sources.tijdsregistratie?.data,legacy=sources.identiteiten?.data,identity=sources.identity_sync?.data;
-  if(!km||typeof km!=='object'||!time||typeof time!=='object')throw Error('Kilometer- of tijdregistratie ontbreekt in deze back-up.');
-  if(typeof window.restoreKilometerPayload==='function')await window.restoreKilometerPayload(clone(km));else writeJson(KM,clone(km));
-  writeJson(TIME,clone(time));if(legacy&&typeof legacy==='object')writeJson(LEGACY_IDENTITIES,clone(legacy));if(identity&&typeof identity==='object')writeJson(STORE,clone(identity));
-  tagLocalRegistrations();window.dispatchEvent(new Event('log-time-state-change'));window.dispatchEvent(new Event('log-km-state-change'));return bundle;
+  if(!window.LogBackupHost?.restore||!window.LogBackupState?.plan)throw Error('De veilige herstelroute ontbreekt. Vernieuw Log voordat je herstelt.');
+  const prepared=window.LogBackupState.plan(bundle);
+  if(!confirm(`Je huidige Log-gegevens vervangen door deze online back-up? Bewaar eerst een lokale back-up. ${prepared.hasAdditional?'Ook aanvullende gegevens worden teruggezet.':'Dit is een oudere back-up; ontbrekende aanvullende gegevens blijven behouden.'} Online rechten kunnen inmiddels zijn gewijzigd.`))throw Error('Herstel geannuleerd; je gegevens zijn ongewijzigd.');
+  await window.LogBackupHost.restore(bundle);return bundle;
 }
 async function setBackupOffline(){const s=state();if(!VALID.test(String(s.backup.id||''))||!s.backup.ownerToken)throw Error('Er is op dit apparaat nog geen beheerde online back-up.');return api('POST','',{action:'offline',id:s.backup.id},s.backup.ownerToken);}
 async function revokeBackup(){const s=state();if(!VALID.test(String(s.backup.id||''))||!s.backup.ownerToken)throw Error('Er is op dit apparaat nog geen beheerde online back-up.');const result=await api('POST','',{action:'revoke',id:s.backup.id},s.backup.ownerToken);s.backup={...s.backup,revoked:true,revokedAt:new Date().toISOString()};saveState(s);return result;}

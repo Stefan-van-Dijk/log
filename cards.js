@@ -201,6 +201,10 @@
     const card=records().find(item=>item.id===id);if(!card)return false;
     const panel=sheet(card.name,`${recognized?'<p class="cards-recognized" role="status">✓ Code herkend · bestaande kaart</p>':''}<p class="cards-location-label">${esc(locationLabel(card.locationId))}</p><div class="code-surface" data-code-display></div><details class="cards-content-details"><summary>Inhoud bekijken</summary><pre class="cards-value">${esc(card.value)}</pre><button type="button" class="btn secondary full" data-card-copy>Inhoud kopiëren</button></details>${recognized&&actionLabel(card)?`<button type="button" class="btn full cards-scan-action" data-run-card-action>${esc(actionLabel(card))}</button>${card.scanAction.type==='task'?'<p class="cards-notice">De taak start pas als je op deze knop tikt.</p>':''}`:''}`);
     $('[data-run-card-action]',panel)?.addEventListener('click',()=>runAction(id));
+    const actions=document.createElement('div');actions.className='log-card-visible-actions';
+    const editButton=document.createElement('button');editButton.type='button';editButton.className='btn secondary full';editButton.textContent='Kaart bewerken';editButton.onclick=()=>edit(id);actions.appendChild(editButton);
+    if(window.LogSwipePolicy?.enabled('cards')!==false){const removeButton=document.createElement('button');removeButton.type='button';removeButton.className='btn secondary full';removeButton.textContent='Kaart verwijderen';removeButton.onclick=()=>{removeCard(id);if(!records().some(item=>item.id===id))close()};actions.appendChild(removeButton);}
+    $('.cards-dialog-body',panel).appendChild(actions);
     panel.style.setProperty('--card-color',color(card.color));
     panel.classList.add('cards-display');
     try{const payload=window.LogCode?.parse(card.value);if(payload){const button=document.createElement('button');button.type='button';button.className='btn full cards-scan-action';button.textContent=['log-task','log-action'].includes(payload.kind)?'Taak openen':'Gegevens en starters openen';button.onclick=()=>{try{window.LogCode.preview(payload)}catch(error){message(error.message)}};$('.cards-dialog-body',panel).appendChild(button);}}catch(error){message(error.message);}
@@ -298,4 +302,3 @@
   window.addEventListener('pagehide',stopScanner);
   document.addEventListener('visibilitychange',()=>{if(document.hidden){stopScanner();const button=dialog?.querySelector('[data-camera-start]');if(button){button.disabled=false;button.textContent='Camera hervatten';message('Camera gepauzeerd. Tik om verder te scannen.')}}});
 })();
-

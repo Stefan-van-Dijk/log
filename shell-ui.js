@@ -760,11 +760,13 @@
       <nav id="kmShellDrawerNav" class="km-shell-nav"></nav>
       <div class="km-shell-drawer-spacer"></div>
       <div class="km-shell-drawer-bottom">
+        <button type="button" class="km-shell-nav-button" data-log-help>Hulp & ontdekken</button>
         <button id="kmShellSettingsButton" class="km-shell-nav-button km-shell-settings-button" type="button" aria-label="Instellingen"><span class="icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3A1.7 1.7 0 0 0 10 3v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg></span><span>Instellingen</span></button>
         <div class="km-shell-drawer-footer"><span class="km-shell-version" aria-label="Geladen testversie ${SHELL_VERSION}"><span class="km-shell-version-label">TEST</span><span class="km-shell-version-number">${SHELL_VERSION}</span></span></div>
       </div>`;
 
     drawer.addEventListener('click', event => {
+      if(event.target.closest('[data-log-help]'))closeDrawer();
       const button = event.target.closest('[data-shell-section]');
       if (button) selectSection(button.dataset.shellSection);
     });
@@ -2371,7 +2373,7 @@
     if (title) title.textContent = 'Instellingen';
     content.innerHTML = `
       <section class="km-shell-general-settings">
-        <div class="km-shell-general-intro"><p>Alle instellingen van Log staan hier bij elkaar. De onderdelen zijn gegroepeerd op wat je wilt aanpassen.</p></div>
+        <div class="km-shell-general-intro"><p>Alle instellingen van Log staan hier bij elkaar. De onderdelen zijn gegroepeerd op wat je wilt aanpassen.</p><button type="button" class="btn secondary" data-log-help>Hulp & ontdekken</button></div>
         <section class="km-shell-settings-group" aria-labelledby="kmShellRegistrationSettingsTitle">
           <header class="km-shell-settings-group-head"><h2 id="kmShellRegistrationSettingsTitle">Registratie</h2><p>Instellingen voor de gegevens die je in Log vastlegt.</p></header>
           ${generalSettingsAccordion('kmShellRideSettings', '<span aria-hidden="true">🚗</span> Ritten', 'Voertuig, herkenning, navigatie en bediening', (window.LogLocationActions?.settingsHtml('ride')||'')+'<div class="km-shell-settings-panel-host"></div>', 'rides')}
@@ -2385,7 +2387,8 @@
           ${generalSettingsAccordion('kmShellModuleSettingsAccordion', 'Onderdelen en volgorde', 'Zet onderbalk en menu per onderdeel aan of uit', '<div id="kmShellModuleSettings" class="km-shell-module-settings"></div>')}
         </section>
         <section class="km-shell-settings-group" aria-labelledby="kmShellDataSettingsTitle">
-          <header class="km-shell-settings-group-head"><h2 id="kmShellDataSettingsTitle">Gegevens</h2><p>Back-up en herstel gelden voor de volledige Log-app.</p></header>
+          <header class="km-shell-settings-group-head"><h2 id="kmShellDataSettingsTitle">Gegevens</h2><p>Nieuwe complete back-ups bevatten ook voertuigen, archief, verbindingen en deelinstellingen. Bewaar het bestand privé: het bevat persoonlijke gegevens en toegangssleutels. Oudere exports kunnen aanvullende gegevens missen.</p></header>
+          ${generalSettingsAccordion('kmShellPrivacySettings','Gegevens en privacy','Lokaal bewaren, externe diensten en delen','<p>Registraties worden lokaal op dit apparaat bewaard. Browseropslag wissen kan je gegevens verwijderen. Een download is pas een back-up als je het bestand werkelijk hebt bewaard.</p><p>Adreszoeken stuurt de zoekvraag naar OpenStreetMap Nominatim. Navigatie opent een externe kaartenapp. GPS kan bij openen en handelingen worden gecontroleerd; je kunt locaties en standen ook handmatig invoeren. Camera is alleen nodig voor scannen.</p><p>Online back-up, publiceren en samenwerking gebruiken sharon.life. JSON-exports zijn niet versleuteld. Online back-ups worden met je wachtwoord versleuteld. Deel verbindingscodes alleen privé en gebruik bestaande persoonsverbindingen nog niet voor gevoelige gegevens. Intrekken wist geen eerder opgeslagen kopieën.</p>')}
           ${generalSettingsAccordion('kmShellDataSettings', 'Back-up en herstel', 'Alle ritten, tijdregistraties, taken en instellingen', `
             <div class="km-shell-general-status" id="kmShellBackupStatus">${esc(generalBackupStatus())}</div>
             <div class="km-shell-general-actions">
@@ -2829,4 +2832,3 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
   else init();
 })();
-

@@ -78,6 +78,8 @@
 
   function loadScript(src,key){
     if(document.querySelector(`script[data-${key}]`))return;
+    const pathname=new URL(src,location.href).pathname;
+    if([...document.scripts].some(script=>script.src&&new URL(script.src,location.href).pathname===pathname))return;
     const script=document.createElement('script');
     script.src=src;
     script.async=false;
