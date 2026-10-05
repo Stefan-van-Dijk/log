@@ -1,9 +1,9 @@
-const BUILD='0.40.4';
+const BUILD='0.40.5';
 const CACHE=`kmreg-shell-${BUILD}`;
 const CORE=[
   './','./index.html','./manifest.webmanifest','./app-icon.svg',
   `./backup-state.js?v=${BUILD}`,`./guided-help.js?v=${BUILD}`,
-  `./location-polling.js?v=${BUILD}`,`./build-ui.js?v=${BUILD}`,`./location-refresh-setting.js?v=${BUILD}`,
+  `./location-polling.js?v=${BUILD}`,`./build-ui.js?v=${BUILD}`,`./person-chat-direct.js?v=${BUILD}`,`./connection-chat.js?v=${BUILD}`,`./location-refresh-setting.js?v=${BUILD}`,
   `./shell-ui.js?v=${BUILD}`,`./people.js?v=${BUILD}`,`./cards.js?v=${BUILD}`,`./log-code.js?v=${BUILD}`,
   `./shared-page-template.css?v=${BUILD}`,`./shared-home-components.css?v=${BUILD}`,`./shared-shell-header.css?v=${BUILD}`,
   `./config/modules.json?v=${BUILD}`
@@ -69,6 +69,9 @@ async function withIndexBuild(response){
   if(!html.includes('window.LogModuleHost={')){
     const bridge=`window.LogModuleHost={\n  getMode(){return appMode;},\n  setMode(mode){const next=mode==='time'?'time':'kilometers';applyAppMode(next,false);}\n};\napplyAppMode(appMode,false);`;
     if(html.includes('applyAppMode(appMode,false);'))html=html.replace('applyAppMode(appMode,false);',bridge);
+  }
+  if(!html.includes('data-log-person-chat-direct')){
+    html=html.replace('</body>',`<script src="./person-chat-direct.js?v=${BUILD}" data-log-person-chat-direct="1"><\/script></body>`);
   }
   if(!html.includes('data-log-build-ui')){
     html=html.replace('</body>',`<script src="./build-ui.js?v=${BUILD}" data-log-build-ui="1"><\/script></body>`);
