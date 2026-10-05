@@ -1,0 +1,3 @@
+# Upload as /log/private/.htaccess, never as /log/.htaccess.
+# Keep PHP filesystem access; deny direct HTTP access to private data and keys.
+Require all denied

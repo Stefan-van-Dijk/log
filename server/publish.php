@@ -1,5 +1,7 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/relay-lock.php';
+header('X-Log-Server-Version: 2026-10-05.1');
 
 const LOG_PUBLIC_BASE = 'https://sharon.life/log/config/';
 const LOG_MAX_BYTES = 750000;
@@ -125,6 +127,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'GET') {
     if (!preg_match('/^[A-Za-z0-9_-]{12}$/', $id)) json_response(422, ['error' => 'Identifier moet exact 12 toegestane tekens bevatten.']);
     $path = $configDir . '/' . $id . '.json';
     $statePath = $privateDir . '/' . $id . '.json';
+    if (!is_file($path) && !is_file($statePath)) json_response(404, ['error' => 'Identifier niet gevonden.']);
+    log_relay_lock('publish', $id, false, 'json_response');
     $public = read_json_file($path);
     $stored = read_json_file($statePath);
     if ($public === null && $stored === null) json_response(404, ['error' => 'Identifier niet gevonden.']);
@@ -150,6 +154,7 @@ try {
 }
 if (!is_array($data)) json_response(400, ['error' => 'Configuratie moet een JSON-object zijn.']);
 [$id] = validate_payload($data);
+log_relay_lock('publish', $id, true, 'json_response');
 
 $path = $configDir . '/' . $id . '.json';
 $statePath = $privateDir . '/' . $id . '.json';

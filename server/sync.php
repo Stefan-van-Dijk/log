@@ -1,5 +1,7 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/relay-lock.php';
+header('X-Log-Server-Version: 2026-10-05.1');
 
 const LOG_SYNC_MAX_BYTES = 6000000;
 const LOG_SYNC_ALLOWED_ORIGINS = [
@@ -131,11 +133,18 @@ $method = $_SERVER['REQUEST_METHOD'] ?? '';
 if ($method === 'GET') {
     $id = trim((string)($_GET['id'] ?? ''));
     if (!valid_id($id)) out(422, ['error' => 'Identifier moet exact 12 toegestane tekens bevatten.']);
+    if (!is_file($stateDir . '/' . $id . '.json')) out(404, ['error' => 'Synchronisatiebron niet gevonden.']);
+    log_relay_lock('sync', $id, false, 'out');
     $state = read_json($stateDir . '/' . $id . '.json');
     if ($state === null) out(404, ['error' => 'Synchronisatiebron niet gevonden.']);
     $authorization = auth($state, header_value('X-Log-Access-Token'));
     if ((bool)($state['revoked'] ?? false)) out(200, state_public($id, $state, null, $authorization));
     if ((bool)($state['offline'] ?? false) || !(bool)($state['active'] ?? false)) out(200, state_public($id, $state, null, $authorization));
+    // These clients already send individual tokens. Keep password recovery and
+    // legacy public person cards compatible; they need their own later migration.
+    if (in_array((string)($state['kind'] ?? ''), ['task','vehicle','conversation'], true)) {
+        require_right($authorization, 'view');
+    }
     $payloadDoc = read_json($payloadDir . '/' . $id . '.json');
     $payload = is_array($payloadDoc['payload'] ?? null) ? $payloadDoc['payload'] : null;
     out(200, state_public($id, $state, $payload, $authorization));
@@ -157,6 +166,7 @@ if (!in_array($action, ['put','offline','reactivate','revoke','member','remove-m
 $token = header_value('X-Log-Access-Token');
 $statePath = $stateDir . '/' . $id . '.json';
 $payloadPath = $payloadDir . '/' . $id . '.json';
+log_relay_lock('sync', $id, true, 'out');
 $state = read_json($statePath);
 $now = gmdate('c');
 

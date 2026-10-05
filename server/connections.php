@@ -1,5 +1,7 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/relay-lock.php';
+header('X-Log-Server-Version: 2026-10-05.1');
 
 const LOG_CONNECTION_MAX_BYTES = 262144;
 const LOG_CONNECTION_ALLOWED_ORIGINS = [
@@ -95,6 +97,8 @@ $method = $_SERVER['REQUEST_METHOD'] ?? '';
 if ($method === 'GET') {
     $id = trim((string)($_GET['id'] ?? ''));
     if (!valid_id($id)) out(422, ['error' => 'ConnectionId moet exact 12 tekens bevatten.']);
+    if (!is_file($root . '/' . $id . '.json')) out(404, ['error' => 'Verbindingsverzoek niet gevonden.']);
+    log_relay_lock('connections', $id, false, 'out');
     $state = read_json($root . '/' . $id . '.json');
     if ($state === null) out(404, ['error' => 'Verbindingsverzoek niet gevonden.']);
     $authorization = auth($state, header_value('X-Log-Access-Token'));
@@ -116,6 +120,7 @@ $id = trim((string)($body['id'] ?? ''));
 if (!valid_id($id)) out(422, ['error' => 'ConnectionId moet exact 12 tekens bevatten.']);
 if (!in_array($action, ['create','claim','put','revoke'], true)) out(400, ['error' => 'Onbekende verbindingsactie.']);
 $path = $root . '/' . $id . '.json';
+log_relay_lock('connections', $id, true, 'out');
 $state = read_json($path);
 $token = header_value('X-Log-Access-Token');
 $now = gmdate('c');
