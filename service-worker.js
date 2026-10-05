@@ -70,6 +70,9 @@ async function withIndexBuild(response){
     const bridge=`window.LogModuleHost={\n  getMode(){return appMode;},\n  setMode(mode){const next=mode==='time'?'time':'kilometers';applyAppMode(next,false);}\n};\napplyAppMode(appMode,false);`;
     if(html.includes('applyAppMode(appMode,false);'))html=html.replace('applyAppMode(appMode,false);',bridge);
   }
+  if(!html.includes('data-log-build-ui')){
+    html=html.replace('</body>',`<script src="./build-ui.js?v=${BUILD}" data-log-build-ui="1"><\/script></body>`);
+  }
   return new Response(html,{status:response.status,statusText:response.statusText,headers});
 }
 
