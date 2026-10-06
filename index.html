@@ -5,10 +5,13 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f5f5f7">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0c0f">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Log">
 <link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./app-icon-192.png">
+<link rel="icon" href="./app-icon-192.png" sizes="192x192" type="image/png">
 <link rel="icon" href="./app-icon.svg" type="image/svg+xml">
 <title>Logregistratie</title>
 <link rel="stylesheet" href="./time/styles.css?v=0.35.1-test.2">
@@ -1149,13 +1152,15 @@ function currentLoc(g){return{id:null,name:'Huidige locatie',address:'',lat:g.la
 function navigationTarget(d){return d?.lat!=null&&d?.lng!=null?`${d.lat},${d.lng}`:d?.address||d?.name||''}
 function navigationModeLabel(mode){return mode==='off'?'Uit':'Systeemstandaard'}
 function startNavigation(d){if(!d)throw new Error('Er is nog geen bestemming gekozen.');if((data.settings.navigationMode||'system')==='off')return;openNavigation(d)}
-function openNavigation(destination){const d=navigationTarget(destination);if(!d)throw new Error('Voor navigatie is een adres of GPS-locatie van de bestemming nodig.');closeModal();location.href=`https://maps.apple.com/directions?destination=${encodeURIComponent(d)}&mode=driving&start=0`}
+function isApplePlatform(){return /iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1)}
+function mapNavigationUrl(destination,directions=true){const d=navigationTarget(destination);if(!d)return'';const q=encodeURIComponent(d);if(isApplePlatform())return directions?`https://maps.apple.com/directions?destination=${q}&mode=driving&start=0`:`https://maps.apple.com/?q=${q}`;return directions?`https://www.google.com/maps/dir/?api=1&destination=${q}&travelmode=driving`:`https://www.google.com/maps/search/?api=1&query=${q}`}
+function openNavigation(destination){const url=mapNavigationUrl(destination,true);if(!url)throw new Error('Voor navigatie is een adres of GPS-locatie van de bestemming nodig.');closeModal();location.href=url}
 function rideSharePreference(destination){const stored=destination?.id?data.locations.find(x=>x.id===destination.id):null;return ['ask','always'].includes(stored?.shareRide)?stored.shareRide:'never'}
 function shareRideLabel(v){return v==='ask'?'Vraag mij':v==='always'?'Altijd tonen':'Nooit'}
-function shareDestinationUrl(destination){const d=navigationTarget(destination);return d?`https://maps.apple.com/?q=${encodeURIComponent(d)}`:''}
+function shareDestinationUrl(destination){return mapNavigationUrl(destination,false)}
 async function shareRide(destination){if(!destination)throw new Error('Er is nog geen bestemming gekozen.');const name=labelLoc(destination)||'mijn bestemming',text=`Ik ben onderweg naar ${name}.`,url=shareDestinationUrl(destination);try{if(navigator.share){await navigator.share({title:`Rit naar ${name}`,text,url});return true}const combined=[text,url].filter(Boolean).join(' ');if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(combined);toast('Ritbericht gekopieerd.');return true}window.prompt('Kopieer dit ritbericht:',combined);return true}catch(e){if(e?.name==='AbortError')return false;throw e}}
 async function shareActiveRide(){const d=data.activeTrip?.expectedDestination;if(!d)throw new Error('Er is nog geen bestemming gekozen.');const shared=await shareRide(d);if(shared&&modal&&!modal.hidden)closeModal()}
-function promptRideShare(destination){if(!data.activeTrip||rideSharePreference(destination)!=='ask')return;openModal(`<div class="modal-head"><div><div class="kicker">Rit delen</div><h2>Wil je deze rit delen?</h2></div><button class="close" data-action="close">×</button></div><div class="route"><small>Onderweg naar</small><strong>${esc(labelLoc(destination)||'Bestemming')}</strong></div><div class="notice">Je kiest zelf de ontvanger via het iOS-deelmenu. Voor live aankomsttijd of locatie kun je daarna Apple Kaarten gebruiken.</div><div class="row"><button class="btn secondary" type="button" data-action="close">Niet nu</button><button class="btn" type="button" data-action="share-active">Deel rit</button></div>`)}
+function promptRideShare(destination){if(!data.activeTrip||rideSharePreference(destination)!=='ask')return;openModal(`<div class="modal-head"><div><div class="kicker">Rit delen</div><h2>Wil je deze rit delen?</h2></div><button class="close" data-action="close">×</button></div><div class="route"><small>Onderweg naar</small><strong>${esc(labelLoc(destination)||'Bestemming')}</strong></div><div class="notice">Je kiest zelf de ontvanger via het deelmenu. Voor live aankomsttijd of locatie kun je daarna je kaarten-app gebruiken.</div><div class="row"><button class="btn secondary" type="button" data-action="close">Niet nu</button><button class="btn" type="button" data-action="share-active">Deel rit</button></div>`)}
 function historyDistance(o,d){return routeDistanceSuggestion(o,d,new Date())?.distance??null}
 function sameLoc(a,b){if(a?.id&&b?.id)return a.id===b.id;if(a?.lat!=null&&b?.lat!=null)return distance(a,b)<150;return !!a?.address&&String(a.address).trim().toLowerCase()===String(b?.address||'').trim().toLowerCase()}
 function rebuildLast(){const t=sortedByArrival()[0];data.lastEndpoint=t?{location:snap(t.destination),odometer:t.endOdometer,estimatedOdometer:t.estimatedEndOdometer??t.endOdometer,time:t.arrivalTime}:null}

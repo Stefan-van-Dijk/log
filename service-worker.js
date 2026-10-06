@@ -1,7 +1,7 @@
-const BUILD='0.40.10';
+const BUILD='0.40.11';
 const CACHE=`kmreg-shell-${BUILD}`;
 const CORE=[
-  './','./index.html','./manifest.webmanifest','./app-icon.svg',
+  './','./index.html','./manifest.webmanifest','./app-icon.svg','./app-icon-192.png','./app-icon-512.png','./app-icon-maskable-512.png',
   `./backup-state.js?v=${BUILD}`,`./guided-help.js?v=${BUILD}`,
   `./location-polling.js?v=${BUILD}`,`./build-ui.js?v=${BUILD}`,`./person-connections-one-qr.js?v=${BUILD}`,`./connection-start-fix.js?v=${BUILD}`,`./person-chat-direct.js?v=${BUILD}`,`./connection-chat.js?v=${BUILD}`,`./location-refresh-setting.js?v=${BUILD}`,
   `./shell-ui.js?v=${BUILD}`,`./people.js?v=${BUILD}`,`./cards.js?v=${BUILD}`,`./log-code.js?v=${BUILD}`,
@@ -24,8 +24,6 @@ self.addEventListener('activate',event=>{
     const keys=await caches.keys();
     await Promise.all(keys.filter(key=>(key.startsWith('kmreg-shell-')||key.startsWith('kmreg-test-shell-'))&&key!==CACHE).map(key=>caches.delete(key)));
     await self.clients.claim();
-    const clients=await self.clients.matchAll({type:'window'});
-    await Promise.all(clients.map(client=>client.navigate(client.url).catch(()=>null)));
   })());
 });
 
