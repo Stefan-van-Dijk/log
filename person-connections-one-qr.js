@@ -1,7 +1,7 @@
 (function(){
 'use strict';
 
-const BUILD='0.40.8';
+const BUILD='0.40.9';
 const TIME='urenregistratie.test.pwa.v1';
 const STORE='log-test-person-connections-v1';
 const ENDPOINT='https://sharon.life/log/api/connections.php';
@@ -12,7 +12,6 @@ const REQUEST_TIMEOUT_MS=10000;
 const CRYPTO_TIMEOUT_MS=5000;
 let scanPatchAttempts=0;
 let syncBusy=false;
-const ownerPrompted=new Set();
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function read(key,fallback={}){try{const value=JSON.parse(localStorage.getItem(key)||'null');return value&&typeof value==='object'?value:fallback;}catch(_){return fallback;}}
@@ -75,6 +74,8 @@ function showOutgoing(item,person,panel=null){
   const body=target?panelBody(target):null;
   const content=`<div class="log-oneqr-profile"><strong>${esc(person?.name||'Persoon')}</strong><span>één QR · wederzijds akkoord</span></div><div class="log-oneqr-qr">${qrSvg(code)}</div><div class="log-oneqr-code"><small>ConnectionId</small><strong>${esc(item.connectionId)}</strong></div><p class="cards-notice">Laat de andere persoon alleen jouw QR scannen. Die persoon bevestigt jou en geeft daarbij zijn of haar eigen Log-identiteit binnen deze verbinding vrij. Jij bevestigt die identiteit daarna nog één keer voordat de verbinding actief wordt.</p><button type="button" class="btn secondary full" data-oneqr-copy>12-teken code kopiëren</button><p role="status" data-oneqr-status></p>`;
   const host=target||sheet('Verbinden',content);if(!host)return;
+  host.dataset.oneQrConnectionId=String(item.connectionId);
+  host.dataset.oneQrStage='outgoing';
   if(body)body.innerHTML=content;
   const status=host.querySelector('[data-oneqr-status]');host.querySelector('[data-oneqr-copy]')?.addEventListener('click',async()=>{if(status)status.textContent=await copy(code)?'Verbindingscode gekopieerd.':'Kopiëren wordt op dit apparaat niet ondersteund.';});
 }
@@ -178,26 +179,35 @@ async function ownerDecision(localId,accept){
   if(accept){document.status='connected';document.ownerConfirmedAt=document.updatedAt;}
   else{document.status='rejected';document.ownerRejectedAt=document.updatedAt;}
   const payload=await encrypt(document,item.connectionId),published=await api('POST','',{action:'put',id:item.connectionId,baseRevision:Number(remote.revision)||0,status:accept?'connected':'rejected',payload},item.ownerToken||item.accessToken||'');
-  if(!accept){ownerPrompted.delete(item.connectionId);return saveItem(item.connectionId,{revision:Number(published.revision)||Number(remote.revision)+1,status:'rejected',cache:document,revoked:false});}
+  if(!accept){return saveItem(item.connectionId,{revision:Number(published.revision)||Number(remote.revision)+1,status:'rejected',cache:document,revoked:false});}
   let linkedId=String(localId||item.pendingLocalId||item.otherPersonId||'');
   if(linkedId&&linkedId!==other){if(window.LogIdentitySync?.linkContact)window.LogIdentitySync.linkContact(linkedId,other);else window.LogPersonIdentity?.merge?.(linkedId,other);}
-  ownerPrompted.delete(item.connectionId);
-  const saved=saveItem(item.connectionId,{revision:Number(published.revision)||Number(remote.revision)+1,status:'connected',cache:document,otherPersonId:other,linkedLocalId:other,revoked:false});
+  const saved=saveItem(item.connectionId,{revision:Number(published.revision)||Number(remote.revision)+1,status:'connected',cache:document,otherPersonId:other,linkedLocalId:linkedId||other,revoked:false});
   return{item:saved,localId:other,document};
 }
 function showOwnerConfirmation(localId){
   const item=currentForLocal(localId);if(!item||item.role!=='owner'||!item.oneQr||item.status!=='pending_in')return false;
   const document=item.cache||{},profile=responderLabel(document),target=localForOwnerItem(item),targetName=String(target?.name||document.targetHint||'de bedoelde persoon');
   const panel=sheet('Verbinding bevestigen',`<div class="log-oneqr-profile"><strong>${esc(profile.name)}</strong>${profile.organization?`<span>${esc(profile.organization)}</span>`:'<span>heeft jouw QR gescand</span>'}</div><p class="cards-notice">Deze Log-identiteit heeft jouw QR gebruikt en zichzelf aan jou vrijgegeven. Je wilde verbinden met <strong>${esc(targetName)}</strong>. Bevestig alleen als dit daadwerkelijk die persoon is.</p><button type="button" class="btn primary full" data-oneqr-owner-accept>Identiteit bevestigen</button><button type="button" class="btn secondary full" data-oneqr-owner-reject>Weigeren</button><p role="status" data-oneqr-owner-status></p>`);
-  if(!panel)return false;ownerPrompted.add(item.connectionId);
+  if(!panel)return false;
+  panel.dataset.oneQrConnectionId=String(item.connectionId);
+  panel.dataset.oneQrStage='owner-confirmation';
   const status=panel.querySelector('[data-oneqr-owner-status]');
   panel.querySelector('[data-oneqr-owner-accept]').onclick=async event=>{event.currentTarget.disabled=true;status.textContent='Verbinding afronden…';try{const result=await ownerDecision(localId,true);closeSheet();setTimeout(()=>openConnectedChat(result.localId).catch(error=>showConnectedFallback(result.localId,profile.name,error.message)),80);}catch(error){status.textContent=error.message;event.currentTarget.disabled=false;}};
   panel.querySelector('[data-oneqr-owner-reject]').onclick=async event=>{event.currentTarget.disabled=true;status.textContent='Verzoek weigeren…';try{await ownerDecision(localId,false);closeSheet();}catch(error){status.textContent=error.message;event.currentTarget.disabled=false;}};
   return true;
 }
 function maybePromptOwner(item){
-  if(item?.role!=='owner'||item?.status!=='pending_in'||!item?.oneQr||ownerPrompted.has(item.connectionId)||document.querySelector('.cards-dialog[open]'))return;
-  const localId=String(item.pendingLocalId||item.otherPersonId||'');if(localId)showOwnerConfirmation(localId);
+  if(item?.role!=='owner'||item?.status!=='pending_in'||!item?.oneQr)return;
+  const localId=String(item.pendingLocalId||item.otherPersonId||'');if(!localId)return;
+  const open=document.querySelector('.cards-dialog[open]');
+  if(open){
+    const same=String(open.dataset.oneQrConnectionId||'')===String(item.connectionId);
+    const already=same&&open.dataset.oneQrStage==='owner-confirmation';
+    if(already)return;
+    if(!same)return;
+  }
+  showOwnerConfirmation(localId);
 }
 
 async function syncOwners(){
@@ -237,6 +247,14 @@ function interceptConnectionStart(event){
   try{window.LogPersonConnectionSwipe?.setSide?.(button.closest('[data-person-row]'),'closed');}catch(_){}
   createOpenRequest(localId).catch(error=>{if(!error?.__logConnectionShown)sheet('Verbinden',`<p class="cards-notice">${esc(error.message)}</p>`);});
 }
-function init(){window.LOG_TEST_BUILD=BUILD;installStyles();document.addEventListener('click',interceptConnectionStart,true);installScanBridge();window.addEventListener('online',()=>syncOwners());window.addEventListener('pageshow',()=>syncOwners());window.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')syncOwners();});setTimeout(syncOwners,1200);setInterval(()=>{if(document.visibilityState==='visible')syncOwners();},5000);window.LogOneQrConnections={createOpenRequest,previewInvite,syncOwners,parseCode,showOwnerConfirmation,ownerDecision};}
+function init(){
+  window.LOG_TEST_BUILD=BUILD;installStyles();document.addEventListener('click',interceptConnectionStart,true);installScanBridge();
+  window.addEventListener('online',()=>syncOwners());
+  window.addEventListener('pageshow',()=>syncOwners());
+  window.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')syncOwners();});
+  document.addEventListener('click',event=>{if(event.target.closest?.('[data-card-close]'))setTimeout(()=>syncOwners(),80);},true);
+  setTimeout(syncOwners,1200);setInterval(()=>{if(document.visibilityState==='visible')syncOwners();},3000);
+  window.LogOneQrConnections={createOpenRequest,previewInvite,syncOwners,parseCode,showOwnerConfirmation,ownerDecision};
+}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();

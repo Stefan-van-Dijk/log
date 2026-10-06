@@ -1,7 +1,7 @@
 (function(){
 'use strict';
 
-const BUILD='0.40.8';
+const BUILD='0.40.9';
 const TIME='urenregistratie.test.pwa.v1';
 const STORE='log-test-person-connections-v1';
 let activeLocalId='';
