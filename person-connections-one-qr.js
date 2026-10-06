@@ -1,7 +1,7 @@
 (function(){
 'use strict';
 
-const BUILD='0.40.6';
+const BUILD='0.40.7';
 const TIME='urenregistratie.test.pwa.v1';
 const STORE='log-test-person-connections-v1';
 const ENDPOINT='https://sharon.life/log/api/connections.php';
@@ -124,6 +124,20 @@ async function acceptInvite(token,remote,document){
   return local;
 }
 async function rejectInvite(token,remote,document){document.status='rejected';document.rejectedByPersonId=selfId();document.rejectedAt=new Date().toISOString();document.updatedAt=document.rejectedAt;const payload=await encrypt(document,document.connectionId),published=await api('POST','',{action:'put',id:document.connectionId,baseRevision:Number(remote.revision)||0,status:'rejected',payload},token);saveItem(document.connectionId,{role:'member',otherPersonId:String(document.fromPersonId),accessToken:token,revision:Number(published.revision)||Number(remote.revision)+1,status:'rejected',cache:document,createdAt:document.createdAt||new Date().toISOString(),revoked:false,oneQr:true});}
+async function openConnectedChat(localId){
+  const id=String(localId||'');
+  for(let i=0;i<100;i++){
+    if(window.LogPersonChat?.open)return window.LogPersonChat.open(id);
+    if(window.LogConnectionChat?.open)return window.LogConnectionChat.open(id);
+    await new Promise(resolve=>setTimeout(resolve,50));
+  }
+  throw Error('De chatmodule is nog niet beschikbaar. Open de persoon opnieuw en kies Chat.');
+}
+function showConnectedFallback(local,name,error=''){
+  const panel=sheet('Verbonden',`<div class="log-oneqr-profile"><strong>${esc(name||'Persoon')}</strong><span>Log-identiteit bevestigd</span></div><p class="cards-notice">De persoonsverbinding is actief. De één-op-éénchat hoort direct bij deze verbinding.</p>${error?`<p class="cards-notice">${esc(error)}</p>`:''}<button type="button" class="btn primary full" data-oneqr-open-chat>Chat openen</button><button type="button" class="btn secondary full" data-oneqr-done>Gereed</button>`);
+  panel?.querySelector('[data-oneqr-open-chat]')?.addEventListener('click',()=>{closeSheet();setTimeout(()=>openConnectedChat(local).catch(err=>showConnectedFallback(local,name,err.message)),50);});
+  panel?.querySelector('[data-oneqr-done]')?.addEventListener('click',closeSheet);
+}
 async function previewInvite(value){
   const parsed=parseCode(value);if(!parsed)return false;const panel=sheet('Verbinden','<p role="status">Verbindingsverzoek controleren…</p>');if(!panel)return true;
   try{
@@ -133,7 +147,7 @@ async function previewInvite(value){
     const name=String(profile.displayName||existing?.name||'Log-gebruiker'),organization=String(profile.organization||existing?.organization||'');
     host.innerHTML=`<div class="log-oneqr-profile"><strong>${esc(name)}</strong>${organization?`<span>${esc(organization)}</span>`:'<span>wil met jou verbinden in Log</span>'}</div><p class="cards-notice">Met één bevestiging koppel je deze Log-identiteit aan ${existing?`<strong>${esc(existing.name)}</strong>`:'een nieuwe persoon op dit apparaat'}. Daarna kunnen jullie afzonderlijk chatten of items met elkaar delen.</p><button type="button" class="btn primary full" data-oneqr-accept>Verbinden</button><button type="button" class="btn secondary full" data-oneqr-reject>Weigeren</button><p role="status" data-oneqr-message></p>`;
     const message=host.querySelector('[data-oneqr-message]');
-    host.querySelector('[data-oneqr-accept]').onclick=async event=>{event.currentTarget.disabled=true;message.textContent='Verbinding bevestigen…';try{const local=await acceptInvite(token,remote,document);closeSheet();setTimeout(()=>{const done=sheet('Verbonden',`<div class="log-oneqr-profile"><strong>${esc(local?.name||name)}</strong><span>Log-identiteit bevestigd</span></div><p class="cards-notice">De persoonsverbinding is actief. Je kunt deze persoon nu gebruiken voor chat, urenvalidatie en gedeelde objecten.</p><button type="button" class="btn primary full" data-oneqr-done>Gereed</button>`);done?.querySelector('[data-oneqr-done]')?.addEventListener('click',closeSheet);},80);}catch(error){message.textContent=error.message;event.currentTarget.disabled=false;}};
+    host.querySelector('[data-oneqr-accept]').onclick=async event=>{event.currentTarget.disabled=true;message.textContent='Verbinding bevestigen…';try{const local=await acceptInvite(token,remote,document),localId=String(local?.id||document.fromPersonId||'');closeSheet();setTimeout(()=>openConnectedChat(localId).catch(error=>showConnectedFallback(localId,local?.name||name,error.message)),80);}catch(error){message.textContent=error.message;event.currentTarget.disabled=false;}};
     host.querySelector('[data-oneqr-reject]').onclick=async event=>{event.currentTarget.disabled=true;message.textContent='Verzoek weigeren…';try{await rejectInvite(token,remote,document);closeSheet();}catch(error){message.textContent=error.message;event.currentTarget.disabled=false;}};
   }catch(error){const host=panel.querySelector('.cards-dialog-body')||panel;host.innerHTML=`<p class="cards-notice">${esc(error.message)}</p>`;}
   return true;

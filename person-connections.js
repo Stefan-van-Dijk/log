@@ -131,7 +131,15 @@ async function ensureCollaboration(){
 function showCollaborationInvites(title,rows){
   const panel=sheet(title,`<p class="cards-notice">Iedere deelnemer krijgt een eigen uitnodiging. De gespreksinhoud blijft één gedeelde versleutelde ConversationId.</p><div class="log-connection-invites">${rows.map((row,index)=>`<details${index===0?' open':''}><summary>${esc(row.name)}</summary><div class="log-connection-qr small">${qrSvg(row.code,4)}</div><button type="button" class="btn secondary full" data-chat-copy="${index}">Uitnodiging kopiëren</button></details>`).join('')}</div><p role="status" data-chat-status></p>`);if(!panel)return;const status=panel.querySelector('[data-chat-status]');panel.querySelectorAll('[data-chat-copy]').forEach(button=>button.onclick=async()=>{status.textContent=await copy(rows[Number(button.dataset.chatCopy)]?.code||'')?'Uitnodiging gekopieerd.':'Kopiëren wordt niet ondersteund.';});
 }
-async function startChat(localId){const person=personById(localId);if(!person||!isConnected(person.id))throw Error('Een chat kan pas na wederzijdse bevestiging van de persoonsverbinding.');const api=await ensureCollaboration(),result=await api.createConversation(person.id);showCollaborationInvites('Chat uitnodigen',[{name:person.name||'Persoon',code:result.code}]);}
+async function startChat(localId){
+  const person=personById(localId);
+  if(!person||!isConnected(person.id))throw Error('Een chat kan pas na wederzijdse bevestiging van de persoonsverbinding.');
+  if(window.LogPersonChat?.open)return window.LogPersonChat.open(person.id);
+  if(window.LogConnectionChat?.open)return window.LogConnectionChat.open(person.id);
+  await ensureScript('./connection-chat.js?v=0.40.7','logConnectionDirectChat');
+  await waitFor(()=>window.LogConnectionChat?.open,5000);
+  return window.LogConnectionChat.open(person.id);
+}
 function connectedPeople(){return timeData().colleagues.filter(person=>String(person.id)!==selfId()&&isConnected(person.id));}
 function groupChatPicker(preselectedId){
   const people=connectedPeople();if(people.length<2){sheet('Groepschat','<p class="cards-notice">Voor een groepschat heb je minimaal twee bevestigde persoonsverbindingen nodig.</p>');return;}
@@ -152,7 +160,7 @@ function installScanBridges(){installConnectionScanBridge();installLazyCollabSca
 function incomingFromItem(item,person){const doc=item?.cache;if(!doc)return;const panel=sheet('Verbindingsverzoek','<p role="status">Verbindingsverzoek openen…</p>');if(panel)renderIncoming(panel,item,person,doc);}
 function showConnection(localId){
   const person=personById(localId);if(!person)return;const current=currentForPerson(person.id),status=current?.status||'none',identity=realPersonId(person);let body=`<div class="log-connection-heading"><strong>${esc(person.name)}</strong><span>${esc(statusText(status))}</span></div>`;
-  if(status==='connected')body+=`<p class="cards-notice">Deze persoonsverbinding is door beide kanten bevestigd. Gesprekken en andere samenwerkingen blijven aparte objecten met eigen rechten.</p><button type="button" class="btn primary full" data-connection-chat>Chat starten</button><button type="button" class="btn secondary full" data-connection-group>Groepschat starten</button><button type="button" class="log-connection-danger" data-connection-revoke>Verbinding verbreken</button>`;
+  if(status==='connected')body+=`<p class="cards-notice">Deze persoonsverbinding is bevestigd. De één-op-éénchat hoort direct bij deze verbinding en is meteen beschikbaar.</p><button type="button" class="btn primary full" data-connection-chat>Chat</button><button type="button" class="btn secondary full" data-connection-group>Groepschat starten</button><button type="button" class="log-connection-danger" data-connection-revoke>Verbinding verbreken</button>`;
   else if(status==='pending_out')body+=`<p class="cards-notice">Jij hebt dit verzoek bevestigd. De andere persoon moet de 12-teken ConnectionId nog scannen en accepteren.</p><button type="button" class="btn primary full" data-connection-show-request>Verzoek tonen</button><button type="button" class="log-connection-danger" data-connection-revoke>Verzoek intrekken</button>`;
   else if(status==='pending_in')body+=`<p class="cards-notice">Deze persoon wacht op jouw bevestiging.</p><button type="button" class="btn primary full" data-connection-confirm>Verzoek bekijken</button>`;
   else{body+=`<p class="cards-notice">${identity?'De PersonId is bekend, maar er is nog geen wederzijds bevestigde verbinding.':'Deze persoon is nog voorlopig. Je kunt eerst de persoonskaart scannen, of een ontvangen verbindingsverzoek scannen.'}</p><button type="button" class="btn primary full" data-connection-create>${identity?(status==='revoked'||status==='rejected'?'Opnieuw verbinden':'Verbindingsverzoek maken'):'Persoonskaart scannen en verbinden'}</button><button type="button" class="btn secondary full" data-connection-scan>Verbindingsverzoek scannen</button>`;}
@@ -162,7 +170,7 @@ function showConnection(localId){
   panel.querySelector('[data-connection-show-request]')?.addEventListener('click',()=>showRequestCode(current,person));
   panel.querySelector('[data-connection-confirm]')?.addEventListener('click',()=>incomingFromItem(current,person));
   panel.querySelector('[data-connection-revoke]')?.addEventListener('click',async event=>{event.currentTarget.disabled=true;try{await revoke(current);closeSheet();}catch(error){message.textContent=error.message;event.currentTarget.disabled=false;}});
-  panel.querySelector('[data-connection-chat]')?.addEventListener('click',async event=>{event.currentTarget.disabled=true;message.textContent='Chat voorbereiden…';try{await startChat(person.id);}catch(error){message.textContent=error.message;event.currentTarget.disabled=false;}});
+  panel.querySelector('[data-connection-chat]')?.addEventListener('click',async event=>{event.currentTarget.disabled=true;message.textContent='Chat openen…';try{await startChat(person.id);}catch(error){message.textContent=error.message;event.currentTarget.disabled=false;}});
   panel.querySelector('[data-connection-group]')?.addEventListener('click',()=>groupChatPicker(person.id));
 }
 function shareOwn(){if(window.LogPeoplePersonCardNetworkFix?.show){window.LogPeoplePersonCardNetworkFix.show();return;}window.LogPeopleModule?.showOwnPersonCard?.();}

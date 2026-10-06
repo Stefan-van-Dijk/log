@@ -9,7 +9,7 @@ const REFRESH_MS=15000;
 let activePanel=null;
 let activeTimer=null;
 
-const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
+const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function read(key,fallback={}){try{const value=JSON.parse(localStorage.getItem(key)||'null');return value&&typeof value==='object'?value:fallback;}catch(_){return fallback;}}
 function write(key,value){localStorage.setItem(key,JSON.stringify(value));}
 function timeData(){const value=read(TIME,{});return{...value,settings:value.settings||{},colleagues:Array.isArray(value.colleagues)?value.colleagues:[]};}
@@ -49,7 +49,7 @@ function stopRefresh(){if(activeTimer){clearTimeout(activeTimer);activeTimer=nul
 function scheduleRefresh(panel,item,person){stopRefresh();activeTimer=setTimeout(async()=>{if(panel!==activePanel||!panel.isConnected)return;if(document.visibilityState!=='visible'){scheduleRefresh(panel,item,person);return;}try{const current=await fetchDocument(item);if(panel===activePanel&&panel.isConnected){const host=panel.querySelector('[data-connection-chat-messages]');if(host)host.innerHTML=messageMarkup(current.document,person);}}catch(_){}scheduleRefresh(panel,item,person);},REFRESH_MS);}
 async function open(localId){
   const person=personByLocalId(localId),item=connectionForLocal(localId);if(!item){window.LogCardsUI?.sheet?.('Chat',`<p class="cards-notice">Verbind eerst met ${esc(person?.name||'deze persoon')}. Een één-op-ééngesprek gebruikt voortaan direct de persoonsverbinding.</p>`);return false;}
-  const panel=window.LogCardsUI?.sheet?.(person?.name?`Chat met ${person.name}`:'Chat','<p role="status">Gesprek laden…</p>');if(!panel)return false;activePanel=panel;stopRefresh();
+  const panel=window.LogCardsUI?.sheet?.(person?.name?`Chat met ${person.name}`:'Chat','<p role="status">Gesprek laden…</p>');if(!panel)return false;panel.dataset.connectionChatLocalId=String(localId);activePanel=panel;stopRefresh();
   try{
     const current=await fetchDocument(item),body=panel.querySelector('.cards-dialog-body')||panel;body.innerHTML=`<div class="log-connection-chat-messages" data-connection-chat-messages>${messageMarkup(current.document,person)}</div><div class="log-connection-chat-compose"><input data-connection-chat-input maxlength="2000" placeholder="Bericht"><button type="button" class="btn" data-connection-chat-send>Stuur</button></div><p class="log-connection-chat-status" role="status" data-connection-chat-status></p>`;
     const input=body.querySelector('[data-connection-chat-input]'),send=body.querySelector('[data-connection-chat-send]'),status=body.querySelector('[data-connection-chat-status]');

@@ -1,7 +1,7 @@
 (function(){
 'use strict';
 
-const BUILD='0.40.5';
+const BUILD='0.40.7';
 const TIME='urenregistratie.test.pwa.v1';
 const STORE='log-test-person-connections-v1';
 let activeLocalId='';
@@ -23,7 +23,7 @@ function ensureChat(){
   if(loadingChat)return loadingChat;
   loadingChat=(async()=>{
     let script=[...document.scripts].find(item=>item.dataset.logConnectionChat==='1'||item.src.includes('/connection-chat.js'));
-    if(!script){script=document.createElement('script');script.src=`./connection-chat.js?v=${BUILD}-chat3`;script.async=false;script.dataset.logConnectionChat='1';document.head.appendChild(script);}
+    if(!script){script=document.createElement('script');script.src=`./connection-chat.js?v=${BUILD}`;script.async=false;script.dataset.logConnectionChat='1';document.head.appendChild(script);}
     try{return await waitForChat();}finally{loadingChat=null;}
   })();
   return loadingChat;
