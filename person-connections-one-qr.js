@@ -1,7 +1,7 @@
 (function(){
 'use strict';
 
-const BUILD='0.40.9';
+const BUILD='0.40.10';
 const TIME='urenregistratie.test.pwa.v1';
 const STORE='log-test-person-connections-v1';
 const ENDPOINT='https://sharon.life/log/api/connections.php';
@@ -69,19 +69,78 @@ async function api(method,id='',body=null,token=''){
 function makeCode(id){return`log-connect-v2:${id}`;}
 function parseCode(value){const match=String(value||'').trim().match(CODE);return match?{connectionId:match[1],code:String(value).trim()}:null;}
 
+function connectionToken(item){return String(item?.accessToken||item?.ownerToken||'');}
+function retireLocal(item,patch={}){
+  if(!item?.connectionId)return null;
+  return saveItem(item.connectionId,{...patch,status:'revoked',revoked:true,endedAt:new Date().toISOString(),replacedAt:new Date().toISOString(),cache:null});
+}
+async function closeOldConnection(item,{allowMissing=true}={}){
+  if(!item?.connectionId)return;
+  const token=connectionToken(item);
+  if(!token){throw Error('De oude verbinding mist de lokale toegangssleutel en kan daarom niet veilig online worden afgesloten.');}
+  try{
+    await api('POST','',{action:'revoke',id:item.connectionId},token);
+  }catch(error){
+    if(allowMissing&&(error?.status===404||error?.status===410)){retireLocal(item,{remoteMissing:true});return;}
+    throw Error(error?.status===403?'De oude online verbinding hoort niet meer bij de lokale toegangssleutel. Maak eerst de oude verbinding op het andere apparaat ongeldig.':'De oude online verbinding kon niet veilig worden afgesloten. Probeer opnieuw zodra de verbinding met de server beschikbaar is.');
+  }
+  retireLocal(item,{remoteRevoked:true});
+}
+async function refreshExisting(localId,item){
+  if(!item?.connectionId||item.revoked)return null;
+  const token=connectionToken(item);if(!token){retireLocal(item,{missingAccessToken:true});return null;}
+  let remote;
+  try{remote=await api('GET',item.connectionId,null,token);}
+  catch(error){if(error?.status===404||error?.status===410){retireLocal(item,{remoteMissing:true});return null;}throw error;}
+  if(remote.revoked){retireLocal(item,{remoteRevoked:true,revision:Number(remote.revision)||item.revision});return null;}
+  if(!remote.payload)return item;
+  let document;try{document=await decrypt(remote.payload,item.connectionId);}catch(_){return item;}
+  let status=item.status;
+  if(document.status==='rejected')status='rejected';
+  else if(document.status==='connected')status='connected';
+  else if(document.status==='pending_owner')status=item.role==='owner'?'pending_in':'pending_out';
+  else if(document.status==='pending')status=item.role==='owner'?'pending_out':'pending_in';
+  const saved=saveItem(item.connectionId,{revision:Number(remote.revision)||item.revision,status,cache:document,revoked:false});
+  if(status==='rejected'){retireLocal(saved,{remoteRejected:true});return null;}
+  if(item.role==='owner'&&status==='pending_in'){setTimeout(()=>showOwnerConfirmation(String(saved.pendingLocalId||saved.otherPersonId||localId)),0);}
+  return saved;
+}
+async function restartConnection(localId,{confirmFirst=true}={}){
+  const person=personById(localId);if(!person)throw Error('Persoon niet gevonden.');
+  const current=currentForLocal(localId);
+  if(current?.status==='connected'&&!current.revoked)throw Error('Deze persoon is al verbonden. Verbreek eerst de actieve verbinding als je een nieuwe identiteit wilt koppelen.');
+  if(current&&confirmFirst&&!confirm('Huidige verbindingspoging sluiten en een nieuwe QR-code maken? De persoon en PersonId blijven behouden.'))return null;
+  if(current)await closeOldConnection(current);
+  return createOpenRequest(localId,{force:true});
+}
 function showOutgoing(item,person,panel=null){
   const code=makeCode(item.connectionId),target=panel?.isConnected?panel:null;
   const body=target?panelBody(target):null;
-  const content=`<div class="log-oneqr-profile"><strong>${esc(person?.name||'Persoon')}</strong><span>één QR · wederzijds akkoord</span></div><div class="log-oneqr-qr">${qrSvg(code)}</div><div class="log-oneqr-code"><small>ConnectionId</small><strong>${esc(item.connectionId)}</strong></div><p class="cards-notice">Laat de andere persoon alleen jouw QR scannen. Die persoon bevestigt jou en geeft daarbij zijn of haar eigen Log-identiteit binnen deze verbinding vrij. Jij bevestigt die identiteit daarna nog één keer voordat de verbinding actief wordt.</p><button type="button" class="btn secondary full" data-oneqr-copy>12-teken code kopiëren</button><p role="status" data-oneqr-status></p>`;
+  const content=`<div class="log-oneqr-profile"><strong>${esc(person?.name||'Persoon')}</strong><span>één QR · wederzijds akkoord</span></div><div class="log-oneqr-qr">${qrSvg(code)}</div><div class="log-oneqr-code"><small>ConnectionId</small><strong>${esc(item.connectionId)}</strong></div><p class="cards-notice">Laat de andere persoon alleen jouw QR scannen. Die persoon bevestigt jou en geeft daarbij zijn of haar eigen Log-identiteit binnen deze verbinding vrij. Jij bevestigt die identiteit daarna nog één keer voordat de verbinding actief wordt.</p><button type="button" class="btn secondary full" data-oneqr-copy>12-teken code kopiëren</button><button type="button" class="btn secondary full" data-oneqr-restart>Nieuwe QR maken</button><p role="status" data-oneqr-status></p>`;
   const host=target||sheet('Verbinden',content);if(!host)return;
   host.dataset.oneQrConnectionId=String(item.connectionId);
   host.dataset.oneQrStage='outgoing';
   if(body)body.innerHTML=content;
-  const status=host.querySelector('[data-oneqr-status]');host.querySelector('[data-oneqr-copy]')?.addEventListener('click',async()=>{if(status)status.textContent=await copy(code)?'Verbindingscode gekopieerd.':'Kopiëren wordt op dit apparaat niet ondersteund.';});
+  const status=host.querySelector('[data-oneqr-status]');
+  host.querySelector('[data-oneqr-copy]')?.addEventListener('click',async()=>{if(status)status.textContent=await copy(code)?'Verbindingscode gekopieerd.':'Kopiëren wordt op dit apparaat niet ondersteund.';});
+  host.querySelector('[data-oneqr-restart]')?.addEventListener('click',()=>restartConnection(String(person?.id||item.pendingLocalId||item.otherPersonId||'' )).catch(error=>{if(status)status.textContent=error.message;}));
 }
-async function createOpenRequest(localId){
+async function createOpenRequest(localId,{force=false}={}){
   const person=personById(localId);if(!person)throw Error('Persoon niet gevonden.');
-  const existing=currentForLocal(localId);if(existing){showOutgoing(existing,person);return existing;}
+  if(!force){
+    const existing=currentForLocal(localId);
+    if(existing){
+      if(existing.status==='connected'&&!existing.revoked)return existing;
+      let refreshed;
+      try{refreshed=await refreshExisting(localId,existing);}
+      catch(error){showStartError(null,person,localId,error);error.__logConnectionShown=true;throw error;}
+      if(refreshed){
+        if(refreshed.role==='owner'&&refreshed.status==='pending_in'){showOwnerConfirmation(localId);return refreshed;}
+        if(refreshed.role==='owner'&&refreshed.status==='pending_out'){showOutgoing(refreshed,person);return refreshed;}
+        if(refreshed.role==='member'&&refreshed.status==='pending_out'){sheet('Verbinden',`<div class="log-oneqr-profile"><strong>${esc(person.name||'Persoon')}</strong><span>wacht op bevestiging</span></div><p class="cards-notice">Jouw identiteit is al binnen deze verbinding vrijgegeven. De andere persoon moet jou nog bevestigen.</p><button type="button" class="btn secondary full" data-oneqr-restart-wait>Nieuwe QR maken</button>`)?.querySelector('[data-oneqr-restart-wait]')?.addEventListener('click',()=>restartConnection(localId).catch(error=>sheet('Verbinden',`<p class="cards-notice">${esc(error.message)}</p>`)));return refreshed;}
+      }
+    }
+  }
   const panel=startPanel(person);
   try{
     const ownerPersonId=selfId();if(!VALID.test(ownerPersonId))throw Error('Eigen PersonId is nog niet beschikbaar. Open Instellingen → Mijn Log & samenwerking één keer en probeer opnieuw.');
@@ -254,7 +313,7 @@ function init(){
   window.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')syncOwners();});
   document.addEventListener('click',event=>{if(event.target.closest?.('[data-card-close]'))setTimeout(()=>syncOwners(),80);},true);
   setTimeout(syncOwners,1200);setInterval(()=>{if(document.visibilityState==='visible')syncOwners();},3000);
-  window.LogOneQrConnections={createOpenRequest,previewInvite,syncOwners,parseCode,showOwnerConfirmation,ownerDecision};
+  window.LogOneQrConnections={createOpenRequest,restartConnection,refreshExisting,previewInvite,syncOwners,parseCode,showOwnerConfirmation,ownerDecision};
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();

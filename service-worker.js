@@ -1,4 +1,4 @@
-const BUILD='0.40.9';
+const BUILD='0.40.10';
 const CACHE=`kmreg-shell-${BUILD}`;
 const CORE=[
   './','./index.html','./manifest.webmanifest','./app-icon.svg',
