@@ -109,3 +109,39 @@ Taken/uren worden bewust per persoon voorgelegd, zodat toegewezen minuten en acc
 Een individuele deelnemer uit een bestaande versleutelde groepssamenwerking verwijderen is nog niet als gebruikersactie vrijgegeven: daarvoor moet ook de gedeelde inhoudssleutel worden geroteerd. De eigenaar kan de volledige samenwerking wel veilig beëindigen; daarbij wordt de online payload verwijderd en de samenwerking ingetrokken.
 
 Live/productie hoeft voor deze test niet te worden gewijzigd.
+
+
+## Gedeelde JSON-uitbreiding voor Sharon
+
+Hetzelfde connections.php ondersteunt nu ook verzoeken met protocol
+sharon-network-v1. Upload de bijgewerkte test/server/connections.php naar het
+bestaande /log/api/connections.php. Er is geen aparte serverdienst, database
+of nieuwe publicatiesleutel nodig. De oorspronkelijke Log-routes en bestanden
+blijven behouden.
+
+De uitbreiding gebruikt de bestaande /log/private/publish-secret.php om één
+startcode voor de eigenaar te maken. Dat kan in Sharon via Personen → Eigen
+installatie activeren. De publicatiesleutel wordt niet in de QR-code gezet.
+Daarna gebruiken installaties hun eigen willekeurige toegangssleutel; alleen
+de hashes staan in het netwerkdocument.
+
+Het endpoint maakt automatisch /log/private/connections/network-v1.json met
+een 12-teken netwerk-ID, personen, relaties van type grants-access en chat,
+uitnodigingen en berichten. Een vast zijbestand met flock en atomair vervangen
+van JSON beschermen gelijktijdige wijzigingen. De eigenaar telt niet mee bij
+de eerste 100 deelnemers; toegang wordt tot drie uitnodigingslijnen afgeleid.
+Ingetrokken deelnemers houden hun plek en hun oorspronkelijke relatie-ID.
+
+Controleer na upload dat network-v1.json via HTTP 403 of 404 geeft. De code
+maakt bij ontbreken een .htaccess met Require all denied in de connections-
+map. Bestaande regels worden niet vervangen. Een andere webserver moet zelf
+de private map blokkeren. Nieuwe Sharon-berichten staan als tekst in deze
+private JSON; bestaande versleutelde Log-payloads worden niet gewijzigd.
+
+Een bestaande Log-chat verschijnt hiermee niet automatisch in Sharon. De
+uitbreiding deelt het endpoint en de JSON-opslag, zonder reeds bestaande
+verbindingsbestanden of persoonlijke identiteiten stilzwijgend over te nemen.
+
+De complete gebruiksinstructies staan in Sharon onder
+docs/Personen-en-serververbinding.md. Een GitHub-merge uploadt geen PHP naar
+Strato: daarvoor blijft het vervangen van dit ene bestaande bestand nodig.
