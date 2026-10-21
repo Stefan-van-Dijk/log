@@ -150,7 +150,7 @@ final class LogNetwork {
                     }
                 } else {
                     $invite=$this->state['invitations'][$hash] ?? null;
-                    if (!$invite || $invite['recipientId']!==$pid) throw new LogNetworkError('invalid_invitation',403);
+                    if (!$invite || ($invite['recipientId']!==null && $invite['recipientId']!==$pid) || $invite['issuerId']===$pid) throw new LogNetworkError('invalid_invitation',403);
                     $issuer=$this->state['people'][$invite['issuerId']] ?? null;
                     $grant=$issuer ? $this->grant($issuer['id']) : null;
                     if (!$issuer || ($grant && $grant['status']!=='active') || $this->line($issuer['id'])===null)
@@ -166,10 +166,17 @@ final class LogNetwork {
                         $pair=[$issuer['id'],$pid]; sort($pair,SORT_STRING); $exists=false;
                         foreach ($this->state['relations'] as $r) if ($r['type']==='chat' && [$r['fromId'],$r['toId']]===$pair) $exists=true;
                         if (!$exists) { $r=$this->relation($pair[0],$pair[1],'chat'); $this->state['relations'][$r['id']]=$r; }
+                        $this->state['invitations'][$hash]['recipientId']=$pid;
                         $this->state['invitations'][$hash]['claimedAt']=$this->now();
                     }
                 }
-                return ['self'=>$this->selfData($this->person($auth))];
+                $contact=null;
+                if ($action==='accept') foreach ($this->state['relations'] as $r) {
+                    if ($r['type']==='chat' && in_array($pid,[$r['fromId'],$r['toId']],true) &&
+                        in_array($issuer['id'],[$r['fromId'],$r['toId']],true))
+                        $contact=['chatId'=>$r['id'],'personId'=>$issuer['id'],'name'=>$issuer['name']];
+                }
+                return ['self'=>$this->selfData($this->person($auth)),'contact'=>$contact];
             }
             if ($action==='self') return ['self'=>$this->selfData($p)];
             $this->member($p);
@@ -182,17 +189,31 @@ final class LogNetwork {
                 return ['ok'=>true];
             }
             if ($action==='invite') {
-                $recipient=self::validId($in['recipientId'] ?? null); $grant=$this->grant($recipient);
-                if ($recipient===$pid || !isset($this->state['people'][$recipient]) || ($grant && $grant['status']!=='active'))
+                $recipient=isset($in['recipientId']) ? self::validId($in['recipientId']) : null;
+                $grant=$recipient ? $this->grant($recipient) : null;
+                if ($recipient!==null && ($recipient===$pid || !isset($this->state['people'][$recipient]) || ($grant && $grant['status']!=='active')))
                     throw new LogNetworkError('recipient_unknown',404);
-                if ($this->line($recipient)===null) {
+                if ($recipient!==null && $this->line($recipient)===null) {
                     if ($this->line($pid)>=3) throw new LogNetworkError('depth_limit',403);
                     if ($this->peopleCount()>=100) throw new LogNetworkError('capacity',409);
                 }
                 $token=self::token(); $until=$this->now()+86400;
                 $this->state['invitations'][self::hashToken($token)]=['issuerId'=>$pid,'recipientId'=>$recipient,'until'=>$until,'claimedAt'=>null];
                 return ['invitation'=>['v'=>1,'kind'=>'invite','networkId'=>$this->state['id'],
-                    'token'=>$token,'expiresAt'=>$until*1000,'recipientId'=>$recipient]];
+                    'token'=>$token,'expiresAt'=>$until*1000,...($recipient ? ['recipientId'=>$recipient] : [])]];
+            }
+            if ($action==='invite-status') {
+                $invite=$this->state['invitations'][self::hashToken($in['token'] ?? null)] ?? null;
+                if (!$invite || $invite['issuerId']!==$pid) throw new LogNetworkError('invalid_invitation',403);
+                if ($invite['claimedAt']===null) return ['claimed'=>false,'expired'=>$invite['until']<=$this->now()];
+                $other=$invite['recipientId']; $grant=$this->grant($other);
+                if ($grant && $grant['status']!=='active') throw new LogNetworkError('unauthorized',403);
+                foreach ($this->state['relations'] as $r) {
+                    if ($r['type']==='chat' && $r['status']==='active' &&
+                        in_array($pid,[$r['fromId'],$r['toId']],true) && in_array($other,[$r['fromId'],$r['toId']],true))
+                        return ['claimed'=>true,'contact'=>['chatId'=>$r['id'],'personId'=>$other,'name'=>$this->state['people'][$other]['name']]];
+                }
+                throw new LogNetworkError('chat_forbidden',403);
             }
             if ($action==='contacts') {
                 $contacts=[];
